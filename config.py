@@ -1,0 +1,18 @@
+class Config(object):
+    DEBUG = False
+    TESTING = False
+    SECRET_KEY = 'secret-key'
+    SECURITY_PASSWORD_SALT = 'salt'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    WTF_CSRF_ENABLED = False
+    SECURITY_TOKEN_AUTHENTICATION_HEADER = 'Authentication-Token'
+    SECURITY_REGISTERABLE = True
+    SECURITY_CONFIRMABLE = False
+    SECURITY_RECOVERABLE = False
+    # SECURITY_USER_IDENTITY_ATTRIBUTES = ('username', )
+    SECURITY_USERNAME_ENABLE = True
+
+
+class DevelopmentConfig(Config):
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = 'sqlite:////home/kavitaal/SE-PROJECT/SE-IITM/instance/sm_devdb.db'
