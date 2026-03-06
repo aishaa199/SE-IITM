@@ -1,0 +1,2451 @@
+<template>
+  <div class="content-layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-logo">
+        <div class="sidebar-logo-text">Glow Suite</div>
+        <div class="sidebar-logo-sub">Beauty Management</div>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">Booking & Services</div>
+        <div
+          :class="['nav-item', { active: currentView === 'dashboard' }]"
+          @click="currentView = 'dashboard'"
+        >
+          <span class="nav-icon">📊</span> Dashboard
+        </div>
+        <div
+          :class="['nav-item', { active: currentView === 'bookings' }]"
+          @click="currentView = 'bookings'"
+        >
+          <span class="nav-icon">📅</span> Bookings
+        </div>
+        <div
+          :class="['nav-item', { active: currentView === 'services' }]"
+          @click="currentView = 'services'"
+        >
+          <span class="nav-icon">💇</span> Services
+        </div>
+
+        <div class="nav-section">Management</div>
+        <div
+          :class="['nav-item', { active: currentView === 'customers' }]"
+          @click="currentView = 'customers'"
+        >
+          <span class="nav-icon">👥</span> Customers
+        </div>
+        <div
+          :class="['nav-item', { active: currentView === 'staff' }]"
+          @click="currentView = 'staff'"
+        >
+          <span class="nav-icon">👔</span> Staff
+        </div>
+
+        <div class="nav-section">Operations</div>
+        <div
+          :class="['nav-item', { active: currentView === 'inventory' }]"
+          @click="currentView = 'inventory'"
+        >
+          <span class="nav-icon">📦</span> Inventory
+        </div>
+        <div
+          :class="['nav-item', { active: currentView === 'invoices' }]"
+          @click="currentView = 'invoices'"
+        >
+          <span class="nav-icon">📋</span> Invoices
+        </div>
+        <div
+          :class="['nav-item', { active: currentView === 'finance' }]"
+          @click="currentView = 'finance'"
+        >
+          <span class="nav-icon">💰</span> Finance
+        </div>
+        <div
+          :class="['nav-item', { active: currentView === 'reports' }]"
+          @click="currentView = 'reports'"
+        >
+          <span class="nav-icon">📄</span> Download Reports
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">{{ user.name?.[0] || user.userId?.[0] }}</div>
+          <div>
+            <div class="sidebar-username">{{ user.name || user.userId }}</div>
+            <div class="sidebar-role">{{ user.role }}</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost w-full" style="margin-top: 12px; font-size: 12px" @click="showChangePasswordModal = true">
+          🔑 Change Password
+        </button>
+        <button class="btn btn-ghost w-full" style="margin-top: 8px; font-size: 12px" @click="logout">
+          Logout
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Topbar -->
+      <div class="topbar">
+        <div class="topbar-title">{{ pageTitle }}</div>
+        <div class="topbar-right">
+          <div class="search-bar">
+            <span>🔍</span>
+            <input type="text" placeholder="Search..." />
+          </div>
+          <button class="notif-btn">🔔</button>
+        </div>
+      </div>
+
+      <!-- Page Content -->
+      <div class="page-content">
+        <!-- DASHBOARD VIEW -->
+        <div v-if="currentView === 'dashboard'" class="fade-in">
+          <!-- Quick Stats -->
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-icon">📅</div>
+              <div class="stat-value">{{ todayAppointments.length }}</div>
+              <div class="stat-label">Bookings Today</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">✅</div>
+              <div class="stat-value">{{ staffPresentCount }}</div>
+              <div class="stat-label">Staff Present</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">⚠️</div>
+              <div class="stat-value">{{ lowStockItems.length }}</div>
+              <div class="stat-label">Low Stock Items</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🚚</div>
+              <div class="stat-value">{{ pendingOrders.length }}</div>
+              <div class="stat-label">Pending Orders</div>
+            </div>
+          </div>
+
+          <!-- Alerts & Today's Bookings -->
+          <div class="grid-2" style="margin-top: 24px">
+            <!-- Today's Bookings -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">📅 Today's Bookings</h3>
+              </div>
+              <div class="card-body">
+                <div v-if="todayAppointments.length === 0" class="empty-state">
+                  <div class="empty-state-icon">📅</div>
+                  <div class="empty-state-text">No bookings today</div>
+                </div>
+                <div v-for="appt in todayAppointments" :key="appt.id" class="booking-item">
+                  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
+                    <div class="booking-time">{{ getTimeFromDate(appt.date) }}</div>
+                    <div>
+                      <div style="font-weight: 600">{{ getCustomerName(appt.customerId) }}</div>
+                      <div class="text-muted">{{ getServiceName(appt.serviceId) }}</div>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; justify-content: space-between">
+                    <div class="text-muted" style="font-size: 12px">Staff: {{ getStaffName(appt.staffId) || "Unassigned" }}</div>
+                    <span :class="['badge', apptStatusBadge(appt.status)]">{{ appt.status }}</span>
+                  </div>
+                  <div style="height: 1px; background: var(--border); margin: 8px 0"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Alerts Widget -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">⚡ Alerts & Notifications</h3>
+              </div>
+              <div class="card-body">
+                <div v-if="systemAlerts.length === 0" class="empty-state">
+                  <div class="empty-state-icon">✅</div>
+                  <div class="empty-state-text">All systems operational</div>
+                </div>
+                <div v-for="(alert, idx) in systemAlerts" :key="idx" :class="['alert-item', alert.type]">
+                  <div class="alert-icon">{{ alert.icon }}</div>
+                  <div style="flex: 1">
+                    <div class="alert-title">{{ alert.title }}</div>
+                    <div class="alert-message">{{ alert.message }}</div>
+                  </div>
+                  <div class="alert-time">{{ alert.time }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BOOKINGS VIEW -->
+        <div v-if="currentView === 'bookings'" class="fade-in">
+          <!-- New Booking Form -->
+          <div class="card" style="margin-bottom: 20px">
+            <div class="card-header">
+              <h3 class="card-title">➕ Create New Booking</h3>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="handleCreateBooking" style="max-width: 800px">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label for="booking-customer">Customer Name *</label>
+                    <select 
+                      id="booking-customer"
+                      v-model="bookingForm.customerId"
+                      class="form-input"
+                      required
+                    >
+                      <option value="">Select a customer</option>
+                      <option v-for="customer in data.customers" :key="customer.id" :value="customer.id">
+                        {{ customer.name }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="booking-service">Service *</label>
+                    <select 
+                      id="booking-service"
+                      v-model="bookingForm.serviceId"
+                      class="form-input"
+                      required
+                    >
+                      <option value="">Select a service</option>
+                      <option v-for="service in data.services" :key="service.id" :value="service.id">
+                        {{ service.name }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="booking-date">Date *</label>
+                    <input 
+                      id="booking-date"
+                      v-model="bookingForm.date"
+                      type="date"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="booking-time">Time *</label>
+                    <input 
+                      id="booking-time"
+                      v-model="bookingForm.time"
+                      type="time"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="booking-stylist">Stylist (Optional)</label>
+                    <select 
+                      id="booking-stylist"
+                      v-model="bookingForm.staffId"
+                      class="form-input"
+                    >
+                      <option value="">Unassigned</option>
+                      <option v-for="staff in data.staff" :key="staff.id" :value="staff.id">
+                        {{ staff.name }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <div v-if="bookingError" class="error-message">{{ bookingError }}</div>
+                <div v-if="bookingSuccess" class="success-message">{{ bookingSuccess }}</div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
+                  Create Booking
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Horizontal Calendar Strip -->
+          <div class="card" style="margin-bottom: 20px">
+            <div class="card-header">
+              <h3 class="card-title">📆 Calendar - {{ currentMonthYear }}</h3>
+            </div>
+            <div class="card-body" style="padding: 12px; overflow-x: auto">
+              <div style="display: flex; gap: 8px; min-width: min-content">
+                <div v-for="date in upcomingDates" :key="date" 
+                     :class="['calendar-date-horizontal', { 'has-bookings': getDateBookings(date).length > 0, 'selected': selectedDate === date }]"
+                     @click="selectedDate = date"
+                     style="cursor: pointer; flex-shrink: 0">
+                  <div style="font-size: 11px; color: inherit">{{ formatDateShort(date) }}</div>
+                  <div v-if="getDateBookings(date).length > 0" style="font-size: 12px; font-weight: 600; margin-top: 4px">{{ getDateBookings(date).length }} 📅</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bookings List -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">📅 {{ selectedDate ? 'Bookings - ' + formatDateShort(selectedDate) : "All Bookings" }}</h3>
+            </div>
+            <div class="card-body">
+              <div v-if="displayedBookings.length === 0" class="empty-state">
+                <div class="empty-state-icon">📅</div>
+                <div class="empty-state-text">{{ selectedDate ? 'No bookings on this date' : 'No bookings' }}</div>
+              </div>
+              <div v-for="appt in displayedBookings" :key="appt.id" class="booking-item">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
+                  <div class="booking-time">{{ getTimeFromDate(appt.date) }}</div>
+                  <div>
+                    <div style="font-weight: 600">{{ getCustomerName(appt.customerId) }}</div>
+                    <div class="text-muted">{{ getServiceName(appt.serviceId) }}</div>
+                  </div>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between">
+                  <div style="display: flex; align-items: center; gap: 12px; flex: 1">
+                    <div class="text-muted" style="font-size: 12px">Staff: {{ getStaffName(appt.staffId) || "Unassigned" }}</div>
+                    <span :class="['badge', apptStatusBadge(appt.status)]">{{ appt.status }}</span>
+                  </div>
+                  <div style="display: flex; gap: 6px">
+                    <button class="btn btn-sm btn-outline" @click="handleEditBooking(appt)" style="padding: 4px 8px; font-size: 11px">
+                      ✎ Edit
+                    </button>
+                    <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #e74c3c; border-color: #e74c3c" @click="handleDeleteBooking(appt.id)">
+                      🗑 Delete
+                    </button>
+                  </div>
+                </div>
+                <div style="height: 1px; background: var(--border); margin: 8px 0"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SERVICES VIEW -->
+        <div v-if="currentView === 'services'" class="fade-in">
+          <!-- Add Service Form -->
+          <div class="card" style="margin-bottom: 20px">
+            <div class="card-header">
+              <h3 class="card-title">➕ Add New Service</h3>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="handleAddService" style="max-width: 800px">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label for="service-name">Service Name *</label>
+                    <input 
+                      id="service-name"
+                      v-model="serviceForm.name"
+                      type="text"
+                      placeholder="e.g., Hair Cut & Style"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="service-category">Category *</label>
+                    <select 
+                      id="service-category"
+                      v-model="serviceForm.categoryId"
+                      class="form-input"
+                      required
+                    >
+                      <option value="">Select a category</option>
+                      <option v-for="cat in data.serviceCategories" :key="cat.id" :value="cat.id">
+                        {{ cat.name }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="service-price">Price (₹) *</label>
+                    <input 
+                      id="service-price"
+                      v-model.number="serviceForm.price"
+                      type="number"
+                      placeholder="e.g., 85"
+                      class="form-input"
+                      required
+                      min="0"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="service-duration">Duration (minutes) *</label>
+                    <input 
+                      id="service-duration"
+                      v-model.number="serviceForm.duration"
+                      type="number"
+                      placeholder="e.g., 60"
+                      class="form-input"
+                      required
+                      min="15"
+                    />
+                  </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="service-products">Products Required (comma-separated)</label>
+                    <input 
+                      id="service-products"
+                      v-model="serviceForm.productsRequired"
+                      type="text"
+                      placeholder="e.g., L'Oreal Serum, Bleach Powder"
+                      class="form-input"
+                    />
+                  </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="service-rating">Average Rating</label>
+                    <input 
+                      id="service-rating"
+                      v-model.number="serviceForm.rating"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="5"
+                      placeholder="e.g., 4.8"
+                      class="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div v-if="serviceError" class="error-message">{{ serviceError }}</div>
+                <div v-if="serviceSuccess" class="success-message">{{ serviceSuccess }}</div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
+                  Add Service
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Services Table -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">All Services</h3>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Service Name</th>
+                      <th>Category</th>
+                      <th>Price</th>
+                      <th>Duration (min)</th>
+                      <th>Products Required</th>
+                      <th>Rating</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="service in data.services" :key="service.id">
+                      <td>{{ service.name }}</td>
+                      <td>{{ getCategoryName(service.categoryId) }}</td>
+                      <td>₹{{ service.price }}</td>
+                      <td>{{ service.duration }}</td>
+                      <td class="text-muted" style="font-size: 12px">{{ service.productsRequired || "None" }}</td>
+                      <td>{{ service.rating ? service.rating + ' ⭐' : 'No rating' }}</td>
+                      <td>
+                        <div style="display: flex; gap: 6px">
+                          <button class="btn btn-sm btn-outline" @click="handleEditService(service)" style="padding: 4px 8px; font-size: 12px">
+                            ✎ Edit
+                          </button>
+                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click="handleDeleteService(service.id)">
+                            🗑 Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CUSTOMERS VIEW -->
+        <div v-if="currentView === 'customers'" class="fade-in">
+          <!-- Add Customer Form -->
+          <div class="card" style="margin-bottom: 20px">
+            <div class="card-header">
+              <h3 class="card-title">➕ Add New Customer</h3>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="handleAddCustomer" style="max-width: 800px">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label for="customer-name">Name *</label>
+                    <input 
+                      id="customer-name"
+                      v-model="customerForm.name"
+                      type="text"
+                      placeholder="e.g., Sofia Mensah"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="customer-email">Email *</label>
+                    <input 
+                      id="customer-email"
+                      v-model="customerForm.email"
+                      type="email"
+                      placeholder="e.g., sofia@email.com"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="customer-phone">Phone *</label>
+                    <input 
+                      id="customer-phone"
+                      v-model="customerForm.phone"
+                      type="tel"
+                      placeholder="e.g., 030-111-2222"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="customer-dob">Date of Birth *</label>
+                    <input 
+                      id="customer-dob"
+                      v-model="customerForm.dob"
+                      type="date"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="customer-address">Address</label>
+                    <input 
+                      id="customer-address"
+                      v-model="customerForm.address"
+                      type="text"
+                      placeholder="e.g., 14 Cantonments Rd"
+                      class="form-input"
+                    />
+                  </div>
+                </div>
+
+                <div v-if="customerError" class="error-message">{{ customerError }}</div>
+                <div v-if="customerSuccess" class="success-message">{{ customerSuccess }}</div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
+                  Add Customer
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Customers Table -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">All Customers</h3>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Address</th>
+                      <th>Registered</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="customer in data.customers" :key="customer.id">
+                      <td>{{ customer.name }}</td>
+                      <td>{{ customer.email }}</td>
+                      <td>{{ customer.phone }}</td>
+                      <td class="text-muted">{{ customer.address || "N/A" }}</td>
+                      <td>{{ customer.registrationDate }}</td>
+                      <td>
+                        <div style="display: flex; gap: 6px">
+                          <button class="btn btn-sm btn-outline" @click="handleEditCustomer(customer)" style="padding: 4px 8px; font-size: 12px">
+                            ✎ Edit
+                          </button>
+                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click="handleDeleteCustomer(customer.id)">
+                            🗑 Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STAFF VIEW -->
+        <div v-if="currentView === 'staff'" class="fade-in">
+          <!-- Add Staff Form -->
+          <div class="card" style="margin-bottom: 20px">
+            <div class="card-header">
+              <h3 class="card-title">➕ Add New Staff</h3>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="handleAddStaff" style="max-width: 800px">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label for="staff-name">Name *</label>
+                    <input 
+                      id="staff-name"
+                      v-model="staffForm.name"
+                      type="text"
+                      placeholder="e.g., Amara Osei"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="staff-role">Role *</label>
+                    <input 
+                      id="staff-role"
+                      v-model="staffForm.role"
+                      type="text"
+                      placeholder="e.g., Senior Stylist"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="staff-email">Email *</label>
+                    <input 
+                      id="staff-email"
+                      v-model="staffForm.email"
+                      type="email"
+                      placeholder="e.g., amara@glowsuite.com"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="staff-phone">Phone *</label>
+                    <input 
+                      id="staff-phone"
+                      v-model="staffForm.phone"
+                      type="tel"
+                      placeholder="e.g., 050-111-2222"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="staff-doj">Date of Joining *</label>
+                    <input 
+                      id="staff-doj"
+                      v-model="staffForm.doj"
+                      type="date"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="staff-salary">Salary (₹) *</label>
+                    <input 
+                      id="staff-salary"
+                      v-model.number="staffForm.salary"
+                      type="number"
+                      placeholder="e.g., 2000"
+                      class="form-input"
+                      required
+                      min="0"
+                    />
+                  </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="staff-userid">User ID *</label>
+                    <input 
+                      id="staff-userid"
+                      v-model="staffForm.userId"
+                      type="text"
+                      placeholder="e.g., amara01"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div v-if="staffError" class="error-message">{{ staffError }}</div>
+                <div v-if="staffSuccess" class="success-message">{{ staffSuccess }}</div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
+                  Add Staff
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Staff Members Table -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">👔 Staff Members</h3>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Role</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Date of Joining</th>
+                      <th>Attendance</th>
+                      <th>Today's Appts</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="staff in data.staff" :key="staff.id">
+                      <td>{{ staff.name }}</td>
+                      <td>{{ staff.role }}</td>
+                      <td>{{ staff.email }}</td>
+                      <td>{{ staff.phone }}</td>
+                      <td>{{ staff.doj }}</td>
+                      <td><span :class="['badge', staffAttendanceBadge(staff.id)]">{{ getStaffAttendance(staff.id) }}</span></td>
+                      <td><span style="font-weight: 600">{{ getStaffAppointments(staff.id) }}</span></td>
+                      <td><span :class="['badge', staff.status === 'active' ? 'badge-green' : 'badge-red']">{{ staff.status }}</span></td>
+                      <td>
+                        <div style="display: flex; gap: 6px">
+                          <button class="btn btn-sm btn-outline" @click="handleEditStaff(staff)" style="padding: 4px 8px; font-size: 12px">
+                            ✎ Edit
+                          </button>
+                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click="handleDeleteStaff(staff.id)">
+                            🗑 Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- INVENTORY VIEW -->
+        <div v-if="currentView === 'inventory'" class="fade-in">
+          <!-- Add Product/Inventory Form -->
+          <div class="card" style="margin-bottom: 20px">
+            <div class="card-header">
+              <h3 class="card-title">➕ Add New Product</h3>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="handleAddProduct" style="max-width: 800px">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label for="product-name">Product Name *</label>
+                    <input 
+                      id="product-name"
+                      v-model="inventoryForm.name"
+                      type="text"
+                      placeholder="e.g., L'Oreal Serum"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="product-category">Category *</label>
+                    <input 
+                      id="product-category"
+                      v-model="inventoryForm.categoryName"
+                      type="text"
+                      placeholder="e.g., Hair Care"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="product-stock">Stock Quantity *</label>
+                    <input 
+                      id="product-stock"
+                      v-model.number="inventoryForm.stock"
+                      type="number"
+                      placeholder="e.g., 10"
+                      class="form-input"
+                      required
+                      min="0"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="product-unit">Unit *</label>
+                    <input 
+                      id="product-unit"
+                      v-model="inventoryForm.unit"
+                      type="text"
+                      placeholder="e.g., bottle, pack, tube"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="product-minstock">Minimum Stock *</label>
+                    <input 
+                      id="product-minstock"
+                      v-model.number="inventoryForm.minStock"
+                      type="number"
+                      placeholder="e.g., 5"
+                      class="form-input"
+                      required
+                      min="0"
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="product-costprice">Cost Price (₹) *</label>
+                    <input 
+                      id="product-costprice"
+                      v-model.number="inventoryForm.costPrice"
+                      type="number"
+                      placeholder="e.g., 45"
+                      class="form-input"
+                      required
+                      min="0"
+                    />
+                  </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="product-supplier">Supplier *</label>
+                    <input 
+                      id="product-supplier"
+                      v-model="inventoryForm.supplier"
+                      type="text"
+                      placeholder="e.g., BeautyPro Ltd"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div v-if="inventoryError" class="error-message">{{ inventoryError }}</div>
+                <div v-if="inventorySuccess" class="success-message">{{ inventorySuccess }}</div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
+                  Add Product
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Inventory Table -->
+          <div class="card" style="margin-bottom: 24px">
+            <div class="card-header">
+              <h3 class="card-title">📦 All Products</h3>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Product</th>
+                      <th>Category</th>
+                      <th>Stock</th>
+                      <th>Min Stock</th>
+                      <th>Cost Price</th>
+                      <th>Supplier</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="product in data.products" :key="product.id">
+                      <td>{{ product.name }}</td>
+                      <td>{{ product.categoryName }}</td>
+                      <td><span :class="['badge', product.stock <= product.minStock ? 'badge-red' : 'badge-green']">{{ product.stock }} {{ product.unit }}</span></td>
+                      <td>{{ product.minStock }}</td>
+                      <td>₹{{ product.costPrice }}</td>
+                      <td class="text-muted">{{ product.supplier }}</td>
+                      <td>
+                        <div style="display: flex; gap: 6px">
+                          <button class="btn btn-sm btn-outline" @click="handleEditProduct(product)" style="padding: 4px 8px; font-size: 12px">
+                            ✎ Edit
+                          </button>
+                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click="handleDeleteProduct(product.id)">
+                            🗑 Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Low Stock Alert & Pending Orders Side by Side -->
+          <div class="grid-2">
+            <!-- Low Stock Alert -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">⚠️ Low Stock Items</h3>
+              </div>
+              <div class="card-body">
+                <div v-if="lowStockItems.length === 0" class="empty-state">
+                  <div class="empty-state-icon">📦</div>
+                  <div class="empty-state-text">All items stocked</div>
+                </div>
+                <div v-for="product in lowStockItems" :key="product.id" class="low-stock-item">
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px">
+                    <div>
+                      <div style="font-weight: 600">{{ product.name }}</div>
+                      <div class="text-muted">{{ product.categoryName }}</div>
+                    </div>
+                    <span class="badge badge-red">{{ product.stock }} {{ product.unit }}</span>
+                  </div>
+                  <div class="progress-bar">
+                    <div class="progress-fill" :style="{ width: stockPercentage(product) + '%', background: statusColor(product) }"></div>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; margin-top: 6px; font-size: 12px">
+                    <span class="text-muted">Min: {{ product.minStock }}</span>
+                    <span :style="{ color: statusColor(product) }">{{ stockStatus(product) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pending Orders -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">🚚 Pending Orders</h3>
+              </div>
+              <div class="card-body">
+                <div v-if="pendingOrders.length === 0" class="empty-state">
+                  <div class="empty-state-icon">✅</div>
+                  <div class="empty-state-text">No pending orders</div>
+                </div>
+                <div v-for="order in pendingOrders" :key="order.id" class="order-item">
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px">
+                    <div>
+                      <div style="font-weight: 600">{{ getProductNameForOrder(order.productId) }}</div>
+                      <div class="text-muted">Ordered: {{ order.date }}</div>
+                    </div>
+                    <span class="badge badge-gold">{{ order.qty }} units</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <span style="flex: 1" class="text-muted">📝 {{ order.notes }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FINANCE VIEW -->
+        <div v-if="currentView === 'finance'" class="fade-in">
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-icon">💰</div>
+              <div class="stat-value">{{ totalRevenue }}</div>
+              <div class="stat-label">Total Revenue</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📦</div>
+              <div class="stat-value">₹{{ productInventoryCost.toLocaleString() }}</div>
+              <div class="stat-label">Product Cost</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📈</div>
+              <div class="stat-value">{{ netProfit }}</div>
+              <div class="stat-label">Net Profit</div>
+            </div>
+          </div>
+
+          <!-- Balance Sheet -->
+          <div class="card" style="margin-bottom: 24px">
+            <div class="card-header">
+              <h3 class="card-title">📊 Balance Sheet</h3>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Item</th>
+                      <th style="text-align: right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style="font-weight: 600">Total Revenue</td>
+                      <td style="text-align: right; font-weight: 600; color: var(--gold)">₹{{ totalProductCost.toLocaleString() }}</td>
+                    </tr>
+                    <tr style="border-top: 1px solid var(--border); border-bottom: 1px solid var(--border)">
+                      <td colspan="2" style="padding: 8px 0; font-size: 12px; color: var(--text-muted)">Expenses:</td>
+                    </tr>
+                    <tr>
+                      <td style="padding-left: 24px">Staff Salary</td>
+                      <td style="text-align: right">₹{{ staffSalaryTotal.toLocaleString() }}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding-left: 24px">Service Commission</td>
+                      <td style="text-align: right">₹{{ serviceCommissionTotal.toLocaleString() }}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding-left: 24px">Product Cost</td>
+                      <td style="text-align: right">₹{{ productInventoryCost.toLocaleString() }}</td>
+                    </tr>
+                    <tr>
+                      <td style="padding-left: 24px">Overhead Bills</td>
+                      <td style="text-align: right">₹{{ overheadBillsTotal.toLocaleString() }}</td>
+                    </tr>
+                    <tr style="border-top: 2px solid var(--border)">
+                      <td style="font-weight: 600; padding-top: 12px">Net Profit</td>
+                      <td style="text-align: right; font-weight: 600; padding-top: 12px; color: #27ae60">₹{{ Math.max(0, calculatedNetProfit).toLocaleString() }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+
+        </div>
+
+        <!-- INVOICES VIEW -->
+        <div v-if="currentView === 'invoices'" class="fade-in">
+          <!-- Add Invoice Form -->
+          <div class="card" style="margin-bottom: 20px">
+            <div class="card-header">
+              <h3 class="card-title">➕ Create New Invoice</h3>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="handleAddInvoice" style="max-width: 800px">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label for="invoice-customer">Customer *</label>
+                    <select 
+                      id="invoice-customer"
+                      v-model="invoiceForm.customerId"
+                      class="form-input"
+                      required
+                    >
+                      <option value="">Select a customer</option>
+                      <option v-for="customer in data.customers" :key="customer.id" :value="customer.id">
+                        {{ customer.name }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="invoice-service">Service *</label>
+                    <select 
+                      id="invoice-service"
+                      v-model="invoiceForm.serviceId"
+                      class="form-input"
+                      required
+                    >
+                      <option value="">Select a service</option>
+                      <option v-for="service in data.services" :key="service.id" :value="service.id">
+                        {{ service.name }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="invoice-date">Invoice Date *</label>
+                    <input 
+                      id="invoice-date"
+                      v-model="invoiceForm.date"
+                      type="date"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="invoice-status">Status *</label>
+                    <select 
+                      id="invoice-status"
+                      v-model="invoiceForm.invoiceStatus"
+                      class="form-input"
+                      required
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="invoiced">Invoiced</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div v-if="invoiceError" class="error-message">{{ invoiceError }}</div>
+                <div v-if="invoiceSuccess" class="success-message">{{ invoiceSuccess }}</div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
+                  Create Invoice
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-icon">📋</div>
+              <div class="stat-value">{{ data.appointments.length }}</div>
+              <div class="stat-label">Total Invoices</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">✅</div>
+              <div class="stat-value">{{ invoicedAppointments.length }}</div>
+              <div class="stat-label">Paid</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">⏳</div>
+              <div class="stat-value">{{ pendingInvoices.length }}</div>
+              <div class="stat-label">Pending</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">All Invoices</h3>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Invoice ID</th>
+                      <th>Customer</th>
+                      <th>Service</th>
+                      <th>Amount</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(appt, idx) in data.appointments" :key="appt.id">
+                      <td>#INV{{ String(1000 + idx).slice(-4) }}</td>
+                      <td>{{ getCustomerName(appt.customerId) }}</td>
+                      <td>{{ getServiceName(appt.serviceId) }}</td>
+                      <td>₹{{ getServicePrice(appt.serviceId) }}</td>
+                      <td>{{ appt.date }}</td>
+                      <td><span :class="['badge', appt.invoiceStatus === 'invoiced' ? 'badge-green' : 'badge-gold']">{{ appt.invoiceStatus }}</span></td>
+                      <td>
+                        <div style="display: flex; gap: 6px">
+                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px">
+                            📄 View
+                          </button>
+                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click="handleDeleteInvoice(appt.id)">
+                            🗑 Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- REPORTS VIEW -->
+        <div v-if="currentView === 'reports'" class="fade-in">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Download Reports</h3>
+            </div>
+            <div class="card-body">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px">
+                <div class="report-item">
+                  <div class="report-icon">📊</div>
+                  <div class="report-title">Sales Report</div>
+                  <div class="text-muted" style="margin: 8px 0">Total sales and revenue summary</div>
+                  <button class="btn btn-primary w-full">📥 Download CSV</button>
+                </div>
+
+                <div class="report-item">
+                  <div class="report-icon">📅</div>
+                  <div class="report-title">Bookings Report</div>
+                  <div class="text-muted" style="margin: 8px 0">All appointments and bookings</div>
+                  <button class="btn btn-primary w-full">📥 Download CSV</button>
+                </div>
+
+                <div class="report-item">
+                  <div class="report-icon">👥</div>
+                  <div class="report-title">Staff Report</div>
+                  <div class="text-muted" style="margin: 8px 0">Staff performance and attendance</div>
+                  <button class="btn btn-primary w-full">📥 Download CSV</button>
+                </div>
+
+                <div class="report-item">
+                  <div class="report-icon">📦</div>
+                  <div class="report-title">Inventory Report</div>
+                  <div class="text-muted" style="margin: 8px 0">Stock levels and movements</div>
+                  <button class="btn btn-primary w-full">📥 Download CSV</button>
+                </div>
+
+                <div class="report-item">
+                  <div class="report-icon">💰</div>
+                  <div class="report-title">Financial Report</div>
+                  <div class="text-muted" style="margin: 8px 0">Revenue and expenses summary</div>
+                  <button class="btn btn-primary w-full">📥 Download CSV</button>
+                </div>
+
+                <div class="report-item">
+                  <div class="report-icon">⭐</div>
+                  <div class="report-title">Feedback Report</div>
+                  <div class="text-muted" style="margin: 8px 0">Customer reviews and ratings</div>
+                  <button class="btn btn-primary w-full">📥 Download CSV</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div v-if="showChangePasswordModal" class="modal-overlay" @click="showChangePasswordModal = false">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h3 class="modal-title">🔑 Change Password</h3>
+        <button class="modal-close" @click="showChangePasswordModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <form @submit.prevent="handleChangePassword">
+          <div class="form-group">
+            <label for="current-password">Current Password</label>
+            <input 
+              id="current-password"
+              v-model="passwordForm.currentPassword" 
+              type="password" 
+              placeholder="Enter current password"
+              class="form-input"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="new-password">New Password</label>
+            <input 
+              id="new-password"
+              v-model="passwordForm.newPassword" 
+              type="password" 
+              placeholder="Enter new password"
+              class="form-input"
+              required
+            />
+            <div class="form-hint">At least 8 characters</div>
+          </div>
+          <div class="form-group">
+            <label for="confirm-password">Confirm Password</label>
+            <input 
+              id="confirm-password"
+              v-model="passwordForm.confirmPassword" 
+              type="password" 
+              placeholder="Confirm new password"
+              class="form-input"
+              required
+            />
+          </div>
+          <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
+          <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
+          <div style="display: flex; gap: 12px; margin-top: 20px">
+            <button type="button" class="btn btn-outline" @click="showChangePasswordModal = false" style="flex: 1">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              Update Password
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useAppStore } from "@/stores/appStore";
+
+const router = useRouter();
+const appStore = useAppStore();
+
+const currentView = ref("dashboard");
+const selectedDate = ref(null);
+const showChangePasswordModal = ref(false);
+const passwordForm = ref({
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: ""
+});
+const passwordError = ref("");
+const passwordSuccess = ref("");
+
+// Booking form state
+const bookingForm = ref({
+  customerId: "",
+  serviceId: "",
+  date: "",
+  time: "",
+  staffId: ""
+});
+const bookingError = ref("");
+const bookingSuccess = ref("");
+
+// Service form state
+const serviceForm = ref({
+  name: "",
+  categoryId: "",
+  price: 0,
+  duration: 0,
+  productsRequired: "",
+  rating: 0
+});
+const serviceError = ref("");
+const serviceSuccess = ref("");
+
+// Customer form state
+const customerForm = ref({
+  name: "",
+  email: "",
+  phone: "",
+  dob: "",
+  address: ""
+});
+const customerError = ref("");
+const customerSuccess = ref("");
+
+// Staff form state
+const staffForm = ref({
+  name: "",
+  role: "",
+  email: "",
+  phone: "",
+  doj: "",
+  salary: 0,
+  userId: ""
+});
+const staffError = ref("");
+const staffSuccess = ref("");
+
+// Invoice form state
+const invoiceForm = ref({
+  customerId: "",
+  serviceId: "",
+  date: "",
+  invoiceStatus: "pending"
+});
+const invoiceError = ref("");
+const invoiceSuccess = ref("");
+
+// Inventory/Product form state
+const inventoryForm = ref({
+  name: "",
+  categoryName: "",
+  stock: 0,
+  unit: "",
+  minStock: 0,
+  costPrice: 0,
+  supplier: ""
+});
+const inventoryError = ref("");
+const inventorySuccess = ref("");
+
+const user = computed(() => appStore.user);
+const data = computed(() => appStore.data);
+
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const todayAppointments = computed(() => {
+  return data.value.appointments.filter(a => a.date === today());
+});
+
+const staffPresentCount = computed(() => {
+  return data.value.attendance.filter(a => a.date === today() && a.status === "present").length;
+});
+
+const lowStockItems = computed(() => {
+  return data.value.products.filter(p => p.stock <= p.minStock);
+});
+
+const pendingOrders = computed(() => {
+  return data.value.orders.filter(o => o.status === "pending");
+});
+
+const systemAlerts = computed(() => {
+  const alerts = [];
+
+  // Check for absent staff
+  const absentStaff = data.value.attendance.filter(a => a.date === today() && a.status === "absent");
+  absentStaff.forEach(att => {
+    const staff = data.value.staff.find(s => s.id === att.staffId);
+    if (staff) {
+      alerts.push({
+        type: "warning",
+        icon: "⚠️",
+        title: "Staff Absent",
+        message: `${staff.name} is marked absent today`,
+        time: "Today"
+      });
+    }
+  });
+
+  // Check for out of stock items
+  const outOfStock = data.value.products.filter(p => p.stock === 0);
+  if (outOfStock.length > 0) {
+    alerts.push({
+      type: "error",
+      icon: "🚨",
+      title: "Out of Stock",
+      message: `${outOfStock.length} item(s) are out of stock`,
+      time: "Now"
+    });
+  }
+
+  // Check for pending deliveries
+  const pendingDeliveries = data.value.orders.filter(o => o.status === "pending");
+  if (pendingDeliveries.length > 0) {
+    alerts.push({
+      type: "info",
+      icon: "🚚",
+      title: "Pending Delivery",
+      message: `${pendingDeliveries.length} order(s) awaiting delivery`,
+      time: "Pending"
+    });
+  }
+
+  return alerts;
+});
+
+const pageTitle = computed(() => {
+  const titles = {
+    dashboard: "Manager Dashboard",
+    bookings: "Bookings & Appointments",
+    services: "Services",
+    customers: "Customers",
+    staff: "Staff Management",
+    inventory: "Inventory Management",
+    invoices: "Invoices",
+    finance: "Finance & Reports",
+    reports: "Download Reports",
+  };
+  return titles[currentView.value] || "Dashboard";
+});
+
+const invoicedAppointments = computed(() => {
+  return data.value.appointments.filter(a => a.invoiceStatus === "invoiced");
+});
+
+const pendingInvoices = computed(() => {
+  return data.value.appointments.filter(a => a.invoiceStatus === "pending");
+});
+
+const totalRevenue = computed(() => {
+  return "₹" + invoicedAppointments.value
+    .reduce((sum, appt) => {
+      const service = data.value.services.find(s => s.id === appt.serviceId);
+      return sum + (service?.price || 0);
+    }, 0)
+    .toLocaleString();
+});
+
+const totalProductCost = computed(() => {
+  return invoicedAppointments.value
+    .reduce((sum, appt) => {
+      const service = data.value.services.find(s => s.id === appt.serviceId);
+      return sum + (service?.price || 0);
+    }, 0);
+});
+
+const productInventoryCost = computed(() => {
+  return data.value.products.reduce((sum, product) => {
+    return sum + (product.costPrice * product.stock);
+  }, 0);
+});
+
+const netProfit = computed(() => {
+  const revenue = totalProductCost.value;
+  const cost = productInventoryCost.value;
+  return "₹" + (revenue - cost).toLocaleString();
+});
+
+const staffSalaryTotal = computed(() => {
+  return data.value.staff.reduce((sum, staff) => {
+    return sum + (staff.salary || 0);
+  }, 0);
+});
+
+const serviceCommissionTotal = computed(() => {
+  return Math.round(totalProductCost.value * 0.05); // 5% commission on services
+});
+
+const overheadBillsTotal = computed(() => {
+  return 5000; // Fixed overhead bills amount
+});
+
+const calculatedNetProfit = computed(() => {
+  const revenue = totalProductCost.value;
+  const staffSalary = staffSalaryTotal.value;
+  const commission = serviceCommissionTotal.value;
+  const productCost = productInventoryCost.value;
+  const overhead = overheadBillsTotal.value;
+  return revenue - staffSalary - commission - productCost - overhead;
+});
+
+const currentMonthYear = computed(() => {
+  const now = new Date();
+  const months = ["January", "February", "March", "April", "May", "June", 
+                  "July", "August", "September", "October", "November", "December"];
+  return `${months[now.getMonth()]} ${now.getFullYear()}`;
+});
+
+const upcomingDates = computed(() => {
+  const dates = [];
+  const today = new Date();
+  
+  // Start from beginning of current month
+  const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+  
+  // Go through 60 days (roughly 2 months)
+  for (let i = 0; i < 60; i++) {
+    const date = new Date(startDate);
+    date.setDate(date.getDate() + i);
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    dates.push(dateStr);
+  }
+  return dates;
+});
+
+const getDateBookings = (date) => {
+  return data.value.appointments.filter(a => a.date === date);
+};
+
+const formatDateShort = (dateStr) => {
+  const [year, month, day] = dateStr.split("-");
+  const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const dayName = days[date.getDay()];
+  return `${dayName} ${parseInt(day)} / ${parseInt(month)}`;
+};
+
+const displayedBookings = computed(() => {
+  if (selectedDate.value) {
+    return getDateBookings(selectedDate.value);
+  }
+  return todayAppointments.value;
+});
+
+// Helper functions
+const getCustomerName = (id) => {
+  return data.value.customers.find(c => c.id === id)?.name || "Unknown";
+};
+
+const getServiceName = (id) => {
+  return data.value.services.find(s => s.id === id)?.name || "Unknown";
+};
+
+const getServicePrice = (id) => {
+  return data.value.services.find(s => s.id === id)?.price || 0;
+};
+
+const getStaffName = (id) => {
+  return data.value.staff.find(s => s.id === id)?.name || null;
+};
+
+const getCategoryName = (id) => {
+  return data.value.serviceCategories.find(c => c.id === id)?.name || "Unknown";
+};
+
+const getProductNameForOrder = (id) => {
+  return data.value.products.find(p => p.id === id)?.name || "Unknown";
+};
+
+const getStaffAttendance = (staffId) => {
+  const att = data.value.attendance.find(a => a.staffId === staffId && a.date === today());
+  return att?.status || "not marked";
+};
+
+const getStaffAppointments = (staffId) => {
+  return data.value.appointments.filter(a => a.staffId === staffId && a.date === today()).length;
+};
+
+const getTimeFromDate = (dateStr) => {
+  // For demo, return a time range
+  return "10:00 AM"; // In real app, parse from full datetime
+};
+
+const apptStatusBadge = (status) => {
+  const badges = {
+    completed: "badge-green",
+    "in-progress": "badge-blue",
+    confirmed: "badge-gold",
+    pending: "badge-gray",
+  };
+  return badges[status] || "badge-gray";
+};
+
+const staffAttendanceBadge = (staffId) => {
+  const attendance = getStaffAttendance(staffId);
+  return attendance === "present" ? "badge-green" : "badge-red";
+};
+
+const stockPercentage = (product) => {
+  const percentage = (product.stock / product.minStock) * 100;
+  return Math.min(100, percentage);
+};
+
+const statusColor = (product) => {
+  if (product.stock === 0) return "#e74c3c";
+  if (product.stock <= product.minStock) return "#e67e22";
+  return "#27ae60";
+};
+
+const stockStatus = (product) => {
+  if (product.stock === 0) return "Out of Stock";
+  if (product.stock <= product.minStock) return "Low Stock";
+  return "In Stock";
+};
+
+const logout = () => {
+  appStore.logout();
+  router.push("/");
+};
+
+const handleChangePassword = () => {
+  passwordError.value = "";
+  passwordSuccess.value = "";
+
+  // Validation
+  if (!passwordForm.value.currentPassword) {
+    passwordError.value = "Current password is required";
+    return;
+  }
+
+  if (!passwordForm.value.newPassword) {
+    passwordError.value = "New password is required";
+    return;
+  }
+
+  if (passwordForm.value.newPassword.length < 8) {
+    passwordError.value = "New password must be at least 8 characters";
+    return;
+  }
+
+  if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+    passwordError.value = "Passwords do not match";
+    return;
+  }
+
+  if (passwordForm.value.currentPassword === passwordForm.value.newPassword) {
+    passwordError.value = "New password must be different from current password";
+    return;
+  }
+
+  // In a real application, validate the current password with backend
+  // For now, we'll just show success and reset the form
+  passwordSuccess.value = "Password changed successfully!";
+  
+  // Reset form
+  setTimeout(() => {
+    passwordForm.value = {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: ""
+    };
+    passwordSuccess.value = "";
+    showChangePasswordModal.value = false;
+  }, 1500);
+};
+
+// Booking handlers
+const handleCreateBooking = () => {
+  bookingError.value = "";
+  bookingSuccess.value = "";
+
+  if (!bookingForm.value.customerId) {
+    bookingError.value = "Please select a customer";
+    return;
+  }
+
+  if (!bookingForm.value.serviceId) {
+    bookingError.value = "Please select a service";
+    return;
+  }
+
+  if (!bookingForm.value.date) {
+    bookingError.value = "Please select a date";
+    return;
+  }
+
+  if (!bookingForm.value.time) {
+    bookingError.value = "Please select a time";
+    return;
+  }
+
+  const newBooking = {
+    id: Math.max(...data.value.appointments.map(a => a.id || 0), 0) + 1,
+    customerId: parseInt(bookingForm.value.customerId),
+    serviceId: parseInt(bookingForm.value.serviceId),
+    date: bookingForm.value.date,
+    status: "confirmed",
+    notes: bookingForm.value.time,
+    invoiceStatus: "pending",
+    staffId: bookingForm.value.staffId ? parseInt(bookingForm.value.staffId) : null
+  };
+
+  data.value.appointments.push(newBooking);
+  bookingSuccess.value = `Booking created successfully!`;
+
+  setTimeout(() => {
+    bookingForm.value = {
+      customerId: "",
+      serviceId: "",
+      date: "",
+      time: "",
+      staffId: ""
+    };
+    bookingSuccess.value = "";
+  }, 1500);
+};
+
+// Service handlers
+const handleAddService = () => {
+  serviceError.value = "";
+  serviceSuccess.value = "";
+
+  if (!serviceForm.value.name) {
+    serviceError.value = "Service name is required";
+    return;
+  }
+
+  if (!serviceForm.value.categoryId) {
+    serviceError.value = "Please select a category";
+    return;
+  }
+
+  if (!serviceForm.value.price || serviceForm.value.price <= 0) {
+    serviceError.value = "Price must be greater than 0";
+    return;
+  }
+
+  if (!serviceForm.value.duration || serviceForm.value.duration < 15) {
+    serviceError.value = "Duration must be at least 15 minutes";
+    return;
+  }
+
+  const newService = {
+    id: Math.max(...data.value.services.map(s => s.id || 0), 0) + 1,
+    categoryId: parseInt(serviceForm.value.categoryId),
+    name: serviceForm.value.name,
+    price: serviceForm.value.price,
+    duration: serviceForm.value.duration,
+    description: `${serviceForm.value.name} service`,
+    productsRequired: serviceForm.value.productsRequired || "None",
+    rating: serviceForm.value.rating || 0
+  };
+
+  data.value.services.push(newService);
+  serviceSuccess.value = "Service added successfully!";
+
+  setTimeout(() => {
+    serviceForm.value = {
+      name: "",
+      categoryId: "",
+      price: 0,
+      duration: 0,
+      productsRequired: "",
+      rating: 0
+    };
+    serviceSuccess.value = "";
+  }, 1500);
+};
+
+const handleEditService = (service) => {
+  serviceForm.value = {
+    name: service.name,
+    categoryId: service.categoryId,
+    price: service.price,
+    duration: service.duration,
+    productsRequired: service.productsRequired || "",
+    rating: service.rating || 0
+  };
+};
+
+const handleDeleteService = (serviceId) => {
+  if (confirm("Are you sure you want to delete this service?")) {
+    const index = data.value.services.findIndex(s => s.id === serviceId);
+    if (index > -1) {
+      data.value.services.splice(index, 1);
+    }
+  }
+};
+
+// Customer handlers
+const handleAddCustomer = () => {
+  customerError.value = "";
+  customerSuccess.value = "";
+
+  if (!customerForm.value.name) {
+    customerError.value = "Customer name is required";
+    return;
+  }
+
+  if (!customerForm.value.email) {
+    customerError.value = "Email is required";
+    return;
+  }
+
+  if (!customerForm.value.phone) {
+    customerError.value = "Phone is required";
+    return;
+  }
+
+  if (!customerForm.value.dob) {
+    customerError.value = "Date of birth is required";
+    return;
+  }
+
+  const newCustomer = {
+    id: Math.max(...data.value.customers.map(c => c.id || 0), 0) + 1,
+    name: customerForm.value.name,
+    email: customerForm.value.email,
+    phone: customerForm.value.phone,
+    dob: customerForm.value.dob,
+    address: customerForm.value.address || "",
+    preferences: "",
+    registrationDate: new Date().toISOString().split('T')[0],
+    password: "pass123"
+  };
+
+  data.value.customers.push(newCustomer);
+  customerSuccess.value = "Customer added successfully!";
+
+  setTimeout(() => {
+    customerForm.value = {
+      name: "",
+      email: "",
+      phone: "",
+      dob: "",
+      address: ""
+    };
+    customerSuccess.value = "";
+  }, 1500);
+};
+
+// Staff handlers
+const handleAddStaff = () => {
+  staffError.value = "";
+  staffSuccess.value = "";
+
+  if (!staffForm.value.name) {
+    staffError.value = "Staff name is required";
+    return;
+  }
+
+  if (!staffForm.value.role) {
+    staffError.value = "Role is required";
+    return;
+  }
+
+  if (!staffForm.value.email) {
+    staffError.value = "Email is required";
+    return;
+  }
+
+  if (!staffForm.value.phone) {
+    staffError.value = "Phone is required";
+    return;
+  }
+
+  if (!staffForm.value.doj) {
+    staffError.value = "Date of joining is required";
+    return;
+  }
+
+  if (!staffForm.value.salary || staffForm.value.salary <= 0) {
+    staffError.value = "Salary must be greater than 0";
+    return;
+  }
+
+  if (!staffForm.value.userId) {
+    staffError.value = "User ID is required";
+    return;
+  }
+
+  const newStaff = {
+    id: Math.max(...data.value.staff.map(s => s.id || 0), 0) + 1,
+    name: staffForm.value.name,
+    role: staffForm.value.role,
+    email: staffForm.value.email,
+    phone: staffForm.value.phone,
+    doj: staffForm.value.doj,
+    userId: staffForm.value.userId,
+    password: "pass123",
+    status: "active",
+    registrationDate: staffForm.value.doj,
+    salary: staffForm.value.salary
+  };
+
+  data.value.staff.push(newStaff);
+  staffSuccess.value = "Staff member added successfully!";
+
+  setTimeout(() => {
+    staffForm.value = {
+      name: "",
+      role: "",
+      email: "",
+      phone: "",
+      doj: "",
+      salary: 0,
+      userId: ""
+    };
+    staffSuccess.value = "";
+  }, 1500);
+};
+
+// Invoice handlers
+const handleAddInvoice = () => {
+  invoiceError.value = "";
+  invoiceSuccess.value = "";
+
+  if (!invoiceForm.value.customerId) {
+    invoiceError.value = "Please select a customer";
+    return;
+  }
+
+  if (!invoiceForm.value.serviceId) {
+    invoiceError.value = "Please select a service";
+    return;
+  }
+
+  if (!invoiceForm.value.date) {
+    invoiceError.value = "Please select a date";
+    return;
+  }
+
+  const newInvoice = {
+    id: Math.max(...data.value.appointments.map(a => a.id || 0), 0) + 1,
+    customerId: parseInt(invoiceForm.value.customerId),
+    serviceId: parseInt(invoiceForm.value.serviceId),
+    date: invoiceForm.value.date,
+    status: "confirmed",
+    invoiceStatus: invoiceForm.value.invoiceStatus,
+    notes: "Invoice created"
+  };
+
+  data.value.appointments.push(newInvoice);
+  invoiceSuccess.value = "Invoice created successfully!";
+
+  setTimeout(() => {
+    invoiceForm.value = {
+      customerId: "",
+      serviceId: "",
+      date: "",
+      invoiceStatus: "pending"
+    };
+    invoiceSuccess.value = "";
+  }, 1500);
+};
+
+const handleDeleteInvoice = (appointmentId) => {
+  if (confirm("Are you sure you want to delete this invoice?")) {
+    const index = data.value.appointments.findIndex(a => a.id === appointmentId);
+    if (index > -1) {
+      data.value.appointments.splice(index, 1);
+    }
+  }
+};
+
+// Product/Inventory handlers
+const handleAddProduct = () => {
+  inventoryError.value = "";
+  inventorySuccess.value = "";
+
+  if (!inventoryForm.value.name) {
+    inventoryError.value = "Product name is required";
+    return;
+  }
+
+  if (!inventoryForm.value.categoryName) {
+    inventoryError.value = "Category is required";
+    return;
+  }
+
+  if (!inventoryForm.value.unit) {
+    inventoryError.value = "Unit is required";
+    return;
+  }
+
+  if (inventoryForm.value.costPrice <= 0) {
+    inventoryError.value = "Cost price must be greater than 0";
+    return;
+  }
+
+  if (!inventoryForm.value.supplier) {
+    inventoryError.value = "Supplier is required";
+    return;
+  }
+
+  const newProduct = {
+    id: Math.max(...data.value.products.map(p => p.id || 0), 0) + 1,
+    name: inventoryForm.value.name,
+    categoryName: inventoryForm.value.categoryName,
+    stock: inventoryForm.value.stock,
+    unit: inventoryForm.value.unit,
+    minStock: inventoryForm.value.minStock,
+    costPrice: inventoryForm.value.costPrice,
+    sellPrice: inventoryForm.value.costPrice * 1.5,
+    supplier: inventoryForm.value.supplier,
+    supplierContact: "",
+    description: `${inventoryForm.value.name} product`
+  };
+
+  data.value.products.push(newProduct);
+  inventorySuccess.value = "Product added successfully!";
+
+  setTimeout(() => {
+    inventoryForm.value = {
+      name: "",
+      categoryName: "",
+      stock: 0,
+      unit: "",
+      minStock: 0,
+      costPrice: 0,
+      supplier: ""
+    };
+    inventorySuccess.value = "";
+  }, 1500);
+};
+
+const handleEditProduct = (product) => {
+  inventoryForm.value = {
+    name: product.name,
+    categoryName: product.categoryName,
+    stock: product.stock,
+    unit: product.unit,
+    minStock: product.minStock,
+    costPrice: product.costPrice,
+    supplier: product.supplier
+  };
+};
+
+const handleDeleteProduct = (productId) => {
+  if (confirm("Are you sure you want to delete this product?")) {
+    const index = data.value.products.findIndex(p => p.id === productId);
+    if (index > -1) {
+      data.value.products.splice(index, 1);
+    }
+  }
+};
+
+// Staff edit/delete handlers
+const handleEditStaff = (staff) => {
+  staffForm.value = {
+    name: staff.name,
+    role: staff.role,
+    email: staff.email,
+    phone: staff.phone,
+    doj: staff.doj,
+    salary: staff.salary,
+    userId: staff.userId
+  };
+};
+
+const handleDeleteStaff = (staffId) => {
+  if (confirm("Are you sure you want to delete this staff member?")) {
+    const index = data.value.staff.findIndex(s => s.id === staffId);
+    if (index > -1) {
+      data.value.staff.splice(index, 1);
+    }
+  }
+};
+
+// Customer edit/delete handlers
+const handleEditCustomer = (customer) => {
+  customerForm.value = {
+    name: customer.name,
+    email: customer.email,
+    phone: customer.phone,
+    dob: customer.dob,
+    address: customer.address
+  };
+};
+
+const handleDeleteCustomer = (customerId) => {
+  if (confirm("Are you sure you want to delete this customer?")) {
+    const index = data.value.customers.findIndex(c => c.id === customerId);
+    if (index > -1) {
+      data.value.customers.splice(index, 1);
+    }
+  }
+};
+
+// Booking edit/delete handlers
+const handleEditBooking = (booking) => {
+  bookingForm.value = {
+    customerId: booking.customerId,
+    serviceId: booking.serviceId,
+    date: booking.date,
+    time: booking.notes,
+    staffId: booking.staffId
+  };
+};
+
+const handleDeleteBooking = (bookingId) => {
+  if (confirm("Are you sure you want to delete this booking?")) {
+    const index = data.value.appointments.findIndex(a => a.id === bookingId);
+    if (index > -1) {
+      data.value.appointments.splice(index, 1);
+    }
+  }
+};
+</script>
+
+<style scoped>
+.booking-item,
+.staff-attendance-item,
+.low-stock-item,
+.order-item {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.booking-item:last-child,
+.staff-attendance-item:last-child,
+.low-stock-item:last-child,
+.order-item:last-child {
+  border-bottom: none;
+}
+
+.booking-time {
+  background: var(--gold);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  min-width: 70px;
+  text-align: center;
+}
+
+.alert-item {
+  display: flex;
+  gap: 12px;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 8px;
+  border-left: 3px solid;
+}
+
+.alert-item.info {
+  background: rgba(52, 152, 219, 0.1);
+  border-left-color: #3498db;
+}
+
+.alert-item.warning {
+  background: rgba(230, 126, 34, 0.1);
+  border-left-color: #e67e22;
+}
+
+.alert-item.error {
+  background: rgba(231, 76, 60, 0.1);
+  border-left-color: #e74c3c;
+}
+
+.alert-icon {
+  font-size: 20px;
+  margin-top: 2px;
+}
+
+.alert-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--charcoal);
+}
+
+.alert-message {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.alert-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.report-item {
+  background: white;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 20px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.report-item:hover {
+  border-color: var(--gold);
+  box-shadow: var(--shadow);
+}
+
+.report-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.report-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--charcoal);
+  margin-bottom: 4px;
+}
+
+.calendar-date {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: white;
+  border: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text);
+  transition: all 0.2s;
+}
+
+.calendar-date:hover {
+  background: var(--ivory);
+  border-color: var(--gold);
+}
+
+.calendar-date.has-bookings {
+  background: var(--gold);
+  color: white;
+  border-color: var(--gold);
+  font-weight: 600;
+}
+
+.date-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: var(--charcoal);
+  color: white;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.calendar-date.has-bookings .date-badge {
+  background: white;
+  color: var(--gold);
+}
+
+.booking-item {
+  padding: 0 0 12px 0;
+  font-size: 13px;
+}
+
+.booking-time {
+  background: var(--ivory);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-weight: 600;
+  color: var(--charcoal);
+  white-space: nowrap;
+}
+
+.calendar-date-horizontal {
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  background: white;
+  border: 1px solid var(--border);
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 70px;
+}
+
+.calendar-date-horizontal:hover {
+  background: var(--ivory);
+  border-color: var(--gold);
+}
+
+.calendar-date-horizontal.has-bookings {
+  background: var(--gold);
+  color: white;
+  border-color: var(--gold);
+  font-weight: 600;
+}
+
+.calendar-date-horizontal.selected {
+  background: var(--charcoal);
+  color: white;
+  border-color: var(--charcoal);
+}
+
+.calendar-date-horizontal.selected.has-bookings {
+  background: var(--charcoal);
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.modal-content {
+  background: white;
+  border-radius: var(--radius-md);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 420px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--charcoal);
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.modal-close:hover {
+  color: var(--charcoal);
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+/* Form Styles */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--charcoal);
+  margin-bottom: 6px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(229, 170, 84, 0.1);
+}
+
+.form-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.error-message {
+  padding: 10px 12px;
+  background: rgba(231, 76, 60, 0.1);
+  border-left: 3px solid #e74c3c;
+  border-radius: var(--radius-sm);
+  color: #c0392b;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+.success-message {
+  padding: 10px 12px;
+  background: rgba(39, 174, 96, 0.1);
+  border-left: 3px solid #27ae60;
+  border-radius: var(--radius-sm);
+  color: #229954;
+  font-size: 13px;
+  margin-top: 12px;
+}
+</style>
+

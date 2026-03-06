@@ -1,0 +1,256 @@
+<template>
+  <div class="login-page">
+    <div class="login-bg-pattern"></div>
+    <div class="login-card fade-in">
+      <div class="login-logo">
+        <div class="login-logo-text">Glow Suite</div>
+        <div class="login-logo-sub">Beauty Management Platform</div>
+      </div>
+
+      <!-- Registration Success Alert -->
+      <div v-if="regSuccess" class="alert alert-success">
+        Account created! Please log in.
+      </div>
+
+      <!-- Login Tab -->
+      <template v-if="tab !== 'register'">
+        <!-- Tab Buttons -->
+        <div class="login-tabs">
+          <button
+            v-for="t in ['manager', 'staff', 'customer']"
+            :key="t"
+            :class="['login-tab', { active: tab === t }]"
+            @click="switchTab(t)"
+          >
+            {{ t.charAt(0).toUpperCase() + t.slice(1) }}
+          </button>
+        </div>
+
+        <!-- Error Message -->
+        <div v-if="error" class="alert alert-error">{{ error }}</div>
+
+        <!-- User ID or Email Input -->
+        <div v-if="tab !== 'customer'" class="form-group">
+          <label class="form-label">User ID</label>
+          <input
+            v-model="form.userId"
+            type="text"
+            class="form-input"
+            :placeholder="tab === 'manager' ? 'manager' : 'staff user ID'"
+          />
+        </div>
+        <div v-else class="form-group">
+          <label class="form-label">Email</label>
+          <input
+            v-model="form.email"
+            type="email"
+            class="form-input"
+            placeholder="your@email.com"
+          />
+        </div>
+
+        <!-- Password Input -->
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input
+            v-model="form.password"
+            type="password"
+            class="form-input"
+            @keydown.enter="login"
+          />
+        </div>
+
+        <!-- Sign In Button -->
+        <button class="btn btn-primary w-full" style="margin-top: 8px; padding: 13px; font-size: 15px" @click="login" :disabled="isLoading">
+          {{ isLoading ? "Signing in..." : "Sign In" }}
+        </button>
+
+        <!-- Register Link for Customer -->
+        <template v-if="tab === 'customer'">
+          <div class="login-divider">or</div>
+          <button class="btn btn-outline w-full" @click="switchTab('register')">
+            Create Account
+          </button>
+        </template>
+
+        <!-- Demo Credentials -->
+        <div style="margin-top: 16px; text-align: center">
+          <p style="font-size: 11px; color: var(--text-muted)">
+            Demo: manager/admin123 · staff: amara01/pass123 · customer: sofia@email.com/pass123
+          </p>
+        </div>
+      </template>
+
+      <!-- Register Tab -->
+      <template v-else>
+        <!-- Back Button -->
+        <div
+          style="margin-bottom: 20px; display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--gold-dark); font-size: 13px"
+          @click="switchTab('customer')"
+        >
+          ← Back to Login
+        </div>
+
+        <!-- Error Message -->
+        <div v-if="error" class="alert alert-error">{{ error }}</div>
+
+        <!-- Registration Form -->
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input v-model="regForm.name" type="text" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email *</label>
+          <input v-model="regForm.email" type="email" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input v-model="regForm.phone" type="text" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            Address <span class="text-muted">(optional)</span>
+          </label>
+          <input v-model="regForm.address" type="text" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password *</label>
+          <input v-model="regForm.password" type="password" class="form-input" />
+        </div>
+        <button class="btn btn-primary w-full" style="margin-top: 8px; padding: 13px; font-size: 15px" @click="register" :disabled="isLoading">
+          {{ isLoading ? "Creating Account..." : "Create Account" }}
+        </button>
+      </template>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, reactive } from "vue";
+import { useRouter } from "vue-router";
+import { useAppStore } from "@/stores/appStore";
+
+const router = useRouter();
+const appStore = useAppStore();
+
+const API_BASE_URL = "http://localhost:5000";
+
+const tab = ref("manager");
+const form = reactive({ userId: "", email: "", password: "", name: "", phone: "" });
+const regForm = reactive({ name: "", email: "", phone: "", password: "", address: "" });
+const error = ref("");
+const regSuccess = ref(false);
+const isLoading = ref(false);
+
+const switchTab = (newTab) => {
+  tab.value = newTab;
+  error.value = "";
+};
+
+const login = async () => {
+  error.value = "";
+  isLoading.value = true;
+
+  try {
+    let endpoint = "";
+    let payload = {};
+
+    if (tab.value === "manager") {
+      endpoint = `${API_BASE_URL}/api/auth/login/manager`;
+      payload = { userId: form.userId, password: form.password };
+    } else if (tab.value === "staff") {
+      endpoint = `${API_BASE_URL}/api/auth/login/staff`;
+      payload = { userId: form.userId, password: form.password };
+    } else if (tab.value === "customer") {
+      endpoint = `${API_BASE_URL}/api/auth/login/customer`;
+      payload = { email: form.email, password: form.password };
+    }
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Store token in localStorage
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      
+      // Update app store
+      appStore.login({ token: data.token, ...data.user });
+      router.push("/");
+    } else {
+      error.value = data.message || "Login failed. Please try again.";
+    }
+  } catch (err) {
+    console.error("Login error:", err);
+    error.value = "Connection error. Make sure the backend is running on http://localhost:5000";
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const genId = (arr) => {
+  return arr.length > 0 ? Math.max(...arr.map((item) => item.id || 0)) + 1 : 1;
+};
+
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+const register = async () => {
+  if (!regForm.name || !regForm.email || !regForm.password) {
+    error.value = "Name, email and password are required.";
+    return;
+  }
+
+  isLoading.value = true;
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/auth/register/customer`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: regForm.name,
+        email: regForm.email,
+        phone: regForm.phone,
+        address: regForm.address,
+        password: regForm.password,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      // Store token
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      
+      // Update app store
+      appStore.login({ token: data.token, ...data.user });
+      
+      regSuccess.value = true;
+      tab.value = "customer";
+      form.email = regForm.email;
+      form.password = regForm.password;
+      error.value = "";
+      
+      // Auto-redirect after 2 seconds
+      setTimeout(() => {
+        router.push("/");
+      }, 2000);
+    } else {
+      error.value = data.message || "Registration failed. Please try again.";
+    }
+  } catch (err) {
+    console.error("Registration error:", err);
+    error.value = "Connection error. Make sure the backend is running.";
+  } finally {
+    isLoading.value = false;
+  }
+};
+</script>
