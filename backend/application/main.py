@@ -2,7 +2,7 @@ from flask import Flask, render_template, request
 from application.models import db
 from application.sec import datastore
 from flask_security import Security
-from config import DevelopmentConfig
+from backend.config import DevelopmentConfig
 
 def create_app():
     app = Flask(__name__)

@@ -1,4 +1,4 @@
-from main import app
+from application.main import app
 from application.sec import datastore
 from application.models import db, Role
 from flask_security import hash_password

@@ -1,6 +1,61 @@
+# Environment files
 .env
+.env.*
+*.env
 .venv/
-database/*.db
+venv/
+env/
+ENV/
+.python-version
+
+# Python cache/compiled files
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Build/distribution artifacts
+build/
+dist/
+.eggs/
+*.egg-info/
+pip-wheel-metadata/
+
+# Test/cache/coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.mypy_cache/
+.pyre/
+.ruff_cache/
+.hypothesis/
+.dmypy.json
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local app/runtime data
 instance/
-*.pyc
+database/*.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# IDE/editor
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project specific
+backend/instance/
+backend/**/__pycache__/
+application/__pycache__/
