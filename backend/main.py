@@ -1,11 +1,15 @@
+import os
+
 from flask import Flask, render_template, request
 from application.models import db
 from application.sec import datastore
 from flask_security import Security
-from backend.config import DevelopmentConfig
+from config import DevelopmentConfig
+from upload_initial_data import seed_initial_data
 
 def create_app():
-    app = Flask(__name__)
+    app = Flask(__name__, instance_relative_config=True)
+    os.makedirs(app.instance_path, exist_ok=True)
     app.config.from_object(DevelopmentConfig)
     db.init_app(app)
     
@@ -14,7 +18,9 @@ def create_app():
     
     with app.app_context():
         import application.views as views
-        app.register_blueprint(views.main)  
+        app.register_blueprint(views.main)
+        db.create_all()
+        seed_initial_data()
         
     return app
 

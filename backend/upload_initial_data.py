@@ -1,11 +1,8 @@
-from application.main import app
 from application.sec import datastore
 from application.models import db, Role
 from flask_security import hash_password
 
-with app.app_context():
-    # Create all tables
-    db.create_all()
+def seed_initial_data():
     datastore.find_or_create_role(name='admin', description='Administrator with full access')
     datastore.find_or_create_role(name='owner', description='Salon Owner')
     datastore.find_or_create_role(name='manager', description='Salon Manager')
@@ -29,3 +26,12 @@ with app.app_context():
         datastore.create_user(username="cust1", password=hash_password("cust1"), roles=["customer"])
 
     db.session.commit()
+
+
+if __name__ == '__main__':
+    from main import create_app
+
+    app = create_app()
+    with app.app_context():
+        db.create_all()
+        seed_initial_data()
