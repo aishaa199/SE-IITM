@@ -4,4 +4,4 @@ main = Blueprint('main', __name__)
 
 @main.get('/')
 def home():
-    return "hello world"
+    return "<h1>hello world</h1>"

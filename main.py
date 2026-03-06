@@ -13,7 +13,8 @@ def create_app():
     app.security = Security(app, datastore)
     
     with app.app_context():
-        import application.views
+        import application.views as views
+        app.register_blueprint(views.main)  
         
     return app
 
@@ -21,4 +22,3 @@ app = create_app()
 
 if __name__ == '__main__':
     app.run(debug=True)
-   

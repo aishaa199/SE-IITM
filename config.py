@@ -1,3 +1,11 @@
+from pathlib import Path
+
+# Project root = folder containing this config.py
+BASE_DIR = Path(__file__).resolve().parent
+INSTANCE_DIR = BASE_DIR / "instance"
+INSTANCE_DIR.mkdir(parents=True, exist_ok=True)  # ensure folder exists
+
+
 class Config(object):
     DEBUG = False
     TESTING = False
@@ -15,4 +23,4 @@ class Config(object):
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = 'sqlite:////home/kavitaal/SE-PROJECT/SE-IITM/instance/sm_devdb.db'
+    SQLALCHEMY_DATABASE_URI = f"sqlite:///{(INSTANCE_DIR / 'sm_devdb.db').as_posix()}"
