@@ -3,9 +3,9 @@ import { ref, reactive } from "vue";
 
 const INITIAL_DATA = {
   staff: [
-    { id: 1, name: "Amara Osei", role: "Senior Stylist", email: "amara@glowsuite.com", phone: "050-111-2222", doj: "2022-03-15", userId: "amara01", password: "pass123", status: "active", registrationDate: "2022-03-15", salary: 2000 },
-    { id: 2, name: "Priya Nair", role: "Nail Technician", email: "priya@glowsuite.com", phone: "024-333-4444", doj: "2023-01-20", userId: "priya02", password: "pass123", status: "active", registrationDate: "2023-01-20", salary: 1500 },
-    { id: 3, name: "Kwame Mensah", role: "Barber", email: "kwame@glowsuite.com", phone: "020-555-6666", doj: "2021-07-10", userId: "kwame03", password: "pass123", status: "active", registrationDate: "2021-07-10", salary: 1800 },
+    { id: 1, name: "Amara Osei", role: "Senior Stylist", email: "amara@glowsuite.com", phone: "050-111-2222", doj: "2022-03-15", userId: "amara01", password: "pass123", status: "active", registrationDate: "2022-03-15", salary: 2000, rating: 4.8 },
+    { id: 2, name: "Priya Nair", role: "Nail Technician", email: "priya@glowsuite.com", phone: "024-333-4444", doj: "2023-01-20", userId: "priya02", password: "pass123", status: "active", registrationDate: "2023-01-20", salary: 1500, rating: 4.7 },
+    { id: 3, name: "Kwame Mensah", role: "Barber", email: "kwame@glowsuite.com", phone: "020-555-6666", doj: "2021-07-10", userId: "kwame03", password: "pass123", status: "active", registrationDate: "2021-07-10", salary: 1800, rating: 4.9 },
   ],
   serviceCategories: [
     { id: 1, name: "Hair", description: "All hair services" },

@@ -49,6 +49,12 @@
           <span class="nav-icon">📦</span> Inventory
         </div>
         <div
+          :class="['nav-item', { active: currentView === 'orders' }]"
+          @click="currentView = 'orders'"
+        >
+          <span class="nav-icon">📮</span> Orders ({{ pendingOrders.length }})
+        </div>
+        <div
           :class="['nav-item', { active: currentView === 'invoices' }]"
           @click="currentView = 'invoices'"
         >
@@ -289,11 +295,20 @@
               <h3 class="card-title">📅 {{ selectedDate ? 'Bookings - ' + formatDateShort(selectedDate) : "All Bookings" }}</h3>
             </div>
             <div class="card-body">
-              <div v-if="displayedBookings.length === 0" class="empty-state">
+              <div style="margin-bottom: 16px">
+                <input 
+                  v-model="bookingCustomerName"
+                  type="text" 
+                  placeholder="🔍 Filter by customer name..." 
+                  class="form-input"
+                  style="width: 100%; max-width: 300px"
+                />
+              </div>
+              <div v-if="filteredBookings.length === 0" class="empty-state">
                 <div class="empty-state-icon">📅</div>
                 <div class="empty-state-text">{{ selectedDate ? 'No bookings on this date' : 'No bookings' }}</div>
               </div>
-              <div v-for="appt in displayedBookings" :key="appt.id" class="booking-item">
+              <div v-for="appt in filteredBookings" :key="appt.id" class="booking-item">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
                   <div class="booking-time">{{ getTimeFromDate(appt.date) }}</div>
                   <div>
@@ -395,19 +410,7 @@
                     />
                   </div>
 
-                  <div class="form-group" style="grid-column: 1 / -1">
-                    <label for="service-rating">Average Rating</label>
-                    <input 
-                      id="service-rating"
-                      v-model.number="serviceForm.rating"
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="5"
-                      placeholder="e.g., 4.8"
-                      class="form-input"
-                    />
-                  </div>
+
                 </div>
 
                 <div v-if="serviceError" class="error-message">{{ serviceError }}</div>
@@ -426,6 +429,15 @@
               <h3 class="card-title">All Services</h3>
             </div>
             <div class="card-body">
+              <div style="margin-bottom: 16px">
+                <input 
+                  v-model="serviceName"
+                  type="text" 
+                  placeholder="🔍 Filter by service name..." 
+                  class="form-input"
+                  style="width: 100%; max-width: 300px"
+                />
+              </div>
               <div class="table-wrap">
                 <table>
                   <thead>
@@ -440,7 +452,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="service in data.services" :key="service.id">
+                    <tr v-for="service in filteredServices" :key="service.id">
                       <td>{{ service.name }}</td>
                       <td>{{ getCategoryName(service.categoryId) }}</td>
                       <td>₹{{ service.price }}</td>
@@ -550,6 +562,15 @@
               <h3 class="card-title">All Customers</h3>
             </div>
             <div class="card-body">
+              <div style="margin-bottom: 16px">
+                <input 
+                  v-model="customerName"
+                  type="text" 
+                  placeholder="🔍 Filter by name or email..." 
+                  class="form-input"
+                  style="width: 100%; max-width: 300px"
+                />
+              </div>
               <div class="table-wrap">
                 <table>
                   <thead>
@@ -563,7 +584,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="customer in data.customers" :key="customer.id">
+                    <tr v-for="customer in filteredCustomers" :key="customer.id">
                       <td>{{ customer.name }}</td>
                       <td>{{ customer.email }}</td>
                       <td>{{ customer.phone }}</td>
@@ -670,10 +691,10 @@
                   </div>
 
                   <div class="form-group" style="grid-column: 1 / -1">
-                    <label for="staff-userid">User ID *</label>
+                    <label for="staff-username">Username *</label>
                     <input 
-                      id="staff-userid"
-                      v-model="staffForm.userId"
+                      id="staff-username"
+                      v-model="staffForm.username"
                       type="text"
                       placeholder="e.g., amara01"
                       class="form-input"
@@ -698,6 +719,15 @@
               <h3 class="card-title">👔 Staff Members</h3>
             </div>
             <div class="card-body">
+              <div style="margin-bottom: 16px">
+                <input 
+                  v-model="staffName"
+                  type="text" 
+                  placeholder="🔍 Filter by name or email..." 
+                  class="form-input"
+                  style="width: 100%; max-width: 300px"
+                />
+              </div>
               <div class="table-wrap">
                 <table>
                   <thead>
@@ -707,6 +737,7 @@
                       <th>Email</th>
                       <th>Phone</th>
                       <th>Date of Joining</th>
+                      <th>Rating</th>
                       <th>Attendance</th>
                       <th>Today's Appts</th>
                       <th>Status</th>
@@ -714,12 +745,13 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="staff in data.staff" :key="staff.id">
+                    <tr v-for="staff in filteredStaff" :key="staff.id">
                       <td>{{ staff.name }}</td>
                       <td>{{ staff.role }}</td>
                       <td>{{ staff.email }}</td>
                       <td>{{ staff.phone }}</td>
                       <td>{{ staff.doj }}</td>
+                      <td><span style="font-weight: 600; color: #f5a623">⭐ {{ staff.rating || 'N/A' }}</span></td>
                       <td><span :class="['badge', staffAttendanceBadge(staff.id)]">{{ getStaffAttendance(staff.id) }}</span></td>
                       <td><span style="font-weight: 600">{{ getStaffAppointments(staff.id) }}</span></td>
                       <td><span :class="['badge', staff.status === 'active' ? 'badge-green' : 'badge-red']">{{ staff.status }}</span></td>
@@ -788,17 +820,7 @@
                     />
                   </div>
 
-                  <div class="form-group">
-                    <label for="product-unit">Unit *</label>
-                    <input 
-                      id="product-unit"
-                      v-model="inventoryForm.unit"
-                      type="text"
-                      placeholder="e.g., bottle, pack, tube"
-                      class="form-input"
-                      required
-                    />
-                  </div>
+
 
                   <div class="form-group">
                     <label for="product-minstock">Minimum Stock *</label>
@@ -855,6 +877,15 @@
               <h3 class="card-title">📦 All Products</h3>
             </div>
             <div class="card-body">
+              <div style="margin-bottom: 16px">
+                <input 
+                  v-model="productName"
+                  type="text" 
+                  placeholder="🔍 Filter by product name or category..." 
+                  class="form-input"
+                  style="width: 100%; max-width: 300px"
+                />
+              </div>
               <div class="table-wrap">
                 <table>
                   <thead>
@@ -869,7 +900,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="product in data.products" :key="product.id">
+                    <tr v-for="product in filteredProducts" :key="product.id">
                       <td>{{ product.name }}</td>
                       <td>{{ product.categoryName }}</td>
                       <td><span :class="['badge', product.stock <= product.minStock ? 'badge-red' : 'badge-green']">{{ product.stock }} {{ product.unit }}</span></td>
@@ -998,10 +1029,6 @@
                       <td style="text-align: right">₹{{ staffSalaryTotal.toLocaleString() }}</td>
                     </tr>
                     <tr>
-                      <td style="padding-left: 24px">Service Commission</td>
-                      <td style="text-align: right">₹{{ serviceCommissionTotal.toLocaleString() }}</td>
-                    </tr>
-                    <tr>
                       <td style="padding-left: 24px">Product Cost</td>
                       <td style="text-align: right">₹{{ productInventoryCost.toLocaleString() }}</td>
                     </tr>
@@ -1022,6 +1049,98 @@
 
         </div>
 
+        <!-- ORDERS VIEW -->
+        <div v-if="currentView === 'orders'" class="fade-in">
+          <!-- Pending Staff Orders -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">📮 Pending Staff Orders</h3>
+            </div>
+            <div class="card-body">
+              <div v-if="pendingOrders.length === 0" class="empty-state">
+                <div class="empty-state-icon">✅</div>
+                <div class="empty-state-text">No pending orders - all caught up!</div>
+              </div>
+              <div v-else class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Product</th>
+                      <th>Date</th>
+                      <th>Staff</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="order in pendingOrders" :key="order.id">
+                      <td>#{{ order.id }}</td>
+                      <td>{{ getProductNameForOrder(order.productId) }}</td>
+                      <td>{{ order.date }}</td>
+                      <td>{{ order.staffId ? getStaffName(order.staffId) : (order.requestedBy || 'N/A') }}</td>
+                      <td>
+                        <span class="badge badge-gold">{{ order.status }}</span>
+                      </td>
+                      <td>
+                        <button class="btn btn-sm btn-primary" @click="handleAcceptOrder(order)" style="margin-right: 6px">
+                          ✓ Accept
+                        </button>
+                        <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click="handleRejectOrder(order)">
+                          ✕ Reject
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Completed Appointments Awaiting Invoice -->
+          <div class="card" style="margin-top: 20px">
+            <div class="card-header">
+              <h3 class="card-title">🔔 Completed Appointments - Invoice Needed</h3>
+            </div>
+            <div class="card-body">
+              <div v-if="completedAppointments.length === 0" class="empty-state">
+                <div class="empty-state-icon">✨</div>
+                <div class="empty-state-text">No completed appointments awaiting invoices</div>
+              </div>
+              <div v-else class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Appointment ID</th>
+                      <th>Customer</th>
+                      <th>Staff</th>
+                      <th>Service</th>
+                      <th>Date</th>
+                      <th>Invoice Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="appt in completedAppointments" :key="appt.id">
+                      <td>#{{ appt.id }}</td>
+                      <td>{{ getCustomerName(appt.customerId) }}</td>
+                      <td>{{ getStaffName(appt.staffId) || "Unassigned" }}</td>
+                      <td>{{ getServiceName(appt.serviceId) }}</td>
+                      <td>{{ appt.date }}</td>
+                      <td><strong>{{ appt.invoiceStatus }}</strong></td>
+                      <td>
+                        <button class="btn btn-sm btn-primary" @click="handleCreateInvoiceFromAppointment(appt)">
+                          📄 Create Invoice
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- INVOICES VIEW -->
         <div v-if="currentView === 'invoices'" class="fade-in">
           <!-- Add Invoice Form -->
@@ -1033,44 +1152,18 @@
               <form @submit.prevent="handleAddInvoice" style="max-width: 800px">
                 <div class="grid-2">
                   <div class="form-group">
-                    <label for="invoice-customer">Customer *</label>
+                    <label for="invoice-appointment">Select Appointment *</label>
                     <select 
-                      id="invoice-customer"
-                      v-model="invoiceForm.customerId"
+                      id="invoice-appointment"
+                      @change="handleAppointmentSelect"
                       class="form-input"
                       required
                     >
-                      <option value="">Select a customer</option>
-                      <option v-for="customer in data.customers" :key="customer.id" :value="customer.id">
-                        {{ customer.name }}
+                      <option value="">Choose an appointment</option>
+                      <option v-for="appt in data.appointments" :key="appt.id" :value="appt.id">
+                        {{ getCustomerName(appt.customerId) }} - {{ getServiceName(appt.serviceId) }} ({{ appt.date }})
                       </option>
                     </select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="invoice-service">Service *</label>
-                    <select 
-                      id="invoice-service"
-                      v-model="invoiceForm.serviceId"
-                      class="form-input"
-                      required
-                    >
-                      <option value="">Select a service</option>
-                      <option v-for="service in data.services" :key="service.id" :value="service.id">
-                        {{ service.name }}
-                      </option>
-                    </select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="invoice-date">Invoice Date *</label>
-                    <input 
-                      id="invoice-date"
-                      v-model="invoiceForm.date"
-                      type="date"
-                      class="form-input"
-                      required
-                    />
                   </div>
 
                   <div class="form-group">
@@ -1084,6 +1177,49 @@
                       <option value="pending">Pending</option>
                       <option value="invoiced">Invoiced</option>
                     </select>
+                  </div>
+                </div>
+                <div class="grid-2" style="margin-top: 16px; opacity: 0.7">
+                  <div class="form-group">
+                    <label>Customer</label>
+                    <input type="text" :value="getCustomerName(invoiceForm.customerId)" class="form-input" disabled />
+                  </div>
+                  <div class="form-group">
+                    <label>Service</label>
+                    <input type="text" :value="getServiceName(invoiceForm.serviceId)" class="form-input" disabled />
+                  </div>
+                  <div class="form-group">
+                    <label>Invoice Date</label>
+                    <input type="text" :value="invoiceForm.date" class="form-input" disabled />
+                  </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 16px">
+                  <div class="form-group">
+                    <label for="invoice-payment">Payment Type *</label>
+                    <select 
+                      id="invoice-payment"
+                      v-model="invoiceForm.paymentType"
+                      class="form-input"
+                      required
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="card">Card</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="invoice-discount">Discount (%) *</label>
+                    <input 
+                      id="invoice-discount"
+                      v-model.number="invoiceForm.discount"
+                      type="number"
+                      placeholder="e.g., 10"
+                      class="form-input"
+                      required
+                      min="0"
+                      max="100"
+                    />
                   </div>
                 </div>
 
@@ -1120,6 +1256,15 @@
               <h3 class="card-title">All Invoices</h3>
             </div>
             <div class="card-body">
+              <div style="margin-bottom: 16px">
+                <input 
+                  v-model="invoiceCustomerName"
+                  type="text" 
+                  placeholder="🔍 Filter by customer name..." 
+                  class="form-input"
+                  style="width: 100%; max-width: 300px"
+                />
+              </div>
               <div class="table-wrap">
                 <table>
                   <thead>
@@ -1134,7 +1279,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="(appt, idx) in data.appointments" :key="appt.id">
+                    <tr v-for="(appt, idx) in filteredInvoices" :key="appt.id">
                       <td>#INV{{ String(1000 + idx).slice(-4) }}</td>
                       <td>{{ getCustomerName(appt.customerId) }}</td>
                       <td>{{ getServiceName(appt.serviceId) }}</td>
@@ -1311,8 +1456,7 @@ const serviceForm = ref({
   categoryId: "",
   price: 0,
   duration: 0,
-  productsRequired: "",
-  rating: 0
+  productsRequired: ""
 });
 const serviceError = ref("");
 const serviceSuccess = ref("");
@@ -1336,7 +1480,7 @@ const staffForm = ref({
   phone: "",
   doj: "",
   salary: 0,
-  userId: ""
+  username: ""
 });
 const staffError = ref("");
 const staffSuccess = ref("");
@@ -1346,7 +1490,9 @@ const invoiceForm = ref({
   customerId: "",
   serviceId: "",
   date: "",
-  invoiceStatus: "pending"
+  invoiceStatus: "pending",
+  paymentType: "cash",
+  discount: 0
 });
 const invoiceError = ref("");
 const invoiceSuccess = ref("");
@@ -1356,13 +1502,20 @@ const inventoryForm = ref({
   name: "",
   categoryName: "",
   stock: 0,
-  unit: "",
   minStock: 0,
   costPrice: 0,
   supplier: ""
 });
 const inventoryError = ref("");
 const inventorySuccess = ref("");
+
+// Filter states
+const serviceName = ref("");
+const customerName = ref("");
+const staffName = ref("");
+const productName = ref("");
+const invoiceCustomerName = ref("");
+const bookingCustomerName = ref("");
 
 const user = computed(() => appStore.user);
 const data = computed(() => appStore.data);
@@ -1386,6 +1539,10 @@ const lowStockItems = computed(() => {
 
 const pendingOrders = computed(() => {
   return data.value.orders.filter(o => o.status === "pending");
+});
+
+const completedAppointments = computed(() => {
+  return data.value.appointments.filter(a => a.status === "completed" && !a.invoiceGenerated);
 });
 
 const systemAlerts = computed(() => {
@@ -1502,10 +1659,9 @@ const overheadBillsTotal = computed(() => {
 const calculatedNetProfit = computed(() => {
   const revenue = totalProductCost.value;
   const staffSalary = staffSalaryTotal.value;
-  const commission = serviceCommissionTotal.value;
   const productCost = productInventoryCost.value;
   const overhead = overheadBillsTotal.value;
-  return revenue - staffSalary - commission - productCost - overhead;
+  return revenue - staffSalary - productCost - overhead;
 });
 
 const currentMonthYear = computed(() => {
@@ -1549,6 +1705,54 @@ const displayedBookings = computed(() => {
     return getDateBookings(selectedDate.value);
   }
   return todayAppointments.value;
+});
+
+// Filtered data computed properties
+const filteredServices = computed(() => {
+  if (!serviceName.value.trim()) return data.value.services;
+  return data.value.services.filter(s => 
+    s.name.toLowerCase().includes(serviceName.value.toLowerCase())
+  );
+});
+
+const filteredCustomers = computed(() => {
+  if (!customerName.value.trim()) return data.value.customers;
+  return data.value.customers.filter(c => 
+    c.name.toLowerCase().includes(customerName.value.toLowerCase()) ||
+    c.email.toLowerCase().includes(customerName.value.toLowerCase())
+  );
+});
+
+const filteredStaff = computed(() => {
+  if (!staffName.value.trim()) return data.value.staff;
+  return data.value.staff.filter(s => 
+    s.name.toLowerCase().includes(staffName.value.toLowerCase()) ||
+    s.email.toLowerCase().includes(staffName.value.toLowerCase())
+  );
+});
+
+const filteredProducts = computed(() => {
+  if (!productName.value.trim()) return data.value.products;
+  return data.value.products.filter(p => 
+    p.name.toLowerCase().includes(productName.value.toLowerCase()) ||
+    p.categoryName.toLowerCase().includes(productName.value.toLowerCase())
+  );
+});
+
+const filteredInvoices = computed(() => {
+  if (!invoiceCustomerName.value.trim()) return data.value.appointments;
+  return data.value.appointments.filter(appt => {
+    const customerNameStr = getCustomerName(appt.customerId).toLowerCase();
+    return customerNameStr.includes(invoiceCustomerName.value.toLowerCase());
+  });
+});
+
+const filteredBookings = computed(() => {
+  if (!bookingCustomerName.value.trim()) return displayedBookings.value;
+  return displayedBookings.value.filter(appt => {
+    const customerNameStr = getCustomerName(appt.customerId).toLowerCase();
+    return customerNameStr.includes(bookingCustomerName.value.toLowerCase());
+  });
 });
 
 // Helper functions
@@ -1756,8 +1960,7 @@ const handleAddService = () => {
     price: serviceForm.value.price,
     duration: serviceForm.value.duration,
     description: `${serviceForm.value.name} service`,
-    productsRequired: serviceForm.value.productsRequired || "None",
-    rating: serviceForm.value.rating || 0
+    productsRequired: serviceForm.value.productsRequired || "None"
   };
 
   data.value.services.push(newService);
@@ -1769,8 +1972,7 @@ const handleAddService = () => {
       categoryId: "",
       price: 0,
       duration: 0,
-      productsRequired: "",
-      rating: 0
+      productsRequired: ""
     };
     serviceSuccess.value = "";
   }, 1500);
@@ -1782,8 +1984,7 @@ const handleEditService = (service) => {
     categoryId: service.categoryId,
     price: service.price,
     duration: service.duration,
-    productsRequired: service.productsRequired || "",
-    rating: service.rating || 0
+    productsRequired: service.productsRequired || ""
   };
 };
 
@@ -1883,8 +2084,8 @@ const handleAddStaff = () => {
     return;
   }
 
-  if (!staffForm.value.userId) {
-    staffError.value = "User ID is required";
+  if (!staffForm.value.username) {
+    staffError.value = "Username is required";
     return;
   }
 
@@ -1895,8 +2096,7 @@ const handleAddStaff = () => {
     email: staffForm.value.email,
     phone: staffForm.value.phone,
     doj: staffForm.value.doj,
-    userId: staffForm.value.userId,
-    password: "pass123",
+    username: staffForm.value.username,
     status: "active",
     registrationDate: staffForm.value.doj,
     salary: staffForm.value.salary
@@ -1913,13 +2113,30 @@ const handleAddStaff = () => {
       phone: "",
       doj: "",
       salary: 0,
-      userId: ""
+      username: ""
     };
     staffSuccess.value = "";
   }, 1500);
 };
 
 // Invoice handlers
+const handleAppointmentSelect = (event) => {
+  const appointmentId = parseInt(event.target.value);
+  if (!appointmentId) {
+    invoiceForm.value.customerId = "";
+    invoiceForm.value.serviceId = "";
+    invoiceForm.value.date = "";
+    return;
+  }
+  
+  const appointment = data.value.appointments.find(a => a.id === appointmentId);
+  if (appointment) {
+    invoiceForm.value.customerId = appointment.customerId;
+    invoiceForm.value.serviceId = appointment.serviceId;
+    invoiceForm.value.date = appointment.date;
+  }
+};
+
 const handleAddInvoice = () => {
   invoiceError.value = "";
   invoiceSuccess.value = "";
@@ -1939,6 +2156,11 @@ const handleAddInvoice = () => {
     return;
   }
 
+  if (invoiceForm.value.discount < 0 || invoiceForm.value.discount > 100) {
+    invoiceError.value = "Discount must be between 0 and 100";
+    return;
+  }
+
   const newInvoice = {
     id: Math.max(...data.value.appointments.map(a => a.id || 0), 0) + 1,
     customerId: parseInt(invoiceForm.value.customerId),
@@ -1946,6 +2168,8 @@ const handleAddInvoice = () => {
     date: invoiceForm.value.date,
     status: "confirmed",
     invoiceStatus: invoiceForm.value.invoiceStatus,
+    paymentType: invoiceForm.value.paymentType,
+    discount: invoiceForm.value.discount,
     notes: "Invoice created"
   };
 
@@ -1957,7 +2181,9 @@ const handleAddInvoice = () => {
       customerId: "",
       serviceId: "",
       date: "",
-      invoiceStatus: "pending"
+      invoiceStatus: "pending",
+      paymentType: "cash",
+      discount: 0
     };
     invoiceSuccess.value = "";
   }, 1500);
@@ -1987,11 +2213,6 @@ const handleAddProduct = () => {
     return;
   }
 
-  if (!inventoryForm.value.unit) {
-    inventoryError.value = "Unit is required";
-    return;
-  }
-
   if (inventoryForm.value.costPrice <= 0) {
     inventoryError.value = "Cost price must be greater than 0";
     return;
@@ -2007,7 +2228,6 @@ const handleAddProduct = () => {
     name: inventoryForm.value.name,
     categoryName: inventoryForm.value.categoryName,
     stock: inventoryForm.value.stock,
-    unit: inventoryForm.value.unit,
     minStock: inventoryForm.value.minStock,
     costPrice: inventoryForm.value.costPrice,
     sellPrice: inventoryForm.value.costPrice * 1.5,
@@ -2024,7 +2244,6 @@ const handleAddProduct = () => {
       name: "",
       categoryName: "",
       stock: 0,
-      unit: "",
       minStock: 0,
       costPrice: 0,
       supplier: ""
@@ -2038,7 +2257,6 @@ const handleEditProduct = (product) => {
     name: product.name,
     categoryName: product.categoryName,
     stock: product.stock,
-    unit: product.unit,
     minStock: product.minStock,
     costPrice: product.costPrice,
     supplier: product.supplier
@@ -2063,7 +2281,8 @@ const handleEditStaff = (staff) => {
     phone: staff.phone,
     doj: staff.doj,
     salary: staff.salary,
-    userId: staff.userId
+    username: staff.username,
+    password: staff.password || ""
   };
 };
 
@@ -2114,6 +2333,46 @@ const handleDeleteBooking = (bookingId) => {
       data.value.appointments.splice(index, 1);
     }
   }
+};
+
+// Order handlers
+const handleAcceptOrder = (order) => {
+  const index = data.value.orders.findIndex(o => o.id === order.id);
+  if (index > -1) {
+    data.value.orders[index].status = "accepted";
+    console.log(`✅ Order #${order.id} accepted - Product: ${getProductNameForOrder(order.productId)}, Qty: ${order.quantity || order.qty}`);
+  }
+};
+
+const handleRejectOrder = (order) => {
+  if (confirm(`Are you sure you want to reject order #${order.id}?`)) {
+    const index = data.value.orders.findIndex(o => o.id === order.id);
+    if (index > -1) {
+      data.value.orders.splice(index, 1);
+      console.log(`❌ Order #${order.id} rejected and removed`);
+    }
+  }
+};
+
+const handleCreateInvoiceFromAppointment = (appt) => {
+  // Pre-fill invoice form with appointment details
+  invoiceForm.value = {
+    customerId: appt.customerId,
+    serviceId: appt.serviceId || appt.service,
+    date: appt.date,
+    invoiceStatus: "pending",
+    paymentType: "cash",
+    discount: 0
+  };
+  currentView.value = "invoices";
+  
+  // Mark appointment as invoice generated
+  const index = data.value.appointments.findIndex(b => b.id === appt.id);
+  if (index > -1) {
+    data.value.appointments[index].invoiceGenerated = true;
+  }
+  
+  console.log(`📄 Creating invoice for appointment #${appt.id} (${getCustomerName(appt.customerId)})`);
 };
 </script>
 

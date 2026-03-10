@@ -170,33 +170,36 @@
             </div>
             <div class="card-body">
               <form @submit.prevent="handleBookAppointment" style="max-width: 800px">
-                <div class="grid-2">
-                  <div class="form-group">
-                    <label for="service">Select Service *</label>
-                    <select 
-                      id="service"
-                      v-model="bookingForm.serviceId" 
-                      class="form-input"
-                      required
-                    >
-                      <option value="">Choose a service</option>
-                      <option v-for="service in customerData.availableServices" :key="service.id" :value="service.id">
+                <div class="form-group">
+                  <label>Select Services * (You can choose multiple)</label>
+                  <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 300px; overflow-y: auto">
+                    <div v-for="service in customerData.availableServices" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+                      <input 
+                        :id="'service-' + service.id"
+                        type="checkbox" 
+                        :value="service.id" 
+                        v-model="bookingForm.serviceIds"
+                        style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer"
+                      />
+                      <label :for="'service-' + service.id" style="cursor: pointer; flex: 1; margin: 0">
                         {{ service.name }} - ₹{{ service.price }} ({{ service.duration }} min)
-                      </option>
-                    </select>
+                      </label>
+                    </div>
                   </div>
+                  <div v-if="bookingForm.serviceIds.length === 0" class="text-muted" style="margin-top: 8px; font-size: 12px">Please select at least one service</div>
+                </div>
 
+                <div class="grid-2" style="margin-top: 16px">
                   <div class="form-group">
-                    <label for="stylist">Select Stylist *</label>
+                    <label for="stylist">Select Stylist (Optional)</label>
                     <select 
                       id="stylist"
                       v-model="bookingForm.staffId" 
                       class="form-input"
-                      required
                     >
-                      <option value="">Choose a stylist</option>
+                      <option value="">Choose a stylist (Optional)</option>
                       <option v-for="staff in availableStylists" :key="staff.id" :value="staff.id">
-                        {{ staff.name }} - ⭐ {{ staff.rating }}
+                        {{ staff.name }}
                       </option>
                     </select>
                   </div>
@@ -234,9 +237,14 @@
                 <div v-if="bookingError" class="error-message">{{ bookingError }}</div>
                 <div v-if="bookingSuccess" class="success-message">{{ bookingSuccess }}</div>
 
-                <button type="submit" class="btn btn-primary" style="margin-top: 20px">
-                  Confirm Booking
-                </button>
+                <div style="display: flex; gap: 12px; margin-top: 20px">
+                  <button type="submit" class="btn btn-primary">
+                    Confirm Booking ({{ bookingForm.serviceIds.length }} service{{ bookingForm.serviceIds.length !== 1 ? 's' : '' }})
+                  </button>
+                  <button type="button" class="btn btn-outline" @click="currentView = 'services'">
+                    Back to Services
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -249,6 +257,15 @@
               <h3 class="card-title">Appointment History</h3>
             </div>
             <div class="card-body">
+              <div style="margin-bottom: 16px">
+                <input 
+                  v-model="appointmentHistoryFilter"
+                  type="text" 
+                  placeholder="🔍 Filter by service or staff name..." 
+                  class="form-input"
+                  style="width: 100%; max-width: 300px"
+                />
+              </div>
               <div class="table-wrap">
                 <table>
                   <thead>
@@ -262,7 +279,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="appt in customerData.appointmentHistory" :key="appt.id">
+                    <tr v-for="appt in filteredAppointmentHistory" :key="appt.id">
                       <td>{{ appt.service }}</td>
                       <td>{{ appt.staff }}</td>
                       <td>{{ appt.date }}</td>
@@ -299,7 +316,9 @@
                     <span style="font-weight: 600; color: var(--gold); font-size: 16px">₹{{ service.price }}</span>
                     <span class="text-muted" style="font-size: 12px">{{ service.duration }} min</span>
                   </div>
-                  <button class="btn btn-primary w-full">Book Now</button>
+                  <button type="button" class="btn btn-primary w-full" @click="startBookingFromService(service.id)">
+                    Book Now
+                  </button>
                 </div>
               </div>
             </div>
@@ -407,8 +426,12 @@
                   <label>Membership Status</label>
                   <input type="text" :value="customerData.membershipStatus" class="form-input" disabled />
                 </div>
+                <div class="form-group">
+                  <label>Address</label>
+                  <input type="text" v-model="customerData.address" class="form-input" placeholder="Enter your address" />
+                </div>
                 <button class="btn btn-primary" style="margin-top: 20px">
-                  Edit Profile
+                  Save Changes
                 </button>
               </div>
             </div>
@@ -492,7 +515,7 @@ const passwordSuccess = ref("");
 
 // Booking form state
 const bookingForm = ref({
-  serviceId: "",
+  serviceIds: [],  // Array to support multiple services
   staffId: "",
   date: "",
   time: ""
@@ -515,11 +538,15 @@ const chatMessages = ref([
   { type: "bot", text: "Hi! I'm your beauty assistant. How can I help you today?", time: "Now" }
 ]);
 
+// Filter state
+const appointmentHistoryFilter = ref("");
+
 // Mock data
 const customerData = {
   name: "John Anderson",
   email: "john@example.com",
   phone: "+233 123 456 789",
+  address: "123 Main Street, Accra",
   memberSince: "2024-01-15",
   membershipStatus: "Gold",
   totalSpent: 1250,
@@ -685,6 +712,21 @@ const pageTitle = computed(() => {
   return titles[currentView.value] || "Customer Dashboard";
 });
 
+// Filtered appointment history (limited to 3 months)
+const filteredAppointmentHistory = computed(() => {
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  const threeMonthsAgoStr = threeMonthsAgo.toISOString().split('T')[0];
+  
+  let filtered = customerData.appointmentHistory.filter(appt => appt.date >= threeMonthsAgoStr);
+  
+  if (!appointmentHistoryFilter.value.trim()) return filtered;
+  return filtered.filter(appt =>
+    appt.service.toLowerCase().includes(appointmentHistoryFilter.value.toLowerCase()) ||
+    appt.staff.toLowerCase().includes(appointmentHistoryFilter.value.toLowerCase())
+  );
+});
+
 const getStatusBadgeClass = (status) => {
   const badges = {
     completed: "badge-green",
@@ -738,12 +780,17 @@ const handleChangePassword = () => {
   }, 1500);
 };
 
+const startBookingFromService = (serviceId) => {
+  bookingForm.value.serviceIds = [serviceId.toString()];
+  currentView.value = 'book-appointment';
+};
+
 const handleBookAppointment = () => {
   bookingError.value = "";
   bookingSuccess.value = "";
 
-  if (!bookingForm.value.serviceId) {
-    bookingError.value = "Please select a service";
+  if (bookingForm.value.serviceIds.length === 0) {
+    bookingError.value = "Please select at least one service";
     return;
   }
 
@@ -782,7 +829,7 @@ const handleBookAppointment = () => {
 
   setTimeout(() => {
     bookingForm.value = {
-      serviceId: "",
+      serviceIds: [],
       staffId: "",
       date: "",
       time: ""

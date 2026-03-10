@@ -155,6 +155,15 @@
               <h3 class="card-title">All My Appointments</h3>
             </div>
             <div class="card-body">
+              <div style="margin-bottom: 16px">
+                <input 
+                  v-model="appointmentCustomerFilter"
+                  type="text" 
+                  placeholder="🔍 Filter by customer name..." 
+                  class="form-input"
+                  style="width: 100%; max-width: 300px"
+                />
+              </div>
               <div class="table-wrap">
                 <table>
                   <thead>
@@ -165,17 +174,24 @@
                       <th>Duration</th>
                       <th>Amount</th>
                       <th>Status</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="appt in staffData.todayAppointments" :key="appt.id">
+                    <tr v-for="appt in filteredAppointments" :key="appt.id">
                       <td>{{ appt.customerName }}</td>
                       <td>{{ appt.service }}</td>
-                      <td>{{ appt.time }}</td>
+                      <td>{{ appt.date ? appt.date : 'Today' }} {{ appt.time }}</td>
                       <td>{{ appt.duration }} min</td>
                       <td>₹{{ appt.amount }}</td>
                       <td>
                         <span :class="['badge', getStatusBadgeClass(appt.status)]">{{ appt.status }}</span>
+                      </td>
+                      <td>
+                        <button v-if="appt.status !== 'completed'" class="btn btn-sm btn-primary" @click="handleMarkAppointmentComplete(appt)" style="padding: 4px 8px; font-size: 12px">
+                          ✓ Complete
+                        </button>
+                        <span v-else class="text-muted" style="font-size: 12px">Completed</span>
                       </td>
                     </tr>
                   </tbody>
@@ -194,31 +210,35 @@
             <div class="card-body">
               <form @submit.prevent="handleOrderProduct" style="max-width: 600px">
                 <div class="form-group">
+                  <label for="product-category">Product Category *</label>
+                  <select 
+                    id="product-category"
+                    v-model="orderForm.selectedCategory" 
+                    class="form-input"
+                    required
+                  >
+                    <option value="">Select a category</option>
+                    <option value="Hair Care">Hair Care</option>
+                    <option value="Skin Care">Skin Care</option>
+                    <option value="Nails">Nails</option>
+                    <option value="Wellness">Wellness</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
                   <label for="product-name">Product Name *</label>
                   <select 
                     id="product-name"
                     v-model="orderForm.productId" 
                     class="form-input"
                     required
+                    :disabled="!orderForm.selectedCategory"
                   >
-                    <option value="">Select a product</option>
-                    <option v-for="product in staffData.products" :key="product.id" :value="product.id">
+                    <option value="">{{ orderForm.selectedCategory ? 'Select a product' : 'Please select a category first' }}</option>
+                    <option v-for="product in filteredProductsByCategory" :key="product.id" :value="product.id">
                       {{ product.name }} (Stock: {{ product.currentStock }})
                     </option>
                   </select>
-                </div>
-
-                <div class="form-group">
-                  <label for="quantity">Quantity *</label>
-                  <input 
-                    id="quantity"
-                    v-model.number="orderForm.quantity" 
-                    type="number" 
-                    min="1"
-                    placeholder="Enter quantity"
-                    class="form-input"
-                    required
-                  />
                 </div>
 
                 <div class="form-group">
@@ -257,20 +277,27 @@
                 <div class="empty-state-text">No orders placed yet</div>
               </div>
               <div class="table-wrap" v-else>
+                <div style="margin-bottom: 16px">
+                  <input 
+                    v-model="orderProductFilter"
+                    type="text" 
+                    placeholder="🔍 Filter by product name..." 
+                    class="form-input"
+                    style="width: 100%; max-width: 300px"
+                  />
+                </div>
                 <table>
                   <thead>
                     <tr>
                       <th>Product</th>
-                      <th>Quantity</th>
                       <th>Service</th>
                       <th>Status</th>
                       <th>Date</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="order in staffData.orders" :key="order.id">
+                    <tr v-for="order in filteredOrders" :key="order.id">
                       <td>{{ getProductName(order.productId) }}</td>
-                      <td>{{ order.quantity }}</td>
                       <td>{{ getServiceName(order.serviceId) }}</td>
                       <td>
                         <span :class="['badge', getOrderStatusBadgeClass(order.status)]">{{ order.status }}</span>
@@ -442,7 +469,8 @@ const attendanceForm = ref({
 const orderForm = ref({
   productId: "",
   quantity: 1,
-  serviceId: ""
+  serviceId: "",
+  selectedCategory: ""
 });
 const passwordError = ref("");
 const passwordSuccess = ref("");
@@ -450,6 +478,10 @@ const attendanceError = ref("");
 const attendanceSuccess = ref("");
 const orderError = ref("");
 const orderSuccess = ref("");
+
+// Filter states
+const appointmentCustomerFilter = ref("");
+const orderProductFilter = ref("");
 
 // Get current month
 const currentMonth = computed(() => {
@@ -481,6 +513,41 @@ const attendanceStats = computed(() => {
     else if (record.status === 'late') stats.late++;
   });
   return stats;
+});
+
+// Filtered appointments & orders
+const filteredAppointments = computed(() => {
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+  const threeMonthsAgoStr = threeMonthsAgo.toISOString().split('T')[0];
+  
+  // Combine today and upcoming appointments
+  const allAppointments = [...(staffData.todayAppointments || []), ...(staffData.upcomingAppointments || [])];
+  const filteredByDate = allAppointments.filter(appt => {
+    const apptDate = appt.date ? appt.date : new Date().toISOString().split('T')[0];
+    return apptDate >= threeMonthsAgoStr;
+  });
+  
+  if (!appointmentCustomerFilter.value.trim()) return filteredByDate;
+  return filteredByDate.filter(appt =>
+    appt.customerName.toLowerCase().includes(appointmentCustomerFilter.value.toLowerCase())
+  );
+});
+
+const filteredOrders = computed(() => {
+  if (!orderProductFilter.value.trim()) return staffData.orders;
+  return staffData.orders.filter(order => {
+    const productName = getProductName(order.productId).toLowerCase();
+    return productName.includes(orderProductFilter.value.toLowerCase());
+  });
+});
+
+const filteredProductsByCategory = computed(() => {
+  if (!orderForm.value.selectedCategory) return [];
+  return staffData.products.filter(product => {
+    const category = getCategoryForProduct(product.id);
+    return category === orderForm.value.selectedCategory;
+  });
 });
 
 // Mock data
@@ -640,6 +707,44 @@ const getServiceName = (serviceId) => {
   return service ? service.name : "Unknown";
 };
 
+const getCategoryForProduct = (productId) => {
+  const categoriesMap = {
+    1: "Hair Care",
+    2: "Nails",
+    3: "Hair Care",
+    4: "Skin Care"
+  };
+  return categoriesMap[productId] || "Other";
+};
+
+const handleMarkAppointmentComplete = (appt) => {
+  appt.status = "completed";
+  
+  // Create appointment completion notification data
+  const completionNotification = {
+    appointmentId: appt.id,
+    customerName: appt.customerName,
+    service: appt.service,
+    staffName: staffData.name,
+    date: appt.date || new Date().toISOString().split('T')[0],
+    time: appt.time,
+    duration: appt.duration,
+    amount: appt.amount,
+    completedAt: new Date().toLocaleTimeString(),
+    notes: "Appointment completed. Manager notified to generate invoice."
+  };
+  
+  // Send notification to manager
+  console.log("🔔 APPOINTMENT COMPLETION ALERT FOR MANAGER:");
+  console.log(JSON.stringify(completionNotification, null, 2));
+  console.log(`✅ Appointment #${appt.id} for ${appt.customerName} has been completed.`);
+  console.log(`💰 Amount: ₹${appt.amount} | Service: ${appt.service}`);
+  console.log("Manager will now generate the invoice...");
+  
+  // In production, this would be:
+  // API.post('/manager/appointment-completed', completionNotification)
+};
+
 const handleChangePassword = () => {
   passwordError.value = "";
   passwordSuccess.value = "";
@@ -736,11 +841,6 @@ const handleOrderProduct = () => {
     return;
   }
 
-  if (!orderForm.value.quantity || orderForm.value.quantity <= 0) {
-    orderError.value = "Quantity must be greater than 0";
-    return;
-  }
-
   if (!orderForm.value.serviceId) {
     orderError.value = "Service is required";
     return;
@@ -754,6 +854,8 @@ const handleOrderProduct = () => {
     serviceId: parseInt(orderForm.value.serviceId),
     status: "pending",
     date: new Date().toISOString().split('T')[0],
+    staffId: 1,  // Would come from authenticated user in production
+    staffName: staffData.name
   };
 
   staffData.orders.push(newOrder);
@@ -763,7 +865,8 @@ const handleOrderProduct = () => {
     orderForm.value = {
       productId: "",
       quantity: 1,
-      serviceId: ""
+      serviceId: "",
+      selectedCategory: ""
     };
     orderSuccess.value = "";
   }, 1500);

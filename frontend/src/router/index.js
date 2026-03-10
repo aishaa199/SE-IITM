@@ -1,13 +1,20 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAppStore } from '@/stores/appStore'
+import HomePage from '@/views/HomePage.vue'
 import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import StaffDashboard from '@/views/StaffDashboard.vue'
 import CustomerDashboard from '@/views/CustomerDashboard.vue'
+import OwnerDashboard from '@/views/OwnerDashboard.vue'
 
 const routes = [
   {
     path: '/',
+    name: 'home',
+    component: HomePage,
+  },
+  {
+    path: '/login',
     name: 'login',
     component: LoginView,
   },
@@ -29,6 +36,12 @@ const routes = [
     component: CustomerDashboard,
     meta: { requiresAuth: true }
   },
+  {
+    path: '/owner-dashboard',
+    name: 'owner-dashboard',
+    component: OwnerDashboard,
+    meta: { requiresAuth: true }
+  },
   // Dev/Test routes for bypassing auth
   {
     path: '/test/staff',
@@ -47,6 +60,12 @@ const routes = [
     name: 'test-manager',
     component: DashboardView,
     meta: { testMode: true, testRole: 'manager' }
+  },
+  {
+    path: '/test/owner',
+    name: 'test-owner',
+    component: OwnerDashboard,
+    meta: { testMode: true, testRole: 'owner' }
   },
 ]
 

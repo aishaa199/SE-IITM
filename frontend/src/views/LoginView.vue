@@ -17,7 +17,7 @@
         <!-- Tab Buttons -->
         <div class="login-tabs">
           <button
-            v-for="t in ['manager', 'staff', 'customer']"
+            v-for="t in ['owner', 'manager', 'staff', 'customer']"
             :key="t"
             :class="['login-tab', { active: tab === t }]"
             @click="switchTab(t)"
@@ -31,12 +31,12 @@
 
         <!-- User ID or Email Input -->
         <div v-if="tab !== 'customer'" class="form-group">
-          <label class="form-label">User ID</label>
+          <label class="form-label">{{ tab === 'owner' ? 'Owner ID' : 'User ID' }}</label>
           <input
             v-model="form.userId"
             type="text"
             class="form-input"
-            :placeholder="tab === 'manager' ? 'manager' : 'staff user ID'"
+            :placeholder="tab === 'owner' ? 'owner' : tab === 'manager' ? 'manager' : 'staff user ID'"
           />
         </div>
         <div v-else class="form-group">
@@ -76,7 +76,7 @@
         <!-- Demo Credentials -->
         <div style="margin-top: 16px; text-align: center">
           <p style="font-size: 11px; color: var(--text-muted)">
-            Demo: manager/admin123 · staff: amara01/pass123 · customer: sofia@email.com/pass123
+            Demo: owner/admin123 · manager/admin123 · staff: amara01/pass123 · customer: sofia@email.com/pass123
           </p>
         </div>
       </template>
@@ -155,7 +155,10 @@ const login = async () => {
     let endpoint = "";
     let payload = {};
 
-    if (tab.value === "manager") {
+    if (tab.value === "owner") {
+      endpoint = `${API_BASE_URL}/api/auth/login/owner`;
+      payload = { userId: form.userId, password: form.password };
+    } else if (tab.value === "manager") {
       endpoint = `${API_BASE_URL}/api/auth/login/manager`;
       payload = { userId: form.userId, password: form.password };
     } else if (tab.value === "staff") {
