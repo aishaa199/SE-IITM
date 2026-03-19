@@ -36,12 +36,16 @@ class Service(db.Model):
     __tablename__ = 'service_master'
     service_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     service_desc = db.Column(db.String(50), nullable=False)
-    service_category = db.Column(db.String(50), nullable=False)
+    service_category = db.Column(db.String(50), nullable=False)  
+    from_date = db.Column(db.Date, nullable=False, default=db.func.current_date()) #Start date of the service offering, can be used for tracking the service lifecycle
+    to_date = db.Column(db.Date, nullable=True) #End date of the service offering, can be used for tracking the service lifecycle
+    active_flg = db.Column(db.Boolean, default=True)  #Flag to track whether the service is active.
     service_price = db.Column(db.Float, nullable=False)
     service_duration = db.Column(db.Integer, nullable=False)  # Duration in minutes
     service_products = db.Column(db.String(255), nullable=True)  # Comma-separated list of products used
     service_rating = db.Column(db.Float, default=0.0)  # Average rating for the service
     no_of_reviews = db.Column(db.Integer, default=0)  # Number of reviews for the service
+    
 
 class Staff(db.Model):
     __tablename__ = 'staff_master'
@@ -50,8 +54,8 @@ class Staff(db.Model):
     staff_contact = db.Column(db.String(20), nullable=False)
     staff_skills = db.Column(db.String(255), nullable=False)
     staff_role = db.Column(db.String(50), nullable=False)
-    staff_dob = db.Column(db.DateTime, nullable=False)
-    staff_doj = db.Column(db.DateTime, nullable=False)
+    staff_dob = db.Column(db.Date, nullable=False)
+    staff_doj = db.Column(db.Date, nullable=False, default=db.func.current_date())
     staff_cumulative_rating = db.Column(db.Float, default=0.0)
     no_of_reviews = db.Column(db.Integer, default=0)
 
@@ -63,13 +67,14 @@ class Customer(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     customer_name = db.Column(db.String(100), nullable=False)
     customer_contact = db.Column(db.String(20), nullable=False)
-    customer_dob = db.Column(db.DateTime, nullable=False)
-    customer_reg_date = db.Column(db.DateTime, nullable=False)
+    customer_dob = db.Column(db.Date, nullable=False)
+    customer_reg_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     customer_email = db.Column(db.String(120), nullable=True)
     customer_address = db.Column(db.String(255), nullable=True)
     number_of_visits = db.Column(db.Integer, nullable=False, default=0)
     customer_type = db.Column(db.String(50), nullable=False)
     customer_preferences = db.Column(db.String(255), nullable=True)
+    customer_available_rewards = db.Column(db.Integer, nullable=False, default=0) #Available reward points. This will be calculated and updated at the time of customer or manager booking appointments.
 
     user = db.relationship('User', backref=db.backref('customer_profile', uselist=False))
 
@@ -104,11 +109,13 @@ class Appointment(db.Model):
 class Invoice(db.Model):
     __tablename__ = 'invoices'
     invoice_number = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    invoice_date = db.Column(db.DateTime, nullable=False)
+    invoice_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     customer_id = db.Column(db.Integer, db.ForeignKey('customer_master.customer_id'), nullable=False)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('service_master.service_id'), nullable=False)
     other_charges = db.Column(db.Float, nullable=True)
+    rewards_earned = db.Column(db.Integer, nullable=False, default=0)
+    rewards_utilized = db.Column(db.Integer, nullable=False, default=0)
     invoice_amount = db.Column(db.Float, nullable=False)
     total_charges = db.Column(db.Float, nullable=False)
 
@@ -163,7 +170,6 @@ class Finance(db.Model):
     product_cost = db.Column(db.Float, nullable=False)
     total_revenue = db.Column(db.Float, nullable=False)
     staff_salary = db.Column(db.Float, nullable=False)
-    service_commission = db.Column(db.Float, nullable=False) # Commission earned from services
     overheads = db.Column(db.Float, nullable=False)
     other = db.Column(db.Float, nullable=False)
     net_profit = db.Column(db.Float, nullable=True)
@@ -192,5 +198,22 @@ class Owner(db.Model, UserMixin):
     user = db.relationship('User', backref=db.backref('owner_profile', uselist=False))
     
 
+class CustomerReward(db.Model):
+    __tablename__ = 'customer_rewards'
+    reward_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer_master.customer_id'), nullable=False)
+    credit_points = db.Column(db.Integer, nullable=False)
+    expiry_date = db.Column(db.DateTime, nullable=False) # to be calculated after adding the time duration from the salon_config table
+    valid_flg = db.Column(db.Boolean, default=True) # to check if the reward points are still valid based on the expiry date
 
+    # Relationships
+    customer = db.relationship('Customer', backref=db.backref('reward_profile', uselist=False))
+    
 
+class SalonConfig(db.Model):
+    __tablename__ = 'salon_config'
+    setting_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    param_name = db.Column(db.String(100), nullable=False)
+    param_value = db.Column(db.String(255), nullable=False)
+    from_date = db.Column(db.DateTime, nullable=False)
+    to_date = db.Column(db.DateTime, nullable=True)
