@@ -122,9 +122,14 @@
                   <div class="text-muted" style="font-size: 12px; margin-bottom: 8px">
                     {{ appt.date }} at {{ appt.time }}
                   </div>
-                  <button class="btn btn-sm btn-outline w-full">
-                    Reschedule
-                  </button>
+                  <div style="display: flex; gap: 8px">
+                    <button class="btn btn-sm btn-outline" style="flex: 1">
+                      Reschedule
+                    </button>
+                    <button class="btn btn-sm btn-danger" style="flex: 1">
+                      Cancel
+                    </button>
+                  </div>
                   <div style="height: 1px; background: var(--border); margin: 8px 0"></div>
                 </div>
               </div>
@@ -199,9 +204,12 @@
                     >
                       <option value="">Choose a stylist (Optional)</option>
                       <option v-for="staff in availableStylists" :key="staff.id" :value="staff.id">
-                        {{ staff.name }}
+                        {{ staff.name }} - ⭐ {{ staff.rating }} - {{ staff.skills }}
                       </option>
                     </select>
+                    <div v-if="bookingForm.staffId" class="text-muted" style="font-size: 12px; margin-top: 6px">
+                      Selected: {{ availableStylists.find(s => s.id == bookingForm.staffId)?.name }} (⭐ {{ availableStylists.find(s => s.id == bookingForm.staffId)?.rating }}) - Specializes in {{ availableStylists.find(s => s.id == bookingForm.staffId)?.skills }}
+                    </div>
                   </div>
 
                   <div class="form-group">
@@ -287,10 +295,45 @@
                       <td>
                         <span :class="['badge', getStatusBadgeClass(appt.status)]">{{ appt.status }}</span>
                       </td>
-                      <td>{{ appt.rating }} ⭐</td>
+                      <td>
+                        <div style="display: flex; align-items: center; gap: 6px">
+                          <span style="letter-spacing: 1px">
+                            <span v-for="i in 5" :key="i" :style="{ color: i <= appt.rating ? 'var(--gold)' : 'var(--border)', fontSize: '12px' }">⭐</span>
+                          </span>
+                          <span style="font-size: 12px; font-weight: 600; color: var(--gold)">{{ appt.rating }}</span>
+                        </div>
+                      </td>
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              <!-- Ratings Details Section -->
+              <div v-if="filteredAppointmentHistory.length > 0" style="margin-top: 24px; padding-top: 24px; border-top: 2px solid var(--border)">
+                <h4 style="margin-bottom: 16px; font-weight: 600">📊 Your Service Ratings</h4>
+                <div style="display: flex; flex-direction: column; gap: 12px">
+                  <div v-for="appt in filteredAppointmentHistory" :key="appt.id" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); margin-bottom: 12px">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
+                      <div>
+                        <div style="font-weight: 600">{{ appt.service }}</div>
+                        <div style="font-size: 12px; color: var(--text-muted)">with {{ appt.staff }} • {{ appt.date }}</div>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 6px; font-weight: 600">
+                        <span style="letter-spacing: 1px">
+                          <span v-for="i in 5" :key="i" :style="{ color: i <= appt.rating ? 'var(--gold)' : 'var(--border)' }">⭐</span>
+                        </span>
+                        <span style="color: var(--gold)">{{ appt.rating }}/5</span>
+                      </div>
+                    </div>
+                    <div v-if="getReviewForBooking(appt.id)" style="font-size: 13px; color: var(--text); padding: 8px; background: var(--card-bg); border-left: 3px solid var(--gold); border-radius: 4px">
+                      <div style="margin-bottom: 4px"><strong>Your Review:</strong></div>
+                      "{{ getReviewForBooking(appt.id).comment }}"
+                    </div>
+                    <div v-else style="font-size: 12px; color: var(--text-muted); font-style: italic; padding: 8px">
+                      No detailed review provided for this booking
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -303,22 +346,74 @@
               <h3 class="card-title">Browse All Services</h3>
             </div>
             <div class="card-body">
-              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px">
-                <div v-for="service in customerData.availableServices" :key="service.id" class="service-card" style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px">
-                  <div style="margin-bottom: 8px">
-                    <div style="font-weight: 600; font-size: 16px">{{ service.name }}</div>
-                    <div class="text-muted" style="font-size: 12px">{{ service.category }}</div>
+              <!-- Category Tabs -->
+              <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap">
+                <button 
+                  @click="selectedServiceCategory = null" 
+                  :class="['btn', selectedServiceCategory === null ? 'btn-primary' : 'btn-outline']"
+                  style="font-size: 13px; padding: 8px 14px"
+                >
+                  All Services
+                </button>
+                <button 
+                  v-for="category in serviceCategories" 
+                  :key="category"
+                  @click="selectedServiceCategory = category" 
+                  :class="['btn', selectedServiceCategory === category ? 'btn-primary' : 'btn-outline']"
+                  style="font-size: 13px; padding: 8px 14px"
+                >
+                  {{ category }}
+                </button>
+              </div>
+
+              <!-- Services Grid -->
+              <div v-if="selectedServiceCategory">
+                <!-- Single Category View -->
+                <div>
+                  <h4 style="margin: 0 0 16px 0; font-weight: 600; color: var(--charcoal)">📋 {{ selectedServiceCategory }}</h4>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px">
+                    <div v-for="service in filteredServices" :key="service.id" class="service-card" style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px">
+                      <div style="margin-bottom: 8px">
+                        <div style="font-weight: 600; font-size: 16px">{{ service.name }}</div>
+                        <div class="text-muted" style="font-size: 12px">{{ service.category }}</div>
+                      </div>
+                      <div class="text-muted" style="font-size: 13px; margin-bottom: 12px">
+                        {{ service.description }}
+                      </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
+                        <span style="font-weight: 600; color: var(--gold); font-size: 16px">₹{{ service.price }}</span>
+                        <span class="text-muted" style="font-size: 12px">{{ service.duration }} min</span>
+                      </div>
+                      <button type="button" class="btn btn-primary w-full" @click="startBookingFromService(service.id)">
+                        Book Now
+                      </button>
+                    </div>
                   </div>
-                  <div class="text-muted" style="font-size: 13px; margin-bottom: 12px">
-                    {{ service.description }}
+                </div>
+              </div>
+
+              <div v-else>
+                <!-- All Categories View -->
+                <div v-for="category in serviceCategories" :key="category" style="margin-bottom: 32px">
+                  <h4 style="margin: 0 0 16px 0; font-weight: 600; color: var(--charcoal); padding-bottom: 8px; border-bottom: 2px solid var(--gold)">📋 {{ category }}</h4>
+                  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px">
+                    <div v-for="service in getServicesByCategory(category)" :key="service.id" class="service-card" style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px">
+                      <div style="margin-bottom: 8px">
+                        <div style="font-weight: 600; font-size: 16px">{{ service.name }}</div>
+                        <div class="text-muted" style="font-size: 12px">{{ service.category }}</div>
+                      </div>
+                      <div class="text-muted" style="font-size: 13px; margin-bottom: 12px">
+                        {{ service.description }}
+                      </div>
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
+                        <span style="font-weight: 600; color: var(--gold); font-size: 16px">₹{{ service.price }}</span>
+                        <span class="text-muted" style="font-size: 12px">{{ service.duration }} min</span>
+                      </div>
+                      <button type="button" class="btn btn-primary w-full" @click="startBookingFromService(service.id)">
+                        Book Now
+                      </button>
+                    </div>
                   </div>
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
-                    <span style="font-weight: 600; color: var(--gold); font-size: 16px">₹{{ service.price }}</span>
-                    <span class="text-muted" style="font-size: 12px">{{ service.duration }} min</span>
-                  </div>
-                  <button type="button" class="btn btn-primary w-full" @click="startBookingFromService(service.id)">
-                    Book Now
-                  </button>
                 </div>
               </div>
             </div>
@@ -540,6 +635,7 @@ const chatMessages = ref([
 
 // Filter state
 const appointmentHistoryFilter = ref("");
+const selectedServiceCategory = ref(null);
 
 // Mock data
 const customerData = {
@@ -677,11 +773,11 @@ const customerData = {
 
 // Available stylists
 const availableStylists = ref([
-  { id: 1, name: "Sarah Johnson", rating: 4.8 },
-  { id: 2, name: "Emma Davis", rating: 4.6 },
-  { id: 3, name: "Lisa Chen", rating: 4.9 },
-  { id: 4, name: "Priya Nair", rating: 4.7 },
-  { id: 5, name: "Amara Osei", rating: 4.8 },
+  { id: 1, name: "Sarah Johnson", rating: 4.8, skills: "Hair Styling, Coloring" },
+  { id: 2, name: "Emma Davis", rating: 4.6, skills: "Manicure, Pedicure" },
+  { id: 3, name: "Lisa Chen", rating: 4.9, skills: "Facial Treatment, Massage" },
+  { id: 4, name: "Priya Nair", rating: 4.7, skills: "Hair Styling, Pedicure" },
+  { id: 5, name: "Amara Osei", rating: 4.8, skills: "Spa Package, Massage Therapy" },
 ]);
 
 // Available time slots
@@ -726,6 +822,23 @@ const filteredAppointmentHistory = computed(() => {
     appt.staff.toLowerCase().includes(appointmentHistoryFilter.value.toLowerCase())
   );
 });
+
+// Service categories
+const serviceCategories = computed(() => {
+  const categories = [...new Set(customerData.availableServices.map(s => s.category))];
+  return categories.sort();
+});
+
+// Filtered services by category
+const filteredServices = computed(() => {
+  if (!selectedServiceCategory.value) return customerData.availableServices;
+  return customerData.availableServices.filter(s => s.category === selectedServiceCategory.value);
+});
+
+// Get services by category
+const getServicesByCategory = (category) => {
+  return customerData.availableServices.filter(s => s.category === category);
+};
 
 const getStatusBadgeClass = (status) => {
   const badges = {
@@ -923,6 +1036,13 @@ const sendChatMessage = () => {
 const logout = () => {
   // Add logout logic here
   console.log("Logout");
+};
+
+const getReviewForBooking = (appointmentId) => {
+  return customerData.feedback.find(f => {
+    const appt = customerData.appointmentHistory.find(a => a.id === appointmentId);
+    return f.service === appt?.service && f.staff === appt?.staff;
+  });
 };
 </script>
 

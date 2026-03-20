@@ -26,33 +26,8 @@
           <p class="hero-description">All-in-one platform designed for modern beauty businesses</p>
           <div class="hero-buttons">
             <router-link to="/login" class="btn btn-primary btn-lg">
-              <span class="btn-icon">🚀</span> Get Started Now
+              Get Started Now
             </router-link>
-            <a href="#features" class="btn btn-outline btn-lg">
-              <span class="btn-icon">📖</span> Learn More
-            </a>
-          </div>
-          <div class="hero-stats">
-            <div class="stat-item">
-              <div class="stat-number">500+</div>
-              <div class="stat-label">Happy Salons</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">10K+</div>
-              <div class="stat-label">Users</div>
-            </div>
-            <div class="stat-item">
-              <div class="stat-number">99.9%</div>
-              <div class="stat-label">Uptime</div>
-            </div>
-          </div>
-        </div>
-        <div class="hero-visual">
-          <div class="hero-graphic">💇‍♀️</div>
-          <div class="floating-icons">
-            <div class="float-icon">💄</div>
-            <div class="float-icon">💅</div>
-            <div class="float-icon">✨</div>
           </div>
         </div>
       </div>
@@ -103,40 +78,6 @@
       </div>
     </section>
 
-    <!-- Stats Section -->
-    <section class="stats-section">
-      <div class="stats-container">
-        <h2 class="section-title">Trusted by Salons Worldwide</h2>
-        <div class="stats-grid">
-          <div class="stat-card" v-for="(stat, index) in stats" :key="index">
-            <div class="stat-icon">{{ stat.icon }}</div>
-            <div class="stat-value">{{ stat.value }}</div>
-            <div class="stat-text">{{ stat.label }}</div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Testimonials Section -->
-    <section class="testimonials">
-      <div class="testimonials-container">
-        <h2 class="section-title">What Our Users Say</h2>
-        <div class="testimonials-grid">
-          <div class="testimonial-card" v-for="(testimonial, index) in testimonials" :key="index">
-            <div class="stars">{{ '⭐'.repeat(testimonial.rating) }}</div>
-            <p class="testimonial-text">"{{ testimonial.text }}"</p>
-            <div class="testimonial-author">
-              <div class="author-avatar">{{ testimonial.avatar }}</div>
-              <div>
-                <div class="author-name">{{ testimonial.author }}</div>
-                <div class="author-role">{{ testimonial.role }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
     <!-- CTA Section -->
     <section class="cta">
       <div class="cta-container">
@@ -149,7 +90,7 @@
     </section>
 
     <!-- Footer -->
-    <footer class="footer">
+    <footer class="footer" id="about">
       <div class="footer-content">
         <div class="footer-section">
           <h4>Glow Suite</h4>
@@ -186,37 +127,37 @@ const features = [
     icon: '📅',
     title: 'Smart Scheduling',
     description: 'Effortlessly manage appointments, bookings, and staff schedules with our intuitive calendar system.',
-    color: '#FFE5B4'
+    color: '#E8D5B0'
   },
   {
     icon: '👥',
     title: 'Customer Management',
     description: 'Keep detailed customer profiles, track preferences, and maintain loyalty rewards all in one place.',
-    color: '#FFD4E5'
+    color: '#E8C4C4'
   },
   {
     icon: '💰',
     title: 'Financial Tracking',
     description: 'Monitor revenue, expenses, and profitability with comprehensive financial reports and analytics.',
-    color: '#C9F0DD'
+    color: '#A8B5A0'
   },
   {
     icon: '📦',
     title: 'Inventory Management',
     description: 'Track product stock levels, manage suppliers, and never run out of essential beauty products.',
-    color: '#D4E5FF'
+    color: '#D4CDBE'
   },
   {
     icon: '👔',
     title: 'Staff Administration',
     description: 'Manage staff profiles, track attendance, and monitor performance with detailed analytics.',
-    color: '#F0D4FF'
+    color: '#E0D5C7'
   },
   {
     icon: '📊',
     title: 'Advanced Analytics',
     description: 'Get insights into business performance with detailed reports and data-driven recommendations.',
-    color: '#FFE5CC'
+    color: '#E8D5B0'
   }
 ];
 
@@ -288,7 +229,7 @@ const testimonials = [
 
 /* Navigation */
 .navbar {
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(250, 247, 242, 0.98);
   backdrop-filter: blur(10px);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
   position: sticky;
@@ -303,6 +244,8 @@ const testimonials = [
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
+  height: 100%;
 }
 
 .navbar-logo {
@@ -311,10 +254,14 @@ const testimonials = [
   gap: 10px;
   font-size: 24px;
   font-weight: 800;
-  background: linear-gradient(135deg, #d4af37, #f5a623);
+  background: linear-gradient(135deg, #C9A96E, #8B6914);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  margin-right: auto;
 }
 
 .logo-icon {
@@ -331,18 +278,20 @@ const testimonials = [
   display: flex;
   gap: 32px;
   align-items: center;
+  margin-left: auto;
 }
 
 .nav-link {
-  color: #333;
+  color: var(--charcoal);
   text-decoration: none;
   font-weight: 500;
   transition: all 0.3s ease;
   position: relative;
+  font-family: var(--font-body);
 }
 
 .nav-link:not(.btn):hover {
-  color: #d4af37;
+  color: var(--gold);
 }
 
 .nav-link:not(.btn)::after {
@@ -352,7 +301,7 @@ const testimonials = [
   left: 0;
   width: 0;
   height: 2px;
-  background: linear-gradient(90deg, #d4af37, #f5a623);
+  background: var(--gold);
   transition: width 0.3s ease;
 }
 
@@ -376,7 +325,7 @@ const testimonials = [
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #fff5e6 0%, #fff9f0 50%, #ffe5f0 100%);
+  background: linear-gradient(135deg, var(--ivory) 0%, var(--cream) 50%, var(--ivory) 100%);
   z-index: -1;
 }
 
@@ -401,11 +350,12 @@ const testimonials = [
   font-size: 56px;
   font-weight: 800;
   line-height: 1.2;
-  color: #2c3e50;
+  color: var(--charcoal);
+  font-family: var(--font-display);
 }
 
 .highlight {
-  background: linear-gradient(135deg, #d4af37, #f5a623);
+  background: linear-gradient(135deg, #C9A96E, #8B6914);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -413,14 +363,16 @@ const testimonials = [
 
 .hero-subtitle {
   font-size: 24px;
-  color: #555;
+  color: var(--charcoal-light);
   font-weight: 600;
+  font-family: var(--font-display);
 }
 
 .hero-description {
   font-size: 16px;
-  color: #777;
+  color: var(--text-muted);
   line-height: 1.6;
+  font-family: var(--font-body);
 }
 
 .hero-buttons {
@@ -445,24 +397,24 @@ const testimonials = [
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #d4af37, #f5a623);
+  background: linear-gradient(135deg, #C9A96E, #8B6914);
   color: white;
-  box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3);
+  box-shadow: 0 4px 20px rgba(201, 169, 110, 0.3);
 }
 
 .btn-primary:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 30px rgba(212, 175, 55, 0.5);
+  box-shadow: 0 8px 30px rgba(201, 169, 110, 0.5);
 }
 
 .btn-outline {
-  border: 2px solid #d4af37;
-  color: #d4af37;
+  border: 2px solid var(--gold);
+  color: var(--gold);
   background: transparent;
 }
 
 .btn-outline:hover {
-  background: #d4af37;
+  background: var(--gold);
   color: white;
 }
 
@@ -488,7 +440,7 @@ const testimonials = [
 .stat-number {
   font-size: 28px;
   font-weight: 800;
-  background: linear-gradient(135deg, #d4af37, #f5a623);
+  background: linear-gradient(135deg, #C9A96E, #8B6914);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -496,7 +448,7 @@ const testimonials = [
 
 .stat-label {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
   margin-top: 4px;
 }
 
@@ -558,7 +510,7 @@ const testimonials = [
 /* Features Section */
 .features {
   padding: 100px 24px;
-  background: #fafafa;
+  background: var(--cream);
 }
 
 .features-container {
@@ -574,13 +526,15 @@ const testimonials = [
 .section-title {
   font-size: 44px;
   font-weight: 800;
-  color: #2c3e50;
+  color: var(--charcoal);
   margin-bottom: 12px;
+  font-family: var(--font-display);
 }
 
 .section-subtitle {
   font-size: 18px;
-  color: #999;
+  color: var(--text-muted);
+  font-family: var(--font-body);
 }
 
 .features-grid {
@@ -611,7 +565,7 @@ const testimonials = [
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #d4af37, #f5a623);
+  background: linear-gradient(90deg, #C9A96E, #8B6914);
 }
 
 .feature-icon-box {
@@ -628,14 +582,16 @@ const testimonials = [
 .feature-title {
   font-size: 20px;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--charcoal);
   margin-bottom: 12px;
+  font-family: var(--font-display);
 }
 
 .feature-description {
   font-size: 14px;
-  color: #666;
+  color: var(--text-muted);
   line-height: 1.6;
+  font-family: var(--font-body);
 }
 
 .feature-tick {
@@ -644,7 +600,7 @@ const testimonials = [
   right: 20px;
   width: 30px;
   height: 30px;
-  background: linear-gradient(135deg, #d4af37, #f5a623);
+  background: linear-gradient(135deg, #C9A96E, #8B6914);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -683,9 +639,9 @@ const testimonials = [
 }
 
 .service-card:hover {
-  border-color: #d4af37;
+  border-color: var(--gold);
   transform: translateY(-8px);
-  box-shadow: 0 12px 40px rgba(212, 175, 55, 0.2);
+  box-shadow: 0 12px 40px rgba(201, 169, 110, 0.2);
 }
 
 .service-card::before {
@@ -695,7 +651,7 @@ const testimonials = [
   right: -50%;
   width: 200px;
   height: 200px;
-  background: radial-gradient(circle, rgba(212, 175, 55, 0.1), transparent);
+  background: radial-gradient(circle, rgba(201, 169, 110, 0.1), transparent);
   border-radius: 50%;
   animation: pulse 4s ease-in-out infinite;
 }
@@ -721,16 +677,18 @@ const testimonials = [
 .service-card h3 {
   font-size: 24px;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--charcoal);
+  font-family: var(--font-display);
 }
 
 .service-description {
   font-size: 15px;
-  color: #666;
+  color: var(--text-muted);
   margin: 16px 0;
   line-height: 1.6;
   position: relative;
   z-index: 1;
+  font-family: var(--font-body);
 }
 
 .service-features {
@@ -742,21 +700,22 @@ const testimonials = [
 
 .service-features li {
   padding: 10px 0;
-  color: #555;
+  color: var(--charcoal-light);
   display: flex;
   align-items: center;
   gap: 10px;
   font-size: 14px;
+  font-family: var(--font-body);
 }
 
 .check-icon {
-  color: #d4af37;
+  color: var(--gold);
   font-weight: bold;
   font-size: 18px;
 }
 
 .service-link {
-  color: #d4af37;
+  color: var(--gold);
   text-decoration: none;
   font-weight: 600;
   position: relative;
@@ -867,7 +826,7 @@ const testimonials = [
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #d4af37, #f5a623);
+  background: linear-gradient(135deg, #C9A96E, #8B6914);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -875,18 +834,20 @@ const testimonials = [
 
 .author-name {
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--charcoal);
+  font-family: var(--font-display);
 }
 
 .author-role {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
+  font-family: var(--font-body);
 }
 
 /* CTA Section */
 .cta {
   padding: 80px 24px;
-  background: linear-gradient(135deg, #2c3e50, #34495e);
+  background: linear-gradient(135deg, var(--charcoal), var(--charcoal-mid));
   color: white;
   text-align: center;
 }
@@ -900,6 +861,7 @@ const testimonials = [
   font-size: 44px;
   font-weight: 800;
   margin-bottom: 12px;
+  font-family: var(--font-display);
 }
 
 .cta-subtitle {
@@ -910,8 +872,8 @@ const testimonials = [
 
 /* Footer */
 .footer {
-  background: #1a252f;
-  color: #aaa;
+  background: var(--charcoal);
+  color: var(--text-muted);
   padding: 60px 24px 24px;
 }
 
@@ -928,12 +890,14 @@ const testimonials = [
   color: white;
   font-size: 16px;
   font-weight: 700;
+  font-family: var(--font-display);
   margin-bottom: 16px;
 }
 
 .footer-section p {
   font-size: 14px;
   line-height: 1.7;
+  font-family: var(--font-body);
   margin-bottom: 8px;
 }
 
@@ -942,14 +906,14 @@ const testimonials = [
 }
 
 .footer-section a {
-  color: #aaa;
+  color: var(--text-muted);
   text-decoration: none;
   font-size: 14px;
   transition: color 0.3s;
 }
 
 .footer-section a:hover {
-  color: #d4af37;
+  color: var(--gold);
 }
 
 .footer-bottom {
@@ -957,7 +921,7 @@ const testimonials = [
   margin: 0 auto;
   text-align: center;
   padding-top: 24px;
-  border-top: 1px solid #333;
+  border-top: 1px solid rgba(201, 169, 110, 0.2);
   font-size: 13px;
 }
 

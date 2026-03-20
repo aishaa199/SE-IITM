@@ -148,6 +148,53 @@
           </div>
         </div>
 
+        <!-- Customer Ratings & Reviews -->
+        <div class="card" style="margin-top: 24px">
+          <div class="card-header">
+            <h3 class="card-title">⭐ Customer Ratings & Reviews</h3>
+          </div>
+          <div class="card-body">
+            <div v-if="staffRatings.totalRatings > 0">
+              <!-- Overall Rating Summary -->
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px; padding: 16px; background: var(--light-bg); border-radius: var(--radius)">
+                <div style="text-align: center">
+                  <div style="font-size: 32px; font-weight: 700; color: var(--gold)">{{ staffRatings.averageRating }}</div>
+                  <div class="text-muted" style="font-size: 13px">Average Rating</div>
+                  <div style="margin-top: 8px; letter-spacing: 2px">
+                    <span v-for="i in 5" :key="i" :style="{ color: i <= Math.round(staffRatings.averageRating) ? 'var(--gold)' : 'var(--border)' }">⭐</span>
+                  </div>
+                </div>
+                <div style="text-align: center">
+                  <div style="font-size: 32px; font-weight: 700; color: var(--info)">{{ staffRatings.totalRatings }}</div>
+                  <div class="text-muted" style="font-size: 13px">Total Reviews</div>
+                  <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted)">From customers</div>
+                </div>
+              </div>
+
+              <!-- Individual Ratings List -->
+              <div style="max-height: 400px; overflow-y: auto">
+                <div v-for="rating in staffRatings.feedbacks" :key="rating.id" style="padding: 16px; border-bottom: 1px solid var(--border); display: flex; gap: 12px">
+                  <div style="flex: 1">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px">
+                      <div style="font-weight: 600; font-size: 13px">{{ rating.customerName }}</div>
+                      <div style="letter-spacing: 1px">
+                        <span v-for="i in 5" :key="i" :style="{ color: i <= rating.rating ? 'var(--gold)' : 'var(--border)', fontSize: '12px' }">⭐</span>
+                      </div>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px">{{ rating.comment }}</div>
+                    <div style="font-size: 11px; color: var(--border)">{{ formatDate(rating.date) }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-state">
+              <div class="empty-state-icon">⭐</div>
+              <div class="empty-state-text">No customer ratings yet</div>
+              <div class="text-muted" style="font-size: 12px; margin-top: 8px">Complete appointments to receive customer reviews</div>
+            </div>
+          </div>
+        </div>
+
         <!-- APPOINTMENTS VIEW -->
         <div v-if="currentView === 'appointments'" class="fade-in">
           <div class="card">
@@ -453,6 +500,7 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { useAppStore } from "../stores/appStore";
 
 const currentView = ref("dashboard");
 const showChangePasswordModal = ref(false);
@@ -696,6 +744,33 @@ const getOrderStatusBadgeClass = (status) => {
   };
   return badges[status] || "badge-gray";
 };
+
+// Get ratings received by current staff member
+const appStore = useAppStore();
+const currentStaffId = 1; // Amara Osei - would come from authenticated user in production
+
+const staffRatings = computed(() => {
+  const staffFeedbacks = appStore.data.feedbacks.filter(f => f.staffId === currentStaffId);
+  if (staffFeedbacks.length === 0) return { feedbacks: [], averageRating: 0 };
+  
+  const totalRating = staffFeedbacks.reduce((sum, f) => sum + f.rating, 0);
+  const averageRating = (totalRating / staffFeedbacks.length).toFixed(1);
+  
+  // Enrich feedbacks with customer names
+  const enrichedFeedbacks = staffFeedbacks.map(f => {
+    const customer = appStore.data.customers.find(c => c.id === f.customerId);
+    return {
+      ...f,
+      customerName: customer ? customer.name : "Anonymous Customer"
+    };
+  });
+  
+  return {
+    feedbacks: enrichedFeedbacks,
+    averageRating: parseFloat(averageRating),
+    totalRatings: staffFeedbacks.length
+  };
+});
 
 const getProductName = (productId) => {
   const product = staffData.products.find(p => p.id === productId);

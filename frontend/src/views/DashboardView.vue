@@ -7,7 +7,7 @@
         <div class="sidebar-logo-sub">Beauty Management</div>
       </div>
       <nav class="sidebar-nav">
-        <div class="nav-section">Booking & Services</div>
+        <div class="nav-section">Appointment & Services</div>
         <div
           :class="['nav-item', { active: currentView === 'dashboard' }]"
           @click="currentView = 'dashboard'"
@@ -18,7 +18,7 @@
           :class="['nav-item', { active: currentView === 'bookings' }]"
           @click="currentView = 'bookings'"
         >
-          <span class="nav-icon">📅</span> Bookings
+          <span class="nav-icon">📅</span> Appointments
         </div>
         <div
           :class="['nav-item', { active: currentView === 'services' }]"
@@ -62,13 +62,13 @@
         </div>
         <div
           :class="['nav-item', { active: currentView === 'finance' }]"
-          @click="currentView = 'finance'"
+          @click="handleFinanceAccess"
         >
           <span class="nav-icon">💰</span> Finance
         </div>
         <div
           :class="['nav-item', { active: currentView === 'reports' }]"
-          @click="currentView = 'reports'"
+          @click="handleReportsAccess"
         >
           <span class="nav-icon">📄</span> Download Reports
         </div>
@@ -113,7 +113,7 @@
             <div class="stat-card">
               <div class="stat-icon">📅</div>
               <div class="stat-value">{{ todayAppointments.length }}</div>
-              <div class="stat-label">Bookings Today</div>
+              <div class="stat-label">Appointments Today</div>
             </div>
             <div class="stat-card">
               <div class="stat-icon">✅</div>
@@ -132,17 +132,44 @@
             </div>
           </div>
 
+          <!-- Available Staff Today -->
+          <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, var(--ivory) 0%, var(--cream) 100%); border-left: 4px solid var(--gold)">
+            <div class="card-body">
+              <div style="display: flex; align-items: center; gap: 12px">
+                <span style="font-size: 24px">👥</span>
+                <div style="flex: 1">
+                  <div style="font-weight: 600; color: var(--charcoal); margin-bottom: 8px; font-size: 16px">
+                    Available Staff Today
+                  </div>
+                  <div v-if="todayAvailableStaff.length > 0" style="color: var(--charcoal); font-size: 15px">
+                    <div v-for="staff in todayAvailableStaff" :key="staff.id" style="margin-bottom: 12px">
+                      <div style="display: inline-block; margin-right: 16px">
+                        <span style="background: var(--gold); color: white; padding: 6px 12px; border-radius: 16px; font-size: 14px; font-weight: 600">✓ {{ staff.name }}</span>
+                      </div>
+                      <div style="font-size: 12px; color: var(--charcoal-light); margin-top: 2px">
+                        {{ staff.skills || 'Skills not specified' }}
+                      </div>
+                    </div>
+                  </div>
+                  <div v-else style="color: var(--charcoal-light); font-size: 14px">
+                    ℹ️ No staff available today
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Alerts & Today's Bookings -->
           <div class="grid-2" style="margin-top: 24px">
-            <!-- Today's Bookings -->
+            <!-- Today's Appointments -->
             <div class="card">
               <div class="card-header">
-                <h3 class="card-title">📅 Today's Bookings</h3>
+                <h3 class="card-title">📅 Today's Appointments</h3>
               </div>
               <div class="card-body">
                 <div v-if="todayAppointments.length === 0" class="empty-state">
                   <div class="empty-state-icon">📅</div>
-                  <div class="empty-state-text">No bookings today</div>
+                  <div class="empty-state-text">No appointments today</div>
                 </div>
                 <div v-for="appt in todayAppointments" :key="appt.id" class="booking-item">
                   <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
@@ -184,16 +211,35 @@
           </div>
         </div>
 
-        <!-- BOOKINGS VIEW -->
+        <!-- APPOINTMENTS VIEW -->
         <div v-if="currentView === 'bookings'" class="fade-in">
-          <!-- New Booking Form -->
+          <!-- New Appointment Form -->
           <div class="card" style="margin-bottom: 20px">
             <div class="card-header">
-              <h3 class="card-title">➕ Create New Booking</h3>
+              <h3 class="card-title">📅 Create New Appointment</h3>
             </div>
             <div class="card-body">
               <form @submit.prevent="handleCreateBooking" style="max-width: 800px">
-                <div class="grid-2">
+                <div class="form-group">
+                  <label>Select Services * (You can choose multiple)</label>
+                  <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 300px; overflow-y: auto">
+                    <div v-for="service in data.services" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+                      <input 
+                        :id="'service-' + service.id"
+                        type="checkbox" 
+                        :value="service.id" 
+                        v-model="bookingForm.serviceIds"
+                        style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer"
+                      />
+                      <label :for="'service-' + service.id" style="cursor: pointer; flex: 1; margin: 0">
+                        {{ service.name }} - ₹{{ service.price }} ({{ service.duration || 60 }} min)
+                      </label>
+                    </div>
+                  </div>
+                  <div v-if="bookingForm.serviceIds.length === 0" class="text-muted" style="margin-top: 8px; font-size: 12px">Please select at least one service</div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 16px">
                   <div class="form-group">
                     <label for="booking-customer">Customer Name *</label>
                     <select 
@@ -210,18 +256,24 @@
                   </div>
 
                   <div class="form-group">
-                    <label for="booking-service">Service *</label>
+                    <label for="booking-stylist">Stylist (Optional)</label>
                     <select 
-                      id="booking-service"
-                      v-model="bookingForm.serviceId"
+                      id="booking-stylist"
+                      v-model="bookingForm.staffId"
                       class="form-input"
-                      required
                     >
-                      <option value="">Select a service</option>
-                      <option v-for="service in data.services" :key="service.id" :value="service.id">
-                        {{ service.name }}
+                      <option value="">Choose a stylist (Optional)</option>
+                      <option 
+                        v-for="staff in data.staff" 
+                        :key="staff.id" 
+                        :value="staff.id"
+                      >
+                        {{ staff.name }}{{ staff.skills ? ' - ' + staff.skills : '' }}
                       </option>
                     </select>
+                    <div v-if="bookingForm.staffId" class="text-muted" style="font-size: 12px; margin-top: 6px">
+                      Selected: {{ data.staff.find(s => s.id == bookingForm.staffId)?.name }}{{ data.staff.find(s => s.id == bookingForm.staffId)?.skills ? ' - Specializes in ' + data.staff.find(s => s.id == bookingForm.staffId)?.skills : '' }}
+                    </div>
                   </div>
 
                   <div class="form-group">
@@ -237,26 +289,30 @@
 
                   <div class="form-group">
                     <label for="booking-time">Time *</label>
-                    <input 
+                    <select 
                       id="booking-time"
                       v-model="bookingForm.time"
-                      type="time"
                       class="form-input"
                       required
-                    />
-                  </div>
-
-                  <div class="form-group" style="grid-column: 1 / -1">
-                    <label for="booking-stylist">Stylist (Optional)</label>
-                    <select 
-                      id="booking-stylist"
-                      v-model="bookingForm.staffId"
-                      class="form-input"
                     >
-                      <option value="">Unassigned</option>
-                      <option v-for="staff in data.staff" :key="staff.id" :value="staff.id">
-                        {{ staff.name }}
-                      </option>
+                      <option value="">Choose a time</option>
+                      <option value="09:00">09:00</option>
+                      <option value="09:30">09:30</option>
+                      <option value="10:00">10:00</option>
+                      <option value="10:30">10:30</option>
+                      <option value="11:00">11:00</option>
+                      <option value="11:30">11:30</option>
+                      <option value="12:00">12:00</option>
+                      <option value="12:30">12:30</option>
+                      <option value="13:00">13:00</option>
+                      <option value="13:30">13:30</option>
+                      <option value="14:00">14:00</option>
+                      <option value="14:30">14:30</option>
+                      <option value="15:00">15:00</option>
+                      <option value="15:30">15:30</option>
+                      <option value="16:00">16:00</option>
+                      <option value="16:30">16:30</option>
+                      <option value="17:00">17:00</option>
                     </select>
                   </div>
                 </div>
@@ -265,7 +321,7 @@
                 <div v-if="bookingSuccess" class="success-message">{{ bookingSuccess }}</div>
 
                 <button type="submit" class="btn btn-primary" style="margin-top: 16px">
-                  Create Booking
+                  Create Appointment ({{ bookingForm.serviceIds.length }} service{{ bookingForm.serviceIds.length !== 1 ? 's' : '' }})
                 </button>
               </form>
             </div>
@@ -279,7 +335,7 @@
             <div class="card-body" style="padding: 12px; overflow-x: auto">
               <div style="display: flex; gap: 8px; min-width: min-content">
                 <div v-for="date in upcomingDates" :key="date" 
-                     :class="['calendar-date-horizontal', { 'has-bookings': getDateBookings(date).length > 0, 'selected': selectedDate === date }]"
+                     :class="['calendar-date-horizontal', { 'has-appointments': getDateBookings(date).length > 0, 'selected': selectedDate === date }]"
                      @click="selectedDate = date"
                      style="cursor: pointer; flex-shrink: 0">
                   <div style="font-size: 11px; color: inherit">{{ formatDateShort(date) }}</div>
@@ -289,10 +345,10 @@
             </div>
           </div>
 
-          <!-- Bookings List -->
+          <!-- Appointments List -->
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">📅 {{ selectedDate ? 'Bookings - ' + formatDateShort(selectedDate) : "All Bookings" }}</h3>
+              <h3 class="card-title">📅 {{ selectedDate ? 'Appointments - ' + formatDateShort(selectedDate) : "All Appointments" }}</h3>
             </div>
             <div class="card-body">
               <div style="margin-bottom: 16px">
@@ -306,7 +362,7 @@
               </div>
               <div v-if="filteredBookings.length === 0" class="empty-state">
                 <div class="empty-state-icon">📅</div>
-                <div class="empty-state-text">{{ selectedDate ? 'No bookings on this date' : 'No bookings' }}</div>
+                <div class="empty-state-text">{{ selectedDate ? 'No appointments on this date' : 'No appointments' }}</div>
               </div>
               <div v-for="appt in filteredBookings" :key="appt.id" class="booking-item">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
@@ -544,6 +600,17 @@
                       class="form-input"
                     />
                   </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="customer-preferences">Preferences</label>
+                    <textarea 
+                      id="customer-preferences"
+                      v-model="customerForm.preferences"
+                      placeholder="e.g., Relaxing massage, No harsh chemicals, etc."
+                      class="form-input"
+                      style="resize: vertical; min-height: 60px"
+                    ></textarea>
+                  </div>
                 </div>
 
                 <div v-if="customerError" class="error-message">{{ customerError }}</div>
@@ -578,6 +645,9 @@
                       <th>Name</th>
                       <th>Email</th>
                       <th>Phone</th>
+                      <th>Preferences</th>
+                      <th>No. of Visits</th>
+                      <th>Invoices</th>
                       <th>Address</th>
                       <th>Registered</th>
                       <th>Actions</th>
@@ -588,6 +658,9 @@
                       <td>{{ customer.name }}</td>
                       <td>{{ customer.email }}</td>
                       <td>{{ customer.phone }}</td>
+                      <td style="font-size: 12px; color: #666">{{ customer.preferences || '-' }}</td>
+                      <td style="text-align: center; font-weight: 600">{{ customer.noOfVisits || 0 }}</td>
+                      <td style="text-align: center"><span class="badge" style="background: var(--gold); color: white">{{ customer.invoices || 0 }}</span></td>
                       <td class="text-muted">{{ customer.address || "N/A" }}</td>
                       <td>{{ customer.registrationDate }}</td>
                       <td>
@@ -666,6 +739,18 @@
                     />
                   </div>
 
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="staff-skills">Skills *</label>
+                    <input 
+                      id="staff-skills"
+                      v-model="staffForm.skills"
+                      type="text"
+                      placeholder="e.g., Hair Cutting, Styling, Coloring (comma-separated)"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
                   <div class="form-group">
                     <label for="staff-doj">Date of Joining *</label>
                     <input 
@@ -734,6 +819,7 @@
                     <tr>
                       <th>Name</th>
                       <th>Role</th>
+                      <th>Skills</th>
                       <th>Email</th>
                       <th>Phone</th>
                       <th>Date of Joining</th>
@@ -748,6 +834,7 @@
                     <tr v-for="staff in filteredStaff" :key="staff.id">
                       <td>{{ staff.name }}</td>
                       <td>{{ staff.role }}</td>
+                      <td><span style="font-size: 12px; color: #666">{{ staff.skills || '-' }}</span></td>
                       <td>{{ staff.email }}</td>
                       <td>{{ staff.phone }}</td>
                       <td>{{ staff.doj }}</td>
@@ -1057,9 +1144,18 @@
               <h3 class="card-title">📮 Pending Staff Orders</h3>
             </div>
             <div class="card-body">
-              <div v-if="pendingOrders.length === 0" class="empty-state">
+              <div style="margin-bottom: 16px">
+                <input 
+                  v-model="orderFilter"
+                  type="text" 
+                  placeholder="🔍 Filter by product name or staff name..." 
+                  class="form-input"
+                  style="width: 100%; max-width: 300px"
+                />
+              </div>
+              <div v-if="filteredOrders.length === 0" class="empty-state">
                 <div class="empty-state-icon">✅</div>
-                <div class="empty-state-text">No pending orders - all caught up!</div>
+                <div class="empty-state-text">{{ orderFilter.trim() ? 'No orders match the filter' : 'No pending orders - all caught up!' }}</div>
               </div>
               <div v-else class="table-wrap">
                 <table>
@@ -1074,7 +1170,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="order in pendingOrders" :key="order.id">
+                    <tr v-for="order in filteredOrders" :key="order.id">
                       <td>#{{ order.id }}</td>
                       <td>{{ getProductNameForOrder(order.productId) }}</td>
                       <td>{{ order.date }}</td>
@@ -1103,9 +1199,18 @@
               <h3 class="card-title">🔔 Completed Appointments - Invoice Needed</h3>
             </div>
             <div class="card-body">
-              <div v-if="completedAppointments.length === 0" class="empty-state">
+              <div style="margin-bottom: 16px">
+                <input 
+                  v-model="completedAppointmentFilter"
+                  type="text" 
+                  placeholder="🔍 Filter by customer, staff, or service name..." 
+                  class="form-input"
+                  style="width: 100%; max-width: 300px"
+                />
+              </div>
+              <div v-if="filteredCompletedAppointments.length === 0" class="empty-state">
                 <div class="empty-state-icon">✨</div>
-                <div class="empty-state-text">No completed appointments awaiting invoices</div>
+                <div class="empty-state-text">{{ completedAppointmentFilter.trim() ? 'No appointments match the filter' : 'No completed appointments awaiting invoices' }}</div>
               </div>
               <div v-else class="table-wrap">
                 <table>
@@ -1121,7 +1226,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="appt in completedAppointments" :key="appt.id">
+                    <tr v-for="appt in filteredCompletedAppointments" :key="appt.id">
                       <td>#{{ appt.id }}</td>
                       <td>{{ getCustomerName(appt.customerId) }}</td>
                       <td>{{ getStaffName(appt.staffId) || "Unassigned" }}</td>
@@ -1163,19 +1268,6 @@
                       <option v-for="appt in data.appointments" :key="appt.id" :value="appt.id">
                         {{ getCustomerName(appt.customerId) }} - {{ getServiceName(appt.serviceId) }} ({{ appt.date }})
                       </option>
-                    </select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="invoice-status">Status *</label>
-                    <select 
-                      id="invoice-status"
-                      v-model="invoiceForm.invoiceStatus"
-                      class="form-input"
-                      required
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="invoiced">Invoiced</option>
                     </select>
                   </div>
                 </div>
@@ -1291,6 +1383,9 @@
                           <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px">
                             📄 View
                           </button>
+                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #27ae60; border-color: #27ae60" @click="handleSendInvoice(appt)">
+                            📧 Send
+                          </button>
                           <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click="handleDeleteInvoice(appt.id)">
                             🗑 Delete
                           </button>
@@ -1321,8 +1416,8 @@
 
                 <div class="report-item">
                   <div class="report-icon">📅</div>
-                  <div class="report-title">Bookings Report</div>
-                  <div class="text-muted" style="margin: 8px 0">All appointments and bookings</div>
+                  <div class="report-title">Appointments Report</div>
+                  <div class="text-muted" style="margin: 8px 0">All appointments and schedules</div>
                   <button class="btn btn-primary w-full">📥 Download CSV</button>
                 </div>
 
@@ -1418,6 +1513,82 @@
       </div>
     </div>
   </div>
+
+  <!-- Financial Password Modal -->
+  <div v-if="showFinancePasswordModal" class="modal-overlay" @click.self="showFinancePasswordModal = false">
+    <div class="modal-content" @click.stop style="max-width: 400px">
+      <div class="modal-header">
+        <h3 class="modal-title">🔐 Service Password Required</h3>
+        <button class="modal-close" @click="showFinancePasswordModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 14px">
+          This section requires authentication.
+        </p>
+        <form @submit.prevent="verifyFinancialPassword">
+          <div class="form-group">
+            <label for="financial-password">Enter Password</label>
+            <input 
+              id="financial-password"
+              v-model="financialPasswordInput" 
+              type="password" 
+              placeholder="Enter password"
+              class="form-input"
+              required
+              autofocus
+            />
+          </div>
+          <div v-if="financialPasswordError" class="error-message">{{ financialPasswordError }}</div>
+          <div style="display: flex; gap: 12px; margin-top: 20px">
+            <button type="button" class="btn btn-outline" @click="showFinancePasswordModal = false" style="flex: 1">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              Verify
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reports Password Modal -->
+  <div v-if="showReportsPasswordModal" class="modal-overlay" @click.self="showReportsPasswordModal = false">
+    <div class="modal-content" @click.stop style="max-width: 400px">
+      <div class="modal-header">
+        <h3 class="modal-title">🔐 Service Password Required</h3>
+        <button class="modal-close" @click="showReportsPasswordModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="color: var(--text-muted); margin-bottom: 16px; font-size: 14px">
+          This section requires authentication.
+        </p>
+        <form @submit.prevent="verifyReportsPassword">
+          <div class="form-group">
+            <label for="reports-password">Enter Password</label>
+            <input 
+              id="reports-password"
+              v-model="financialPasswordInput" 
+              type="password" 
+              placeholder="Enter password"
+              class="form-input"
+              required
+              autofocus
+            />
+          </div>
+          <div v-if="financialPasswordError" class="error-message">{{ financialPasswordError }}</div>
+          <div style="display: flex; gap: 12px; margin-top: 20px">
+            <button type="button" class="btn btn-outline" @click="showReportsPasswordModal = false" style="flex: 1">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              Verify
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -1439,10 +1610,19 @@ const passwordForm = ref({
 const passwordError = ref("");
 const passwordSuccess = ref("");
 
+// Financial section password protection
+const showFinancePasswordModal = ref(false);
+const showReportsPasswordModal = ref(false);
+const financialPasswordInput = ref("");
+const financialPasswordError = ref("");
+const financeAuthenticated = ref(false);
+const reportsAuthenticated = ref(false);
+const pendingFinancialView = ref(null); // Track which view user tried to access
+
 // Booking form state
 const bookingForm = ref({
   customerId: "",
-  serviceId: "",
+  serviceIds: [],
   date: "",
   time: "",
   staffId: ""
@@ -1467,7 +1647,8 @@ const customerForm = ref({
   email: "",
   phone: "",
   dob: "",
-  address: ""
+  address: "",
+  preferences: ""
 });
 const customerError = ref("");
 const customerSuccess = ref("");
@@ -1478,6 +1659,7 @@ const staffForm = ref({
   role: "",
   email: "",
   phone: "",
+  skills: "",
   doj: "",
   salary: 0,
   username: ""
@@ -1490,7 +1672,6 @@ const invoiceForm = ref({
   customerId: "",
   serviceId: "",
   date: "",
-  invoiceStatus: "pending",
   paymentType: "cash",
   discount: 0
 });
@@ -1516,6 +1697,8 @@ const staffName = ref("");
 const productName = ref("");
 const invoiceCustomerName = ref("");
 const bookingCustomerName = ref("");
+const orderFilter = ref("");
+const completedAppointmentFilter = ref("");
 
 const user = computed(() => appStore.user);
 const data = computed(() => appStore.data);
@@ -1531,6 +1714,16 @@ const todayAppointments = computed(() => {
 
 const staffPresentCount = computed(() => {
   return data.value.attendance.filter(a => a.date === today() && a.status === "present").length;
+});
+
+const todayAvailableStaff = computed(() => {
+  const todayDate = today();
+  return data.value.staff.filter(staff => {
+    const isPresent = data.value.attendance.find(
+      a => a.staffId === staff.id && a.date === todayDate && a.status === "present"
+    );
+    return !!isPresent;
+  });
 });
 
 const lowStockItems = computed(() => {
@@ -1593,7 +1786,7 @@ const systemAlerts = computed(() => {
 const pageTitle = computed(() => {
   const titles = {
     dashboard: "Manager Dashboard",
-    bookings: "Bookings & Appointments",
+    bookings: "Appointments",
     services: "Services",
     customers: "Customers",
     staff: "Staff Management",
@@ -1692,6 +1885,15 @@ const getDateBookings = (date) => {
   return data.value.appointments.filter(a => a.date === date);
 };
 
+const getAvailableStaffForDate = (date) => {
+  return data.value.staff.filter(staff => {
+    const isPresent = data.value.attendance.find(
+      a => a.staffId === staff.id && a.date === date && a.status === "present"
+    );
+    return !!isPresent;
+  });
+};
+
 const formatDateShort = (dateStr) => {
   const [year, month, day] = dateStr.split("-");
   const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
@@ -1752,6 +1954,29 @@ const filteredBookings = computed(() => {
   return displayedBookings.value.filter(appt => {
     const customerNameStr = getCustomerName(appt.customerId).toLowerCase();
     return customerNameStr.includes(bookingCustomerName.value.toLowerCase());
+  });
+});
+
+const filteredOrders = computed(() => {
+  if (!orderFilter.value.trim()) return pendingOrders.value;
+  return pendingOrders.value.filter(order => {
+    const productName = getProductNameForOrder(order.productId).toLowerCase();
+    const staffName = (order.staffId ? getStaffName(order.staffId) : (order.requestedBy || "N/A")).toLowerCase();
+    const searchTerm = orderFilter.value.toLowerCase();
+    return productName.includes(searchTerm) || staffName.includes(searchTerm);
+  });
+});
+
+const filteredCompletedAppointments = computed(() => {
+  if (!completedAppointmentFilter.value.trim()) return completedAppointments.value;
+  return completedAppointments.value.filter(appt => {
+    const customerNameStr = getCustomerName(appt.customerId).toLowerCase();
+    const staffNameStr = (getStaffName(appt.staffId) || "Unassigned").toLowerCase();
+    const serviceNameStr = getServiceName(appt.serviceId).toLowerCase();
+    const searchTerm = completedAppointmentFilter.value.toLowerCase();
+    return customerNameStr.includes(searchTerm) || 
+           staffNameStr.includes(searchTerm) || 
+           serviceNameStr.includes(searchTerm);
   });
 });
 
@@ -1887,8 +2112,8 @@ const handleCreateBooking = () => {
     return;
   }
 
-  if (!bookingForm.value.serviceId) {
-    bookingError.value = "Please select a service";
+  if (bookingForm.value.serviceIds.length === 0) {
+    bookingError.value = "Please select at least one service";
     return;
   }
 
@@ -1902,10 +2127,18 @@ const handleCreateBooking = () => {
     return;
   }
 
+  // Create a booking for each selected service
+  const serviceNames = bookingForm.value.serviceIds.map(serviceId => {
+    const service = data.value.services.find(s => s.id == serviceId);
+    return service ? service.name : '';
+  }).filter(Boolean).join(', ');
+
   const newBooking = {
     id: Math.max(...data.value.appointments.map(a => a.id || 0), 0) + 1,
     customerId: parseInt(bookingForm.value.customerId),
-    serviceId: parseInt(bookingForm.value.serviceId),
+    serviceId: parseInt(bookingForm.value.serviceIds[0]),
+    services: bookingForm.value.serviceIds.map(s => parseInt(s)),
+    serviceNames: serviceNames,
     date: bookingForm.value.date,
     status: "confirmed",
     notes: bookingForm.value.time,
@@ -1914,12 +2147,12 @@ const handleCreateBooking = () => {
   };
 
   data.value.appointments.push(newBooking);
-  bookingSuccess.value = `Booking created successfully!`;
+  bookingSuccess.value = `Booking created successfully for ${serviceNames}!`;
 
   setTimeout(() => {
     bookingForm.value = {
       customerId: "",
-      serviceId: "",
+      serviceIds: [],
       date: "",
       time: "",
       staffId: ""
@@ -2029,7 +2262,9 @@ const handleAddCustomer = () => {
     phone: customerForm.value.phone,
     dob: customerForm.value.dob,
     address: customerForm.value.address || "",
-    preferences: "",
+    preferences: customerForm.value.preferences || "",
+    invoices: 0,
+    noOfVisits: 0,
     registrationDate: new Date().toISOString().split('T')[0],
     password: "pass123"
   };
@@ -2074,6 +2309,11 @@ const handleAddStaff = () => {
     return;
   }
 
+  if (!staffForm.value.skills) {
+    staffError.value = "Skills are required";
+    return;
+  }
+
   if (!staffForm.value.doj) {
     staffError.value = "Date of joining is required";
     return;
@@ -2095,6 +2335,7 @@ const handleAddStaff = () => {
     role: staffForm.value.role,
     email: staffForm.value.email,
     phone: staffForm.value.phone,
+    skills: staffForm.value.skills,
     doj: staffForm.value.doj,
     username: staffForm.value.username,
     status: "active",
@@ -2111,6 +2352,7 @@ const handleAddStaff = () => {
       role: "",
       email: "",
       phone: "",
+      skills: "",
       doj: "",
       salary: 0,
       username: ""
@@ -2167,7 +2409,7 @@ const handleAddInvoice = () => {
     serviceId: parseInt(invoiceForm.value.serviceId),
     date: invoiceForm.value.date,
     status: "confirmed",
-    invoiceStatus: invoiceForm.value.invoiceStatus,
+    invoiceStatus: "pending",
     paymentType: invoiceForm.value.paymentType,
     discount: invoiceForm.value.discount,
     notes: "Invoice created"
@@ -2181,7 +2423,6 @@ const handleAddInvoice = () => {
       customerId: "",
       serviceId: "",
       date: "",
-      invoiceStatus: "pending",
       paymentType: "cash",
       discount: 0
     };
@@ -2195,6 +2436,82 @@ const handleDeleteInvoice = (appointmentId) => {
     if (index > -1) {
       data.value.appointments.splice(index, 1);
     }
+  }
+};
+
+const handleSendInvoice = (invoice) => {
+  const customerEmail = data.value.customers.find(c => c.id === invoice.customerId)?.email;
+  const customerName = getCustomerName(invoice.customerId);
+  const serviceName = getServiceName(invoice.serviceId);
+  const servicePrice = getServicePrice(invoice.serviceId);
+  
+  if (!customerEmail) {
+    alert("Customer email not found!");
+    return;
+  }
+
+  // Show confirmation dialog
+  if (confirm(`Send invoice to ${customerName} (${customerEmail})?\n\nService: ${serviceName}\nAmount: ₹${servicePrice}`)) {
+    // In a real application, this would call an API to send email
+    // For now, we'll just show a success message
+    alert(`✓ Invoice sent successfully to ${customerEmail}!\n\nInvoice Details:\n- Customer: ${customerName}\n- Service: ${serviceName}\n- Amount: ₹${servicePrice}\n- Date: ${invoice.date}`);
+  }
+};
+
+// Financial section password handlers
+const handleFinanceAccess = () => {
+  if (financeAuthenticated.value) {
+    currentView.value = 'finance';
+  } else {
+    financialPasswordInput.value = "";
+    financialPasswordError.value = "";
+    pendingFinancialView.value = 'finance';
+    showFinancePasswordModal.value = true;
+  }
+};
+
+const handleReportsAccess = () => {
+  if (reportsAuthenticated.value) {
+    currentView.value = 'reports';
+  } else {
+    financialPasswordInput.value = "";
+    financialPasswordError.value = "";
+    pendingFinancialView.value = 'reports';
+    showReportsPasswordModal.value = true;
+  }
+};
+
+const verifyFinancialPassword = () => {
+  financialPasswordError.value = "";
+  
+  // Default password is "admin123" - you can change this
+  const correctPassword = "admin123";
+  
+  if (financialPasswordInput.value === correctPassword) {
+    financeAuthenticated.value = true;
+    showFinancePasswordModal.value = false;
+    currentView.value = 'finance';
+    financialPasswordInput.value = "";
+  } else {
+    financialPasswordError.value = "❌ Incorrect password. Please try again.";
+    financialPasswordInput.value = "";
+  }
+};
+
+const verifyReportsPassword = () => {
+  financialPasswordError.value = "";
+  
+  // Default password is "admin123" - you can change this
+  const correctPassword = "admin123";
+  
+  if (financialPasswordInput.value === correctPassword) {
+    reportsAuthenticated.value = true;
+    showReportsPasswordModal.value = false;
+    currentView.value = 'reports';
+    financialPasswordInput.value = "";
+  } else {
+    financialPasswordError.value = "❌ Incorrect password. Please try again.";
+    financialPasswordInput.value = "";
   }
 };
 
@@ -2279,6 +2596,7 @@ const handleEditStaff = (staff) => {
     role: staff.role,
     email: staff.email,
     phone: staff.phone,
+    skills: staff.skills || "",
     doj: staff.doj,
     salary: staff.salary,
     username: staff.username,
@@ -2302,7 +2620,8 @@ const handleEditCustomer = (customer) => {
     email: customer.email,
     phone: customer.phone,
     dob: customer.dob,
-    address: customer.address
+    address: customer.address,
+    preferences: customer.preferences || ""
   };
 };
 

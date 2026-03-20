@@ -16,10 +16,10 @@
         </div>
 
         <div
-          :class="['nav-item', { active: currentView === 'managers' }]"
-          @click="currentView = 'managers'"
+          :class="['nav-item', { active: currentView === 'branches' }]"
+          @click="currentView = 'branches'"
         >
-          <span class="nav-icon">👤</span> Managers ({{ ownerData.managers.length }})
+          <span class="nav-icon">🏢</span> Branches ({{ ownerData.branches.length }})
         </div>
 
         <div
@@ -27,6 +27,12 @@
           @click="currentView = 'reports'"
         >
           <span class="nav-icon">📄</span> Download Reports
+        </div>
+        <div
+          :class="['nav-item', { active: currentView === 'profile' }]"
+          @click="currentView = 'profile'"
+        >
+          <span class="nav-icon">👤</span> My Profile
         </div>
       </div>
 
@@ -44,9 +50,9 @@
         <div v-if="currentView === 'overview'" class="fade-in">
           <div class="stats-grid">
             <div class="stat-card">
-              <div class="stat-icon">👤</div>
-              <div class="stat-label">Total Managers</div>
-              <div class="stat-value">{{ ownerData.managers.length }}</div>
+              <div class="stat-icon">🏢</div>
+              <div class="stat-label">Total Branches</div>
+              <div class="stat-value">{{ ownerData.branches.length }}</div>
             </div>
             <div class="stat-card">
               <div class="stat-icon">📊</div>
@@ -64,46 +70,412 @@
               <div class="stat-value">{{ totalCustomers }}</div>
             </div>
           </div>
+
+          <!-- Additional Insights -->
+          <div class="stats-grid" style="margin-top: 24px">
+            <div class="stat-card">
+              <div class="stat-icon">💰</div>
+              <div class="stat-label">Avg Revenue/Booking</div>
+              <div class="stat-value">₹{{ avgRevenuePerBooking }}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">📈</div>
+              <div class="stat-label">Avg Customers/Branch</div>
+              <div class="stat-value">{{ avgCustomersPerBranch }}</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">⭐</div>
+              <div class="stat-label">Overall Performance</div>
+              <div class="stat-value">{{ overallPerformance }}%</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">🎯</div>
+              <div class="stat-label">Business Health</div>
+              <div class="stat-value" :style="{ color: businessHealthColor }">{{ businessHealth }}</div>
+            </div>
+          </div>
+
+          <!-- PIE CHART - Customer Distribution -->
+          <div class="card" style="margin-top: 24px;">
+            <div class="card-header">
+              <h3 class="card-title">🥧 Customer Distribution (Pie Chart)</h3>
+            </div>
+            <div class="card-body" style="padding: 40px; text-align: center;">
+              <div style="display: flex; justify-content: center; align-items: center; gap: 60px; flex-wrap: wrap">
+                <!-- Pie Chart Visual -->
+                <div style="position: relative; width: 250px; height: 250px">
+                  <svg width="250" height="250" style="transform: rotate(-90deg)">
+                    <!-- Active Customers - 60% (Gold) -->
+                    <circle cx="125" cy="125" r="80" fill="none" stroke="#d4af37" stroke-width="50" stroke-dasharray="301.6 503.4"/>
+                    <!-- Returning - 30% (Orange) -->
+                    <circle cx="125" cy="125" r="80" fill="none" stroke="#f59e0b" stroke-width="50" stroke-dasharray="150.8 503.4" stroke-dashoffset="-301.6"/>
+                    <!-- New - 10% (Purple) -->
+                    <circle cx="125" cy="125" r="80" fill="none" stroke="#8b5cf6" stroke-width="50" stroke-dasharray="50.3 503.4" stroke-dashoffset="-452.4"/>
+                  </svg>
+                  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center">
+                    <div style="font-size: 36px; font-weight: bold; color: var(--gold)">{{ totalCustomers }}</div>
+                    <div style="font-size: 12px; color: #999">Total</div>
+                  </div>
+                </div>
+                
+                <!-- Legend -->
+                <div style="text-align: left">
+                  <div style="margin-bottom: 20px; padding: 12px; border-radius: 6px; background: rgba(212, 175, 55, 0.1); border-left: 5px solid #d4af37">
+                    <div style="display: flex; align-items: center; gap: 10px">
+                      <div style="width: 20px; height: 20px; background: #d4af37; border-radius: 3px"></div>
+                      <span style="font-weight: 600">Active Customers</span>
+                      <span style="color: var(--gold); font-weight: 700">{{ Math.ceil(totalCustomers * 0.6) }} (60%)</span>
+                    </div>
+                  </div>
+                  <div style="margin-bottom: 20px; padding: 12px; border-radius: 6px; background: rgba(245, 158, 11, 0.1); border-left: 5px solid #f59e0b">
+                    <div style="display: flex; align-items: center; gap: 10px">
+                      <div style="width: 20px; height: 20px; background: #f59e0b; border-radius: 3px"></div>
+                      <span style="font-weight: 600">Returning</span>
+                      <span style="color: #f59e0b; font-weight: 700">{{ Math.ceil(totalCustomers * 0.3) }} (30%)</span>
+                    </div>
+                  </div>
+                  <div style="padding: 12px; border-radius: 6px; background: rgba(139, 92, 246, 0.1); border-left: 5px solid #8b5cf6">
+                    <div style="display: flex; align-items: center; gap: 10px">
+                      <div style="width: 20px; height: 20px; background: #8b5cf6; border-radius: 3px"></div>
+                      <span style="font-weight: 600">New Visitors</span>
+                      <span style="color: #8b5cf6; font-weight: 700">{{ Math.ceil(totalCustomers * 0.1) }} (10%)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- BAR CHART - Revenue by Day -->
+          <div class="card" style="margin-top: 24px;">
+            <div class="card-header">
+              <h3 class="card-title">📊 Revenue by Day (Bar Chart)</h3>
+            </div>
+            <div class="card-body" style="padding: 40px">
+              <div style="display: flex; align-items: flex-end; gap: 20px; height: 300px; justify-content: center; padding-bottom: 20px">
+                <!-- Monday -->
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
+                  <div style="width: 60px; height: 150px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
+                    @mouseenter="hoveredBar = 'mon'" @mouseleave="hoveredBar = null">
+                    <div v-if="hoveredBar === 'mon'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹500</div>
+                  </div>
+                  <div style="font-weight: 700">Mon</div>
+                  <div style="font-size: 12px; color: #999">₹500</div>
+                </div>
+
+                <!-- Tuesday -->
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
+                  <div style="width: 60px; height: 200px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
+                    @mouseenter="hoveredBar = 'tue'" @mouseleave="hoveredBar = null">
+                    <div v-if="hoveredBar === 'tue'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹750</div>
+                  </div>
+                  <div style="font-weight: 700">Tue</div>
+                  <div style="font-size: 12px; color: #999">₹750</div>
+                </div>
+
+                <!-- Wednesday -->
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
+                  <div style="width: 60px; height: 180px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
+                    @mouseenter="hoveredBar = 'wed'" @mouseleave="hoveredBar = null">
+                    <div v-if="hoveredBar === 'wed'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹600</div>
+                  </div>
+                  <div style="font-weight: 700">Wed</div>
+                  <div style="font-size: 12px; color: #999">₹600</div>
+                </div>
+
+                <!-- Thursday -->
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
+                  <div style="width: 60px; height: 240px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
+                    @mouseenter="hoveredBar = 'thu'" @mouseleave="hoveredBar = null">
+                    <div v-if="hoveredBar === 'thu'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹800</div>
+                  </div>
+                  <div style="font-weight: 700">Thu</div>
+                  <div style="font-size: 12px; color: #999">₹800</div>
+                </div>
+
+                <!-- Friday -->
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
+                  <div style="width: 60px; height: 190px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
+                    @mouseenter="hoveredBar = 'fri'" @mouseleave="hoveredBar = null">
+                    <div v-if="hoveredBar === 'fri'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹650</div>
+                  </div>
+                  <div style="font-weight: 700">Fri</div>
+                  <div style="font-size: 12px; color: #999">₹650</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LARGE Revenue Trend Chart -->
+          <div class="card" style="margin-top: 24px; width: 100%;">
+            <div class="card-header">
+              <h3 class="card-title">📊 Revenue Trend Chart - Weekly Performance</h3>
+            </div>
+            <div class="card-body" style="padding: 32px">
+              <div style="display: flex; align-items: flex-end; gap: 16px; height: 280px; justify-content: space-around">
+                <div v-for="(booking, idx) in ownerData.bookings" :key="idx" style="flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px">
+                  <div 
+                    :style="{ height: (booking.amount / 800) * 240 + 'px' }"
+                    style="width: 100%; background: linear-gradient(180deg, var(--gold) 0%, rgba(212, 175, 55, 0.6) 100%); border-radius: 8px 8px 0 0; transition: all 0.3s ease; cursor: pointer; min-height: 30px; box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3); position: relative"
+                    @mouseenter="hoveredBar = idx"
+                    @mouseleave="hoveredBar = null"
+                  >
+                    <div v-if="hoveredBar === idx" style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 6px 12px; border-radius: 4px; font-weight: 600; white-space: nowrap; font-size: 14px">₹{{ booking.amount }}</div>
+                  </div>
+                  <div style="font-weight: 600">Day {{ idx + 1 }}</div>
+                  <div class="text-muted" style="font-size: 12px">₹{{ booking.amount }}</div>
+                </div>
+              </div>
+              <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; text-align: center">
+                <div>
+                  <div class="text-muted" style="font-size: 12px">Highest Revenue</div>
+                  <div style="font-weight: 600; color: var(--gold); font-size: 18px">₹{{ Math.max(...ownerData.bookings.map(b => b.amount)) }}</div>
+                </div>
+                <div>
+                  <div class="text-muted" style="font-size: 12px">Lowest Revenue</div>
+                  <div style="font-weight: 600; color: #3b82f6; font-size: 18px">₹{{ Math.min(...ownerData.bookings.map(b => b.amount)) }}</div>
+                </div>
+                <div>
+                  <div class="text-muted" style="font-size: 12px">Average Revenue</div>
+                  <div style="font-weight: 600; color: #22c55e; font-size: 18px">₹{{ Math.round(ownerData.bookings.reduce((sum, b) => sum + b.amount, 0) / ownerData.bookings.length) }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+          <!-- Performance Analysis Row -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px">
+            <!-- LARGE Customer Distribution Pie Chart -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">🥧 Customer Segment Analysis</h3>
+              </div>
+              <div class="card-body" style="padding: 32px; text-align: center">
+                <div style="display: flex; justify-content: center; align-items: center; gap: 32px">
+                  <div style="width: 180px; height: 180px; border-radius: 50%; background: conic-gradient(from 0deg, #d4af37 0deg 216deg, #f59e0b 216deg 324deg, #8b5cf6 324deg 360deg); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 32px; box-shadow: 0 8px 24px rgba(0,0,0,0.3)">
+                    {{ totalCustomers }}
+                  </div>
+                  <div style="text-align: left; flex: 1">
+                    <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 8px; border-left: 5px solid #d4af37">
+                      <div style="display: flex; justify-content: space-between; align-items: center">
+                        <div><span style="display: inline-block; width: 14px; height: 14px; background: #d4af37; border-radius: 3px; margin-right: 10px"></span> <span style="font-weight: 600">Active</span></div>
+                        <div style="font-weight: 600; color: #d4af37">{{ Math.ceil(totalCustomers * 0.6) }} (60%)</div>
+                      </div>
+                    </div>
+                    <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 8px; border-left: 5px solid #f59e0b">
+                      <div style="display: flex; justify-content: space-between; align-items: center">
+                        <div><span style="display: inline-block; width: 14px; height: 14px; background: #f59e0b; border-radius: 3px; margin-right: 10px"></span> <span style="font-weight: 600">Returning</span></div>
+                        <div style="font-weight: 600; color: #f59e0b">{{ Math.ceil(totalCustomers * 0.3) }} (30%)</div>
+                      </div>
+                    </div>
+                    <div style="padding: 12px; background: var(--light-bg); border-radius: 8px; border-left: 5px solid #8b5cf6">
+                      <div style="display: flex; justify-content: space-between; align-items: center">
+                        <div><span style="display: inline-block; width: 14px; height: 14px; background: #8b5cf6; border-radius: 3px; margin-right: 10px"></span> <span style="font-weight: 600">New Visitors</span></div>
+                        <div style="font-weight: 600; color: #8b5cf6">{{ Math.ceil(totalCustomers * 0.1) }} (10%)</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Growth Metrics -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">📈 Business Performance Metrics</h3>
+              </div>
+              <div class="card-body" style="padding: 32px">
+                <div style="display: flex; flex-direction: column; gap: 20px">
+                  <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center">
+                      <span style="font-weight: 600">Monthly Growth Rate</span>
+                      <span style="color: #22c55e; font-weight: 700; font-size: 18px">↑ 12.5%</span>
+                    </div>
+                    <div style="height: 12px; background: #444; border-radius: 6px; overflow: hidden">
+                      <div style="height: 100%; width: 65%; background: linear-gradient(90deg, #22c55e, #16a34a); border-radius: 6px; box-shadow: 0 0 12px rgba(34, 197, 94, 0.4)"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center">
+                      <span style="font-weight: 600">Customer Satisfaction</span>
+                      <span style="color: #3b82f6; font-weight: 700; font-size: 18px">⭐ 4.8/5.0</span>
+                    </div>
+                    <div style="height: 12px; background: #444; border-radius: 6px; overflow: hidden">
+                      <div style="height: 100%; width: 96%; background: linear-gradient(90deg, #3b82f6, #1d4ed8); border-radius: 6px; box-shadow: 0 0 12px rgba(59, 130, 246, 0.4)"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center">
+                      <span style="font-weight: 600">Staff Performance</span>
+                      <span style="color: #f59e0b; font-weight: 700; font-size: 18px">⚡ Excellent</span>
+                    </div>
+                    <div style="height: 12px; background: #444; border-radius: 6px; overflow: hidden">
+                      <div style="height: 100%; width: 88%; background: linear-gradient(90deg, #f59e0b, #d97706); border-radius: 6px; box-shadow: 0 0 12px rgba(245, 158, 11, 0.4)"></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center">
+                      <span style="font-weight: 600">Booking Pipeline</span>
+                      <span style="color: #ec4899; font-weight: 700; font-size: 18px">📅 42</span>
+                    </div>
+                    <div style="height: 12px; background: #444; border-radius: 6px; overflow: hidden">
+                      <div style="height: 100%; width: 78%; background: linear-gradient(90deg, #ec4899, #be185d); border-radius: 6px; box-shadow: 0 0 12px rgba(236, 72, 153, 0.4)"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- LARGE Analytics Row -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px">
+            <!-- LARGE Revenue by Day Chart -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">🏆 Daily Revenue Distribution - Weekly Breakdown</h3>
+              </div>
+              <div class="card-body" style="padding: 32px">
+                <div style="display: flex; align-items: flex-end; gap: 12px; height: 220px; justify-content: space-around">
+                  <div style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px">
+                    <div style="height: 120px; width: 90%; background: linear-gradient(180deg, var(--gold), rgba(212, 175, 55, 0.4)); border-radius: 6px 6px 0 0; box-shadow: 0 4px 8px rgba(212, 175, 55, 0.2)"
+                      @mouseenter="hoveredBar = 0" @mouseleave="hoveredBar = null">
+                      <div v-if="hoveredBar === 0" style="text-align: center; padding-top: 8px; font-weight: 600; color: var(--gold)">₹800</div>
+                    </div>
+                    <div style="font-weight: 700; font-size: 14px">Monday</div>
+                    <div class="text-muted">₹800</div>
+                  </div>
+                  <div style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px">
+                    <div style="height: 160px; width: 90%; background: linear-gradient(180deg, var(--gold), rgba(212, 175, 55, 0.4)); border-radius: 6px 6px 0 0; box-shadow: 0 4px 8px rgba(212, 175, 55, 0.2)"
+                      @mouseenter="hoveredBar = 1" @mouseleave="hoveredBar = null">
+                      <div v-if="hoveredBar === 1" style="text-align: center; padding-top: 8px; font-weight: 600; color: var(--gold)">₹1200</div>
+                    </div>
+                    <div style="font-weight: 700; font-size: 14px">Tuesday</div>
+                    <div class="text-muted">₹1200</div>
+                  </div>
+                  <div style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px">
+                    <div style="height: 130px; width: 90%; background: linear-gradient(180deg, var(--gold), rgba(212, 175, 55, 0.4)); border-radius: 6px 6px 0 0; box-shadow: 0 4px 8px rgba(212, 175, 55, 0.2)"
+                      @mouseenter="hoveredBar = 2" @mouseleave="hoveredBar = null">
+                      <div v-if="hoveredBar === 2" style="text-align: center; padding-top: 8px; font-weight: 600; color: var(--gold)">₹900</div>
+                    </div>
+                    <div style="font-weight: 700; font-size: 14px">Wednesday</div>
+                    <div class="text-muted">₹900</div>
+                  </div>
+                  <div style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px">
+                    <div style="height: 180px; width: 90%; background: linear-gradient(180deg, var(--gold), rgba(212, 175, 55, 0.4)); border-radius: 6px 6px 0 0; box-shadow: 0 4px 8px rgba(212, 175, 55, 0.2)"
+                      @mouseenter="hoveredBar = 3" @mouseleave="hoveredBar = null">
+                      <div v-if="hoveredBar === 3" style="text-align: center; padding-top: 8px; font-weight: 600; color: var(--gold)">₹1400</div>
+                    </div>
+                    <div style="font-weight: 700; font-size: 14px">Thursday</div>
+                    <div class="text-muted">₹1400</div>
+                  </div>
+                  <div style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px">
+                    <div style="height: 150px; width: 90%; background: linear-gradient(180deg, var(--gold), rgba(212, 175, 55, 0.4)); border-radius: 6px 6px 0 0; box-shadow: 0 4px 8px rgba(212, 175, 55, 0.2)"
+                      @mouseenter="hoveredBar = 4" @mouseleave="hoveredBar = null">
+                      <div v-if="hoveredBar === 4" style="text-align: center; padding-top: 8px; font-weight: 600; color: var(--gold)">₹1100</div>
+                    </div>
+                    <div style="font-weight: 700; font-size: 14px">Friday</div>
+                    <div class="text-muted">₹1100</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Key Metrics Summary -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">✨ Executive Summary & KPIs</h3>
+              </div>
+              <div class="card-body" style="padding: 32px">
+                <div style="display: flex; flex-direction: column; gap: 14px">
+                  <div style="padding: 16px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05)); border-radius: 8px; border-left: 5px solid #22c55e">
+                    <div style="display: flex; justify-content: space-between; align-items: center">
+                      <span>Avg Per-Booking Value</span>
+                      <span style="font-weight: 700; font-size: 18px; color: #22c55e">₹{{ avgRevenuePerBooking }}</span>
+                    </div>
+                    <div class="text-muted" style="font-size: 12px; margin-top: 4px">↑ 8% from last week</div>
+                  </div>
+                  <div style="padding: 16px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)); border-radius: 8px; border-left: 5px solid #3b82f6">
+                    <div style="display: flex; justify-content: space-between; align-items: center">
+                      <span>Customers Per Branch</span>
+                      <span style="font-weight: 700; font-size: 18px; color: #3b82f6">{{ avgCustomersPerBranch }}</span>
+                    </div>
+                    <div class="text-muted" style="font-size: 12px; margin-top: 4px">Optimal distribution</div>
+                  </div>
+                  <div style="padding: 16px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05)); border-radius: 8px; border-left: 5px solid #f59e0b">
+                    <div style="display: flex; justify-content: space-between; align-items: center">
+                      <span>Conversion Rate</span>
+                      <span style="font-weight: 700; font-size: 18px; color: #f59e0b">78%</span>
+                    </div>
+                    <div class="text-muted" style="font-size: 12px; margin-top: 4px">Above industry average</div>
+                  </div>
+                  <div style="padding: 16px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05)); border-radius: 8px; border-left: 5px solid #8b5cf6">
+                    <div style="display: flex; justify-content: space-between; align-items: center">
+                      <span>Customer Retention</span>
+                      <span style="font-weight: 700; font-size: 18px; color: #8b5cf6">82%</span>
+                    </div>
+                    <div class="text-muted" style="font-size: 12px; margin-top: 4px">Excellent loyalty</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <!-- MANAGERS VIEW -->
-        <div v-if="currentView === 'managers'" class="fade-in">
-          <div class="card">
+        <!-- BRANCHES VIEW -->
+        <div v-if="currentView === 'branches'" class="fade-in">
+          <!-- Edit Branch Form -->
+          <div v-if="showEditForm" class="card" style="margin-bottom: 24px; border-left: 5px solid var(--gold)">
             <div class="card-header">
-              <h3 class="card-title">➕ Add New Manager</h3>
+              <h3 class="card-title">✏️ Edit Branch</h3>
             </div>
             <div class="card-body">
-              <form @submit.prevent="handleCreateManager">
+              <form @submit.prevent="handleSaveBranch">
                 <div class="form-grid">
                   <div class="form-group">
-                    <label for="manager-name">Full Name *</label>
+                    <label for="edit-branch-name">Branch Name *</label>
                     <input 
-                      id="manager-name"
-                      v-model="managerForm.name"
+                      id="edit-branch-name"
+                      v-model="editForm.name"
                       type="text"
-                      placeholder="Enter full name"
+                      placeholder="Enter branch name"
                       class="form-input"
                       required
                     />
                   </div>
 
                   <div class="form-group">
-                    <label for="manager-email">Email *</label>
+                    <label for="edit-branch-location">Location *</label>
                     <input 
-                      id="manager-email"
-                      v-model="managerForm.email"
-                      type="email"
-                      placeholder="example@salon.com"
+                      id="edit-branch-location"
+                      v-model="editForm.location"
+                      type="text"
+                      placeholder="Enter branch location"
                       class="form-input"
                       required
                     />
                   </div>
 
                   <div class="form-group">
-                    <label for="manager-phone">Phone *</label>
+                    <label for="edit-branch-manager">Manager Name *</label>
                     <input 
-                      id="manager-phone"
-                      v-model="managerForm.phone"
+                      id="edit-branch-manager"
+                      v-model="editForm.manager"
+                      type="text"
+                      placeholder="Enter manager name"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="edit-branch-phone">Phone *</label>
+                    <input 
+                      id="edit-branch-phone"
+                      v-model="editForm.phone"
                       type="tel"
                       placeholder="Enter phone number"
                       class="form-input"
@@ -112,86 +484,77 @@
                   </div>
 
                   <div class="form-group">
-                    <label for="manager-location">Salon Location *</label>
+                    <label for="edit-branch-email">Email *</label>
                     <input 
-                      id="manager-location"
-                      v-model="managerForm.location"
-                      type="text"
-                      placeholder="Enter salon location/branch name"
+                      id="edit-branch-email"
+                      v-model="editForm.email"
+                      type="email"
+                      placeholder="Enter email"
                       class="form-input"
                       required
                     />
                   </div>
 
                   <div class="form-group">
-                    <label for="manager-username">Username *</label>
-                    <input 
-                      id="manager-username"
-                      v-model="managerForm.username"
-                      type="text"
-                      placeholder="Unique username"
+                    <label for="edit-branch-status">Status *</label>
+                    <select 
+                      id="edit-branch-status"
+                      v-model="editForm.status"
                       class="form-input"
                       required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="manager-doj">Date of Joining *</label>
-                    <input 
-                      id="manager-doj"
-                      v-model="managerForm.doj"
-                      type="date"
-                      class="form-input"
-                      required
-                    />
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
                   </div>
                 </div>
 
-                <div v-if="managerError" class="error-message">{{ managerError }}</div>
-                <div v-if="managerSuccess" class="success-message">{{ managerSuccess }}</div>
-
-                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
-                  Create Manager
-                </button>
+                <div style="display: flex; gap: 12px; margin-top: 16px">
+                  <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+                  <button type="button" class="btn btn-secondary" @click="showEditForm = false">Cancel</button>
+                </div>
               </form>
             </div>
           </div>
 
-          <!-- Managers List -->
-          <div class="card" style="margin-top: 24px">
-            <div class="card-header">
-              <h3 class="card-title">👥 Existing Managers</h3>
-            </div>
-            <div class="card-body">
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Phone</th>
-                      <th>Location</th>
-                      <th>Username</th>
-                      <th>Date of Joining</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="manager in ownerData.managers" :key="manager.id">
-                      <td>{{ manager.name }}</td>
-                      <td>{{ manager.email }}</td>
-                      <td>{{ manager.phone }}</td>
-                      <td>{{ manager.location }}</td>
-                      <td><span class="badge badge-info">{{ manager.username }}</span></td>
-                      <td>{{ manager.doj }}</td>
-                      <td>
-                        <span :class="['badge', getStatusBadgeClass(manager.status)]">
-                          {{ manager.status }}
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px">
+            <div v-for="branch in ownerData.branches" :key="branch.id" class="card">
+              <div class="card-header" style="display: flex; justify-content: space-between; align-items: center">
+                <div>
+                  <h3 class="card-title" style="margin: 0">{{ branch.name }}</h3>
+                  <p style="margin: 4px 0 0 0; color: #999; font-size: 12px">📍 {{ branch.location }}</p>
+                </div>
+              </div>
+              <div class="card-body">
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 6px">
+                  <div style="font-size: 12px; color: #999; margin-bottom: 4px">Manager</div>
+                  <div style="font-weight: 600; color: var(--gold)">{{ branch.manager }}</div>
+                </div>
+
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 6px">
+                  <div style="font-size: 12px; color: #999; margin-bottom: 4px">Contact</div>
+                  <div style="font-size: 13px">📞 {{ branch.phone }}</div>
+                  <div style="font-size: 13px">✉️ {{ branch.email }}</div>
+                </div>
+
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 6px">
+                  <div style="font-size: 12px; color: #999; margin-bottom: 4px">Stats</div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px">
+                    <div>👥 {{ branch.customers }} Customers</div>
+                    <div>📅 {{ branch.bookings }} Bookings</div>
+                    <div style="grid-column: 1 / -1">💰 ₹{{ branch.revenue }} Revenue</div>
+                  </div>
+                </div>
+
+                <div style="padding: 12px; background: var(--light-bg); border-radius: 6px; margin-bottom: 12px">
+                  <div style="font-size: 12px; color: #999; margin-bottom: 4px">Status</div>
+                  <span :class="['badge', branch.status === 'active' ? 'badge-success' : 'badge-danger']">{{ branch.status }}</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+                  <button class="btn btn-primary" @click="handleEditBranch(branch)" style="font-size: 12px; padding: 8px">✏️ Edit</button>
+                  <button class="btn btn-danger" @click="handleDeleteBranch(branch.id)" style="font-size: 12px; padding: 8px">🗑️ Delete</button>
+                </div>
               </div>
             </div>
           </div>
@@ -250,6 +613,66 @@
             </div>
           </div>
         </div>
+
+        <!-- PROFILE VIEW -->
+        <div v-if="currentView === 'profile'" class="fade-in">
+          <div class="card" style="max-width: 600px; margin: 0 auto">
+            <div class="card-header" style="text-align: center">
+              <div style="width: 80px; height: 80px; background: linear-gradient(135deg, var(--gold), var(--charcoal)); border-radius: 50%; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 36px">
+                👑
+              </div>
+              <h3 class="card-title">Owner Profile</h3>
+            </div>
+            <div class="card-body">
+              <div style="display: grid; gap: 16px">
+                <div class="profile-field">
+                  <label class="profile-label">Full Name</label>
+                  <input type="text" :value="ownerData.ownerName" readonly class="form-input" style="background: var(--light-bg)"/>
+                </div>
+
+                <div class="profile-field">
+                  <label class="profile-label">Email Address</label>
+                  <input type="email" :value="ownerProfile.email" readonly class="form-input" style="background: var(--light-bg)"/>
+                </div>
+
+                <div class="profile-field">
+                  <label class="profile-label">Phone Number</label>
+                  <input type="tel" :value="ownerProfile.phone" readonly class="form-input" style="background: var(--light-bg)"/>
+                </div>
+
+                <div class="profile-field">
+                  <label class="profile-label">Date of Birth</label>
+                  <input type="date" :value="ownerProfile.dob" readonly class="form-input" style="background: var(--light-bg)"/>
+                </div>
+
+                <div class="profile-field">
+                  <label class="profile-label">Business Registration Date</label>
+                  <input type="date" :value="ownerProfile.registrationDate" readonly class="form-input" style="background: var(--light-bg)"/>
+                </div>
+
+                <div class="profile-field">
+                  <label class="profile-label">Business Address</label>
+                  <textarea readonly class="form-input" style="background: var(--light-bg); height: 80px">{{ ownerProfile.address }}</textarea>
+                </div>
+
+                <div class="profile-field">
+                  <label class="profile-label">Account Status</label>
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <span class="badge badge-success">{{ ownerProfile.status }}</span>
+                    <span class="text-muted">Since {{ ownerProfile.registrationDate }}</span>
+                  </div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--border); margin: 16px 0"/>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+                  <button class="btn btn-secondary" @click="currentView = 'overview'">← Back to Overview</button>
+                  <button class="btn btn-primary">✏️ Edit Profile</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -267,38 +690,45 @@ export default {
     const appStore = useAppStore();
     const currentView = ref('overview');
 
-    const managerForm = ref({
-      name: "",
-      email: "",
-      phone: "",
-      location: "",
-      username: "",
-      doj: ""
-    });
-    const managerError = ref("");
-    const managerSuccess = ref("");
+
 
     const ownerData = ref({
       ownerName: "Glow Suite Owner",
-      managers: [
+      branches: [
         {
           id: 1,
-          name: "Rajesh Kumar",
-          email: "rajesh@glowsuite.com",
+          name: "Downtown Branch",
+          location: "City Center",
+          manager: "Rajesh Kumar",
           phone: "+91-9876543210",
-          location: "Downtown Branch",
-          username: "rajesh_manager",
-          doj: "2025-01-15",
+          email: "downtown@glowsuite.com",
+          customers: 45,
+          bookings: 120,
+          revenue: 28500,
           status: "active"
         },
         {
           id: 2,
-          name: "Priya Sharma",
-          email: "priya@glowsuite.com",
+          name: "Westside Branch",
+          location: "Mall Road",
+          manager: "Priya Sharma",
           phone: "+91-9876543211",
-          location: "Mall Branch",
-          username: "priya_manager",
-          doj: "2025-02-10",
+          email: "westside@glowsuite.com",
+          customers: 38,
+          bookings: 95,
+          revenue: 22500,
+          status: "active"
+        },
+        {
+          id: 3,
+          name: "North Branch",
+          location: "Corporate Plaza",
+          manager: "Amit Patel",
+          phone: "+91-9876543212",
+          email: "north@glowsuite.com",
+          customers: 32,
+          bookings: 78,
+          revenue: 18750,
           status: "active"
         }
       ],
@@ -317,6 +747,15 @@ export default {
       ]
     });
 
+    const ownerProfile = ref({
+      email: "owner@glowsuite.com",
+      phone: "+91-9876543200",
+      dob: "1985-08-20",
+      registrationDate: "2023-06-01",
+      address: "123 Beauty Street, Salon Complex\nCity Center\nState, 560001",
+      status: "Active"
+    });
+
     const totalRevenue = computed(() => {
       return ownerData.value.bookings.reduce((sum, booking) => sum + booking.amount, 0);
     });
@@ -327,6 +766,42 @@ export default {
 
     const totalCustomers = computed(() => {
       return ownerData.value.customers.length;
+    });
+
+    const hoveredBar = ref(null);
+
+    const avgRevenuePerBooking = computed(() => {
+      if (totalBookings.value === 0) return 0;
+      return Math.round(totalRevenue.value / totalBookings.value);
+    });
+
+    const avgCustomersPerBranch = computed(() => {
+      if (ownerData.value.branches.length === 0) return 0;
+      return Math.round(totalCustomers.value / ownerData.value.branches.length);
+    });
+
+    const overallPerformance = computed(() => {
+      const baseScore = 65;
+      const revenueBonus = Math.min((totalRevenue.value / 5000) * 20, 20);
+      const bookingBonus = Math.min((totalBookings.value / 10) * 10, 10);
+      const score = Math.min(baseScore + revenueBonus + bookingBonus, 100);
+      return Math.round(score);
+    });
+
+    const businessHealth = computed(() => {
+      const score = overallPerformance.value;
+      if (score >= 85) return '🚀 Excellent';
+      if (score >= 70) return '📈 Good';
+      if (score >= 50) return '⚖️ Average';
+      return '⚠️ Needs Work';
+    });
+
+    const businessHealthColor = computed(() => {
+      const score = overallPerformance.value;
+      if (score >= 85) return '#22c55e';
+      if (score >= 70) return '#3b82f6';
+      if (score >= 50) return '#f59e0b';
+      return '#ef4444';
     });
 
     const getStatusBadgeClass = (status) => {
@@ -341,74 +816,53 @@ export default {
       return baseClasses;
     };
 
-    const handleCreateManager = () => {
-      managerError.value = "";
-      managerSuccess.value = "";
+    const showEditForm = ref(false);
+    const editingBranchId = ref(null);
+    const editForm = ref({
+      name: "",
+      location: "",
+      manager: "",
+      phone: "",
+      email: "",
+      status: "active"
+    });
 
-      // Validation
-      if (!managerForm.value.name) {
-        managerError.value = "Name is required";
-        return;
-      }
-
-      if (!managerForm.value.email) {
-        managerError.value = "Email is required";
-        return;
-      }
-
-      if (!managerForm.value.phone) {
-        managerError.value = "Phone is required";
-        return;
-      }
-
-      if (!managerForm.value.location) {
-        managerError.value = "Salon location is required";
-        return;
-      }
-
-      if (!managerForm.value.username) {
-        managerError.value = "Username is required";
-        return;
-      }
-
-      if (!managerForm.value.doj) {
-        managerError.value = "Date of joining is required";
-        return;
-      }
-
-      // Check if username already exists
-      if (ownerData.value.managers.some(m => m.username === managerForm.value.username)) {
-        managerError.value = "Username already exists";
-        return;
-      }
-
-      // Create new manager
-      const newManager = {
-        id: Math.max(...ownerData.value.managers.map(m => m.id || 0), 0) + 1,
-        name: managerForm.value.name,
-        email: managerForm.value.email,
-        phone: managerForm.value.phone,
-        location: managerForm.value.location,
-        username: managerForm.value.username,
-        doj: managerForm.value.doj,
-        status: "active"
+    const handleEditBranch = (branch) => {
+      editingBranchId.value = branch.id;
+      editForm.value = {
+        name: branch.name,
+        location: branch.location,
+        manager: branch.manager,
+        phone: branch.phone,
+        email: branch.email,
+        status: branch.status
       };
+      showEditForm.value = true;
+    };
 
-      ownerData.value.managers.push(newManager);
-      managerSuccess.value = "Manager created successfully!";
+    const handleSaveBranch = () => {
+      if (editingBranchId.value) {
+        const branchIndex = ownerData.value.branches.findIndex(b => b.id === editingBranchId.value);
+        if (branchIndex !== -1) {
+          ownerData.value.branches[branchIndex] = {
+            ...ownerData.value.branches[branchIndex],
+            name: editForm.value.name,
+            location: editForm.value.location,
+            manager: editForm.value.manager,
+            phone: editForm.value.phone,
+            email: editForm.value.email,
+            status: editForm.value.status
+          };
+          showEditForm.value = false;
+          editingBranchId.value = null;
+        }
+      }
+    };
 
-      // Reset form
-      setTimeout(() => {
-        managerForm.value = {
-          name: "",
-          email: "",
-          phone: "",
-          location: "",
-          username: "",
-          doj: ""
-        };
-        managerSuccess.value = "";
-      }, 1500);
+    const handleDeleteBranch = (branchId) => {
+      if (confirm('Are you sure you want to delete this branch? This action cannot be undone.')) {
+        ownerData.value.branches = ownerData.value.branches.filter(b => b.id !== branchId);
+      }
     };
 
     const handleLogout = () => {
@@ -418,15 +872,24 @@ export default {
 
     return {
       currentView,
-      managerForm,
-      managerError,
-      managerSuccess,
       ownerData,
+      ownerProfile,
       totalRevenue,
       totalBookings,
       totalCustomers,
+      hoveredBar,
+      avgRevenuePerBooking,
+      avgCustomersPerBranch,
+      overallPerformance,
+      businessHealth,
+      businessHealthColor,
       getStatusBadgeClass,
-      handleCreateManager,
+      showEditForm,
+      editForm,
+      editingBranchId,
+      handleEditBranch,
+      handleSaveBranch,
+      handleDeleteBranch,
       handleLogout
     };
   }
