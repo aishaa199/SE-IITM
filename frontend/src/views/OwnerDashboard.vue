@@ -23,6 +23,13 @@
         </div>
 
         <div
+          :class="['nav-item', { active: currentView === 'managers' }]"
+          @click="currentView = 'managers'"
+        >
+          <span class="nav-icon">⚙️</span> Manage Managers
+        </div>
+
+        <div
           :class="['nav-item', { active: currentView === 'reports' }]"
           @click="currentView = 'reports'"
         >
@@ -37,7 +44,10 @@
       </div>
 
       <div class="sidebar-footer">
-        <button class="btn btn-secondary w-full" @click="handleLogout" style="margin-top: auto">
+        <button class="btn btn-secondary w-full" @click="showChangePasswordModal = true" style="margin-top: auto; margin-bottom: 8px">
+          🔑 Change Password
+        </button>
+        <button class="btn btn-secondary w-full" @click="handleLogout">
           🚪 Logout
         </button>
       </div>
@@ -427,6 +437,97 @@
 
         <!-- BRANCHES VIEW -->
         <div v-if="currentView === 'branches'" class="fade-in">
+          <!-- Create New Branch Form -->
+          <div class="card" style="margin-bottom: 24px; border-left: 5px solid var(--gold)">
+            <div class="card-header">
+              <h3 class="card-title">➕ Create New Branch</h3>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="handleCreateBranch">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px">
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Branch Name *</label>
+                    <input 
+                      v-model="newBranchForm.name"
+                      type="text"
+                      placeholder="Enter branch name"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Location *</label>
+                    <input 
+                      v-model="newBranchForm.location"
+                      type="text"
+                      placeholder="Enter branch location"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Manager Name *</label>
+                    <input 
+                      v-model="newBranchForm.manager"
+                      type="text"
+                      placeholder="Enter manager name"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Phone *</label>
+                    <input 
+                      v-model="newBranchForm.phone"
+                      type="tel"
+                      placeholder="Enter phone number"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Email *</label>
+                    <input 
+                      v-model="newBranchForm.email"
+                      type="email"
+                      placeholder="Enter email"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Status *</label>
+                    <select 
+                      v-model="newBranchForm.status"
+                      class="form-input"
+                      required
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div v-if="branchError" style="color: #ef4444; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; margin-top: 16px">
+                  {{ branchError }}
+                </div>
+                <div v-if="branchSuccess" style="color: #22c55e; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; margin-top: 16px">
+                  {{ branchSuccess }}
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 16px">
+                  <button type="submit" class="btn btn-primary">✅ Create Branch</button>
+                  <button type="button" class="btn btn-secondary" @click="resetBranchForm">Clear Form</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
           <!-- Edit Branch Form -->
           <div v-if="showEditForm" class="card" style="margin-bottom: 24px; border-left: 5px solid var(--gold)">
             <div class="card-header">
@@ -567,7 +668,18 @@
               <h3 class="card-title">Download Reports</h3>
             </div>
             <div class="card-body">
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px">
+              <!-- Branch Selection -->
+              <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px">
+                <label style="font-weight: 600">Select Branch:</label>
+                <select v-model.number="selectedBranchId" class="form-input" style="flex: 1; max-width: 300px">
+                  <option v-for="branch in ownerData.branches" :key="branch.id" :value="branch.id">
+                    {{ branch.name }}
+                  </option>
+                </select>
+              </div>
+
+              <!-- Branch Reports Grid -->
+              <div v-if="selectedBranch" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px">
                 <div class="report-item">
                   <div class="report-icon">📊</div>
                   <div class="report-title">Sales Report</div>
@@ -667,13 +779,111 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
                   <button class="btn btn-secondary" @click="currentView = 'overview'">← Back to Overview</button>
-                  <button class="btn btn-primary">✏️ Edit Profile</button>
+                  <button class="btn btn-primary" @click="showChangePasswordModal = true">🔑 Change Password</button>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        <!-- MANAGERS VIEW -->
+        <div v-if="currentView === 'managers'" class="fade-in">
+          <div class="card" style="margin-bottom: 24px">
+            <div class="card-header">
+              <h3 class="card-title">Create New Manager</h3>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="handleCreateManager" style="max-width: 600px">
+                <div style="display: grid; gap: 16px">
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Full Name *</label>
+                    <input v-model="newManagerForm.name" type="text" placeholder="Enter manager name" class="form-input" required />
+                  </div>
+
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Email *</label>
+                    <input v-model="newManagerForm.email" type="email" placeholder="Enter email address" class="form-input" required />
+                  </div>
+
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Phone *</label>
+                    <input v-model="newManagerForm.phone" type="tel" placeholder="Enter phone number" class="form-input" required />
+                  </div>
+
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Assign to Branch *</label>
+                    <select v-model.number="newManagerForm.branchId" class="form-input" required>
+                      <option value="">Select a branch</option>
+                      <option v-for="branch in ownerData.branches" :key="branch.id" :value="branch.id">
+                        {{ branch.name }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Username *</label>
+                    <input v-model="newManagerForm.userId" type="text" placeholder="Enter username" class="form-input" required />
+                  </div>
+
+                  <div>
+                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Password *</label>
+                    <input v-model="newManagerForm.password" type="password" placeholder="Enter password" class="form-input" required />
+                  </div>
+
+                  <div v-if="managerError" style="color: #ef4444; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px">
+                    {{ managerError }}
+                  </div>
+                  <div v-if="managerSuccess" style="color: #22c55e; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px">
+                    {{ managerSuccess }}
+                  </div>
+
+                  <div style="display: flex; gap: 12px; margin-top: 12px">
+                    <button type="submit" class="btn btn-primary">✅ Create Manager</button>
+                    <button type="button" class="btn btn-secondary" @click="resetManagerForm">Clear Form</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div v-if="showChangePasswordModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px)" @click="showChangePasswordModal = false">
+    <div style="background: var(--card-bg); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); width: 100%; max-width: 400px; padding: 24px; border: 1px solid var(--border)" @click.stop>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
+        <h3 style="margin: 0; font-size: 20px; font-weight: 600">🔑 Change Password</h3>
+        <button @click="showChangePasswordModal = false" style="background: none; border: none; color: var(--text); cursor: pointer; font-size: 24px">✕</button>
+      </div>
+
+      <form @submit.prevent="handleChangePassword" style="display: grid; gap: 16px">
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px">Current Password</label>
+          <input v-model="passwordForm.currentPassword" type="password" placeholder="Enter current password" class="form-input" required />
+        </div>
+
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px">New Password</label>
+          <input v-model="passwordForm.newPassword" type="password" placeholder="Enter new password" class="form-input" required />
+          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px">At least 8 characters</div>
+        </div>
+
+        <div>
+          <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px">Confirm Password</label>
+          <input v-model="passwordForm.confirmPassword" type="password" placeholder="Confirm new password" class="form-input" required />
+        </div>
+
+        <div v-if="passwordError" style="color: #ef4444; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; font-size: 14px">
+          {{ passwordError }}
+        </div>
+
+        <div style="display: flex; gap: 12px; margin-top: 12px">
+          <button type="submit" class="btn btn-primary" style="flex: 1">Update Password</button>
+          <button type="button" class="btn btn-secondary" style="flex: 1" @click="showChangePasswordModal = false">Cancel</button>
+        </div>
+      </form>
     </div>
   </div>
 </template>
@@ -689,8 +899,7 @@ export default {
     const router = useRouter();
     const appStore = useAppStore();
     const currentView = ref('overview');
-
-
+    const selectedBranchId = ref(1);
 
     const ownerData = ref({
       ownerName: "Glow Suite Owner",
@@ -804,6 +1013,80 @@ export default {
       return '#ef4444';
     });
 
+    // Branch-specific report data
+    const selectedBranch = computed(() => {
+      return ownerData.value.branches.find(b => b.id === selectedBranchId.value);
+    });
+
+    const branchSalesReport = computed(() => {
+      if (!selectedBranch.value) return null;
+      return {
+        totalSales: selectedBranch.value.revenue,
+        transactionCount: selectedBranch.value.bookings,
+        avgTransactionValue: Math.round(selectedBranch.value.revenue / selectedBranch.value.bookings),
+        topService: 'Hair Styling'
+      };
+    });
+
+    const branchBookingsReport = computed(() => {
+      if (!selectedBranch.value) return null;
+      return {
+        totalBookings: selectedBranch.value.bookings,
+        completedBookings: Math.round(selectedBranch.value.bookings * 0.85),
+        pendingBookings: Math.round(selectedBranch.value.bookings * 0.1),
+        cancelledBookings: Math.round(selectedBranch.value.bookings * 0.05),
+        avgBookingValue: Math.round(selectedBranch.value.revenue / selectedBranch.value.bookings)
+      };
+    });
+
+    const branchStaffReport = computed(() => {
+      if (!selectedBranch.value) return null;
+      const staffCount = Math.ceil(selectedBranch.value.bookings / 25);
+      return {
+        totalStaff: staffCount,
+        presentToday: Math.round(staffCount * 0.9),
+        absentToday: Math.round(staffCount * 0.1),
+        avgPerformance: '4.7/5.0',
+        topPerformer: 'Amara Osei'
+      };
+    });
+
+    const branchInventoryReport = computed(() => {
+      if (!selectedBranch.value) return null;
+      return {
+        totalProducts: Math.floor(selectedBranch.value.bookings / 20),
+        lowStockItems: Math.floor(selectedBranch.value.bookings / 80),
+        totalValue: selectedBranch.value.revenue * 0.15,
+        lastUpdated: '2026-03-20'
+      };
+    });
+
+    const branchFinancialReport = computed(() => {
+      if (!selectedBranch.value) return null;
+      const revenue = selectedBranch.value.revenue;
+      const expenses = revenue * 0.35;
+      const profit = revenue - expenses;
+      return {
+        revenue: revenue,
+        expenses: expenses,
+        profit: profit,
+        profitMargin: Math.round((profit / revenue) * 100),
+        growth: '12.5%'
+      };
+    });
+
+    const branchFeedbackReport = computed(() => {
+      if (!selectedBranch.value) return null;
+      const totalFeedback = Math.floor(selectedBranch.value.customers * 0.6);
+      return {
+        totalFeedback: totalFeedback,
+        avgRating: '4.8/5.0',
+        positiveReviews: Math.round(totalFeedback * 0.85),
+        negativeReviews: Math.round(totalFeedback * 0.05),
+        neutralReviews: Math.round(totalFeedback * 0.1)
+      };
+    });
+
     const getStatusBadgeClass = (status) => {
       const baseClasses = ['badge'];
       if (status === 'active') {
@@ -826,6 +1109,58 @@ export default {
       email: "",
       status: "active"
     });
+
+    const newBranchForm = ref({
+      name: "",
+      location: "",
+      manager: "",
+      phone: "",
+      email: "",
+      status: "active"
+    });
+
+    const branchError = ref('');
+    const branchSuccess = ref('');
+
+    const handleCreateBranch = () => {
+      branchError.value = '';
+      branchSuccess.value = '';
+
+      if (!newBranchForm.value.name || !newBranchForm.value.location || !newBranchForm.value.manager || 
+          !newBranchForm.value.phone || !newBranchForm.value.email) {
+        branchError.value = 'All fields are required';
+        return;
+      }
+
+      const newBranch = {
+        id: Math.max(...ownerData.value.branches.map(b => b.id), 0) + 1,
+        name: newBranchForm.value.name,
+        location: newBranchForm.value.location,
+        manager: newBranchForm.value.manager,
+        phone: newBranchForm.value.phone,
+        email: newBranchForm.value.email,
+        customers: 0,
+        bookings: 0,
+        revenue: 0,
+        status: newBranchForm.value.status
+      };
+
+      ownerData.value.branches.push(newBranch);
+      branchSuccess.value = `Branch "${newBranchForm.value.name}" created successfully!`;
+      resetBranchForm();
+      setTimeout(() => { branchSuccess.value = ''; }, 3000);
+    };
+
+    const resetBranchForm = () => {
+      newBranchForm.value = {
+        name: "",
+        location: "",
+        manager: "",
+        phone: "",
+        email: "",
+        status: "active"
+      };
+    };
 
     const handleEditBranch = (branch) => {
       editingBranchId.value = branch.id;
@@ -870,6 +1205,112 @@ export default {
       router.push('/');
     };
 
+    // Manager management
+    const managers = ref([]);
+    const newManagerForm = ref({
+      name: '',
+      email: '',
+      phone: '',
+      branchId: '',
+      userId: '',
+      password: ''
+    });
+
+    const managerError = ref('');
+    const managerSuccess = ref('');
+
+    const handleCreateManager = () => {
+      managerError.value = '';
+      managerSuccess.value = '';
+
+      if (!newManagerForm.value.name || !newManagerForm.value.email || !newManagerForm.value.phone || 
+          !newManagerForm.value.branchId || !newManagerForm.value.userId || !newManagerForm.value.password) {
+        managerError.value = 'All fields are required';
+        return;
+      }
+
+      if (newManagerForm.value.password.length < 8) {
+        managerError.value = 'Password must be at least 8 characters';
+        return;
+      }
+
+      const newManager = {
+        id: managers.value.length + 1,
+        name: newManagerForm.value.name,
+        email: newManagerForm.value.email,
+        phone: newManagerForm.value.phone,
+        branchId: newManagerForm.value.branchId,
+        userId: newManagerForm.value.userId,
+        password: newManagerForm.value.password,
+        createdDate: new Date().toISOString().split('T')[0]
+      };
+
+      managers.value.push(newManager);
+      managerSuccess.value = `Manager "${newManagerForm.value.name}" created successfully!`;
+      resetManagerForm();
+      setTimeout(() => { managerSuccess.value = ''; }, 3000);
+    };
+
+    const resetManagerForm = () => {
+      newManagerForm.value = {
+        name: '',
+        email: '',
+        phone: '',
+        branchId: '',
+        userId: '',
+        password: ''
+      };
+    };
+
+    const deleteManager = (managerId) => {
+      if (confirm('Are you sure you want to delete this manager?')) {
+        managers.value = managers.value.filter(m => m.id !== managerId);
+      }
+    };
+
+    const getManagerBranch = (branchId) => {
+      const branch = ownerData.value.branches.find(b => b.id === branchId);
+      return branch ? branch.name : 'Unknown Branch';
+    };
+
+    // Change password
+    const showChangePasswordModal = ref(false);
+    const passwordForm = ref({
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    });
+    const passwordError = ref('');
+
+    const handleChangePassword = () => {
+      passwordError.value = '';
+
+      if (!passwordForm.value.currentPassword || !passwordForm.value.newPassword || !passwordForm.value.confirmPassword) {
+        passwordError.value = 'All fields are required';
+        return;
+      }
+
+      if (passwordForm.value.newPassword.length < 8) {
+        passwordError.value = 'New password must be at least 8 characters';
+        return;
+      }
+
+      if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
+        passwordError.value = 'Passwords do not match';
+        return;
+      }
+
+      // TODO: Validate current password with backend
+      // For now, just show success and close
+      alert('Password changed successfully!');
+      showChangePasswordModal.value = false;
+      passwordForm.value = {
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      };
+    };
+
     return {
       currentView,
       ownerData,
@@ -890,7 +1331,32 @@ export default {
       handleEditBranch,
       handleSaveBranch,
       handleDeleteBranch,
-      handleLogout
+      handleLogout,
+      selectedBranchId,
+      selectedBranch,
+      branchSalesReport,
+      branchBookingsReport,
+      branchStaffReport,
+      branchInventoryReport,
+      branchFinancialReport,
+      branchFeedbackReport,
+      managers,
+      newManagerForm,
+      managerError,
+      managerSuccess,
+      handleCreateManager,
+      deleteManager,
+      getManagerBranch,
+      resetManagerForm,
+      showChangePasswordModal,
+      passwordForm,
+      passwordError,
+      handleChangePassword,
+      newBranchForm,
+      branchError,
+      branchSuccess,
+      handleCreateBranch,
+      resetBranchForm
     };
   }
 };

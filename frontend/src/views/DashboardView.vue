@@ -35,6 +35,12 @@
           <span class="nav-icon">👥</span> Customers
         </div>
         <div
+          :class="['nav-item', { active: currentView === 'staff-by-day' }]"
+          @click="currentView = 'staff-by-day'"
+        >
+          <span class="nav-icon">📅</span> Staff by Day
+        </div>
+        <div
           :class="['nav-item', { active: currentView === 'staff' }]"
           @click="currentView = 'staff'"
         >
@@ -676,6 +682,61 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STAFF BY DAY VIEW -->
+        <div v-if="currentView === 'staff-by-day'" class="fade-in">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">📅 Select Staff by Day</h3>
+            </div>
+            <div class="card-body">
+              <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px">
+                <label style="font-weight: 600">Select Date:</label>
+                <input 
+                  v-model="selectedStaffDate" 
+                  type="date" 
+                  class="form-input"
+                  style="max-width: 200px"
+                />
+              </div>
+
+              <div v-if="staffForSelectedDay.length === 0" style="text-align: center; padding: 32px; color: var(--text-muted)">
+                <div style="font-size: 32px; margin-bottom: 12px">📭</div>
+                <div style="font-size: 16px">No staff available on {{ selectedStaffDate }}</div>
+              </div>
+
+              <div v-else style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px">
+                <div v-for="staff in staffForSelectedDay" :key="staff.id" style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: var(--light-bg); transition: all 0.3s ease" @mouseenter="hoveredStaff = staff.id" @mouseleave="hoveredStaff = null" :style="{ boxShadow: hoveredStaff === staff.id ? '0 8px 24px rgba(212, 175, 55, 0.2)' : 'none', borderColor: hoveredStaff === staff.id ? 'var(--gold)' : 'var(--border)' }">
+                  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px">
+                    <div style="width: 56px; height: 56px; background: linear-gradient(135deg, var(--gold), var(--charcoal)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 600">
+                      {{ staff.name.charAt(0) }}
+                    </div>
+                    <div style="flex: 1">
+                      <h4 style="margin: 0 0 4px 0; font-weight: 600; font-size: 16px">{{ staff.name }}</h4>
+                      <div style="font-size: 12px; color: var(--text-muted)">{{ staff.role }}</div>
+                    </div>
+                  </div>
+
+                  <div style="background: var(--bg); padding: 12px; border-radius: 6px; margin-bottom: 12px">
+                    <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px; font-weight: 600">SPECIALTIES</div>
+                    <div style="font-size: 13px; line-height: 1.5px">{{ staff.skills }}</div>
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+                    <div style="background: var(--bg); padding: 10px; border-radius: 6px; text-align: center">
+                      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px">Rating</div>
+                      <div style="font-weight: 600; color: var(--gold); font-size: 14px">⭐ {{ staff.rating }}</div>
+                    </div>
+                    <div style="background: var(--bg); padding: 10px; border-radius: 6px; text-align: center">
+                      <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px">Status</div>
+                      <div style="font-weight: 600; color: #22c55e; font-size: 14px">✓ Available</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1601,6 +1662,8 @@ const appStore = useAppStore();
 
 const currentView = ref("dashboard");
 const selectedDate = ref(null);
+const selectedStaffDate = ref(new Date().toISOString().split('T')[0]);
+const hoveredStaff = ref(null);
 const showChangePasswordModal = ref(false);
 const passwordForm = ref({
   currentPassword: "",
@@ -1726,6 +1789,15 @@ const todayAvailableStaff = computed(() => {
   });
 });
 
+const staffForSelectedDay = computed(() => {
+  return data.value.staff.filter(staff => {
+    const isPresent = data.value.attendance.find(
+      a => a.staffId === staff.id && a.date === selectedStaffDate.value && a.status === "present"
+    );
+    return !!isPresent;
+  });
+});
+
 const lowStockItems = computed(() => {
   return data.value.products.filter(p => p.stock <= p.minStock);
 });
@@ -1789,6 +1861,7 @@ const pageTitle = computed(() => {
     bookings: "Appointments",
     services: "Services",
     customers: "Customers",
+    "staff-by-day": "Staff by Day",
     staff: "Staff Management",
     inventory: "Inventory Management",
     invoices: "Invoices",

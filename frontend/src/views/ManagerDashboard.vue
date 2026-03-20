@@ -44,6 +44,13 @@
         </div>
 
         <div
+          :class="['nav-item', { active: currentView === 'staff-schedule' }]"
+          @click="currentView = 'staff-schedule'"
+        >
+          <span class="nav-icon">📅</span> Staff Schedule
+        </div>
+
+        <div
           :class="['nav-item', { active: currentView === 'services' }]"
           @click="currentView = 'services'"
         >
@@ -387,6 +394,62 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STAFF SCHEDULE VIEW -->
+        <div v-if="currentView === 'staff-schedule'" class="fade-in">
+          <div class="card" style="margin-bottom: 24px">
+            <div class="card-header">
+              <h3 class="card-title">📅 Staff Schedule</h3>
+            </div>
+            <div class="card-body">
+              <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px">
+                <label style="font-weight: 600">Select Date:</label>
+                <input 
+                  v-model="selectedStaffDate" 
+                  type="date" 
+                  class="form-input"
+                  :min="getTodayDate"
+                  style="max-width: 200px"
+                />
+              </div>
+
+              <div v-if="staffForSelectedDay.length === 0" style="text-align: center; padding: 32px; color: var(--text-muted)">
+                <div style="font-size: 24px; margin-bottom: 12px">📭</div>
+                <div>No staff scheduled for {{ selectedStaffDate }}</div>
+              </div>
+
+              <div v-else style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px">
+                <div v-for="staff in staffForSelectedDay" :key="staff.id" style="border: 1px solid var(--border); border-radius: 8px; padding: 16px; background: var(--light-bg)">
+                  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px">
+                    <div style="width: 48px; height: 48px; background: linear-gradient(135deg, var(--gold), var(--charcoal)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 20px; font-weight: 600">
+                      {{ staff.name.charAt(0) }}
+                    </div>
+                    <div style="flex: 1">
+                      <h4 style="margin: 0 0 4px 0; font-weight: 600">{{ staff.name }}</h4>
+                      <div style="font-size: 12px; color: var(--text-muted)">{{ staff.role }}</div>
+                    </div>
+                  </div>
+
+                  <div style="background: var(--bg); padding: 12px; border-radius: 6px; margin-bottom: 12px">
+                    <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px">Skills</div>
+                    <div style="font-size: 13px; font-weight: 500">{{ staff.skills }}</div>
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
+                    <div style="background: var(--bg); padding: 8px; border-radius: 6px; text-align: center">
+                      <div style="font-size: 11px; color: var(--text-muted)">Rating</div>
+                      <div style="font-weight: 600; color: var(--gold)">⭐ {{ staff.rating }}</div>
+                    </div>
+                    <div style="background: var(--bg); padding: 8px; border-radius: 6px; text-align: center">
+                      <div style="font-size: 11px; color: var(--text-muted)">Status</div>
+                      <div style="font-weight: 600; color: #22c55e">✓ Active</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -743,6 +806,15 @@ const availableTimes = computed(() => {
     times.push(`${String(hour).padStart(2, '0')}:30`)
   }
   return times
+})
+
+// Staff Schedule
+const selectedStaffDate = ref(new Date().toISOString().split('T')[0])
+
+const staffForSelectedDay = computed(() => {
+  // Get all staff with appointments on the selected date
+  // For now, return all available stylists (in a real app, filter by date)
+  return availableStylists.value
 })
 
 // Get today's date for min date validation
