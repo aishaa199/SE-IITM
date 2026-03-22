@@ -7,6 +7,16 @@
       </div>
 
       <form @submit.prevent="submitForm" class="form">
+        <!-- Date of Birth Section -->
+        <div class="form-section">
+          <h3>Date of Birth</h3>
+          <input 
+            v-model="formData.dob" 
+            type="date" 
+            class="input-field"
+          >
+        </div>
+
         <!-- Skin Type Section -->
         <div class="form-section">
           <h3>What's your skin type?</h3>
@@ -59,6 +69,17 @@
           ></textarea>
         </div>
 
+        <!-- Customer Preferences Section -->
+        <div class="form-section">
+          <h3>Preferred Services</h3>
+          <div class="checkbox-group">
+            <label v-for="pref in customerPreferences" :key="pref" class="checkbox-label">
+              <input v-model="formData.preferences" type="checkbox" :value="pref">
+              <span>{{ pref }}</span>
+            </label>
+          </div>
+        </div>
+
         <!-- Form Actions -->
         <div class="form-actions">
           <button type="submit" class="btn btn-primary">Complete Questionnaire</button>
@@ -91,13 +112,24 @@ const availableServices = [
   'Threading',
   'Waxing'
 ]
+const customerPreferences = [
+  'Facial',
+  'Hair Care',
+  'Massage',
+  'Manicure',
+  'Pedicure',
+  'Threading',
+  'Waxing'
+]
 
 const formData = ref({
+  dob: '',
   skinType: '',
   allergies: '',
   services: [],
   pastTreatments: '',
-  specialRequests: ''
+  specialRequests: '',
+  preferences: []
 })
 
 const closeModal = () => {
@@ -107,11 +139,13 @@ const closeModal = () => {
 const submitForm = () => {
   // Emit the form data
   emit('submit', {
+    dob: formData.value.dob,
     skinType: formData.value.skinType,
     allergies: formData.value.allergies.split(',').map(a => a.trim()).filter(a => a),
     services: formData.value.services,
     pastTreatments: formData.value.pastTreatments,
-    specialRequests: formData.value.specialRequests
+    specialRequests: formData.value.specialRequests,
+    preferences: formData.value.preferences
   })
   
   // Close modal
@@ -196,6 +230,21 @@ const submitForm = () => {
   cursor: pointer;
   width: 18px;
   height: 18px;
+}
+
+.input-field {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(212, 169, 84, 0.1);
 }
 
 .checkbox-group {

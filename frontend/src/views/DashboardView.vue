@@ -1,28 +1,40 @@
 <template>
   <div class="content-layout">
+    <!-- Mobile Menu Toggle -->
+    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: white; border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </div>
+
     <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="sidebar-logo">
-        <div class="sidebar-logo-text">Glow Suite</div>
-        <div class="sidebar-logo-sub">Beauty Management</div>
+    <div :class="['sidebar', { active: sidebarOpen }]">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-text">Glow Suite</div>
+          <div class="sidebar-logo-sub">Beauty Management</div>
+        </div>
+        <button style="display: none; background: none; border: none; cursor: pointer; font-size: 24px" @click="sidebarOpen = false" class="mobile-close-btn">✕</button>
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section">Appointment & Services</div>
         <div
           :class="['nav-item', { active: currentView === 'dashboard' }]"
-          @click="currentView = 'dashboard'"
+          @click="currentView = 'dashboard'; sidebarOpen = false"
         >
           <span class="nav-icon">📊</span> Dashboard
         </div>
         <div
           :class="['nav-item', { active: currentView === 'bookings' }]"
-          @click="currentView = 'bookings'"
+          @click="currentView = 'bookings'; sidebarOpen = false"
         >
           <span class="nav-icon">📅</span> Appointments
         </div>
         <div
           :class="['nav-item', { active: currentView === 'services' }]"
-          @click="currentView = 'services'"
+          @click="currentView = 'services'; sidebarOpen = false"
         >
           <span class="nav-icon">💇</span> Services
         </div>
@@ -30,21 +42,27 @@
         <div class="nav-section">Management</div>
         <div
           :class="['nav-item', { active: currentView === 'customers' }]"
-          @click="currentView = 'customers'"
+          @click="currentView = 'customers'; sidebarOpen = false"
         >
           <span class="nav-icon">👥</span> Customers
         </div>
         <div
           :class="['nav-item', { active: currentView === 'staff-by-day' }]"
-          @click="currentView = 'staff-by-day'"
+          @click="currentView = 'staff-by-day'; sidebarOpen = false"
         >
           <span class="nav-icon">📅</span> Staff by Day
         </div>
         <div
           :class="['nav-item', { active: currentView === 'staff' }]"
-          @click="currentView = 'staff'"
+          @click="currentView = 'staff'; sidebarOpen = false"
         >
           <span class="nav-icon">👔</span> Staff
+        </div>
+        <div
+          :class="['nav-item', { active: currentView === 'rewards' }]"
+          @click="currentView = 'rewards'; sidebarOpen = false"
+        >
+          <span class="nav-icon">🎁</span> Rewards
         </div>
 
         <div class="nav-section">Operations</div>
@@ -80,19 +98,27 @@
         </div>
       </nav>
       <div class="sidebar-footer">
-        <div class="sidebar-user">
+        <div class="sidebar-user" @click="showProfileMenu = !showProfileMenu" style="cursor: pointer; position: relative">
           <div class="sidebar-avatar">{{ user.name?.[0] || user.userId?.[0] }}</div>
-          <div>
+          <div style="flex: 1">
             <div class="sidebar-username">{{ user.name || user.userId }}</div>
             <div class="sidebar-role">{{ user.role }}</div>
           </div>
+          <div style="font-size: 18px">▼</div>
+          
+          <!-- Profile Dropdown Menu -->
+          <div v-if="showProfileMenu" class="profile-dropdown" @click.stop style="position: absolute; bottom: 100%; left: 0; width: 220px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 -2px 8px rgba(0,0,0,0.1); margin-bottom: 8px; z-index: 1000">
+            <button class="profile-menu-item" @click="openProfileEdit(); showProfileMenu = false" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--charcoal); transition: background-color 0.2s; border-bottom: 1px solid var(--border-color)">
+              👤 Profile Edit
+            </button>
+            <button class="profile-menu-item" @click="showChangePasswordModal = true; showProfileMenu = false" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--charcoal); transition: background-color 0.2s; border-bottom: 1px solid var(--border-color)">
+              🔑 Change Password
+            </button>
+            <button class="profile-menu-item" @click="handleLogout" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: #e74c3c; transition: background-color 0.2s">
+              🚪 Logout
+            </button>
+          </div>
         </div>
-        <button class="btn btn-ghost w-full" style="margin-top: 12px; font-size: 12px" @click="showChangePasswordModal = true">
-          🔑 Change Password
-        </button>
-        <button class="btn btn-ghost w-full" style="margin-top: 8px; font-size: 12px" @click="logout">
-          Logout
-        </button>
       </div>
     </div>
 
@@ -248,17 +274,42 @@
                 <div class="grid-2" style="margin-top: 16px">
                   <div class="form-group">
                     <label for="booking-customer">Customer Name *</label>
-                    <select 
-                      id="booking-customer"
-                      v-model="bookingForm.customerId"
-                      class="form-input"
-                      required
-                    >
-                      <option value="">Select a customer</option>
-                      <option v-for="customer in data.customers" :key="customer.id" :value="customer.id">
-                        {{ customer.name }}
-                      </option>
-                    </select>
+                    <div class="custom-dropdown" @click.stop>
+                      <div 
+                        class="custom-dropdown-input"
+                        @click="showBookingCustomerDropdown = !showBookingCustomerDropdown"
+                        :style="{ borderColor: showBookingCustomerDropdown ? 'var(--gold)' : 'var(--border)' }"
+                      >
+                        <input 
+                          id="booking-customer"
+                          v-model="bookingCustomerSearch" 
+                          type="text" 
+                          placeholder="Type to search customers..."
+                          class="dropdown-search-input"
+                          @focus="showBookingCustomerDropdown = true"
+                          @input="showBookingCustomerDropdown = true"
+                        />
+                        <span class="dropdown-arrow">▼</span>
+                      </div>
+                      <div v-if="showBookingCustomerDropdown" class="custom-dropdown-menu">
+                        <div 
+                          v-if="filteredBookingCustomers.length === 0" 
+                          class="dropdown-no-results"
+                        >
+                          No customers found
+                        </div>
+                        <div 
+                          v-for="customer in filteredBookingCustomers" 
+                          :key="customer.id"
+                          class="dropdown-option"
+                          @click="selectBookingCustomer(customer)"
+                          :class="{ selected: bookingForm.customerId === String(customer.id) }"
+                        >
+                          <div style="font-weight: 500">{{ customer.name }}</div>
+                          <div class="text-muted" style="font-size: 12px">{{ customer.email }}</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div class="form-group">
@@ -283,12 +334,14 @@
                   </div>
 
                   <div class="form-group">
-                    <label for="booking-date">Date *</label>
+                    <label for="booking-date">Date * <span style="font-size: 12px; color: var(--text-muted); font-weight: 400">({{ bookingDateInfo }})</span></label>
                     <input 
                       id="booking-date"
                       v-model="bookingForm.date"
                       type="date"
                       class="form-input"
+                      :min="minBookingDate"
+                      :max="maxBookingDate"
                       required
                     />
                   </div>
@@ -479,7 +532,10 @@
                 <div v-if="serviceSuccess" class="success-message">{{ serviceSuccess }}</div>
 
                 <button type="submit" class="btn btn-primary" style="margin-top: 16px">
-                  Add Service
+                  {{ editingServiceId ? 'Save Changes' : 'Add Service' }}
+                </button>
+                <button v-if="editingServiceId" type="button" class="btn btn-outline" style="margin-top: 16px; margin-left: 8px" @click="cancelEditService">
+                  ✕ Cancel
                 </button>
               </form>
             </div>
@@ -491,14 +547,32 @@
               <h3 class="card-title">All Services</h3>
             </div>
             <div class="card-body">
-              <div style="margin-bottom: 16px">
-                <input 
-                  v-model="serviceName"
-                  type="text" 
-                  placeholder="🔍 Filter by service name..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
+              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end">
+                <div style="flex: 1; max-width: 300px">
+                  <label for="service-name-filter" style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Service Name</label>
+                  <input 
+                    id="service-name-filter"
+                    v-model="serviceName"
+                    type="text" 
+                    placeholder="🔍 Filter by service name..." 
+                    class="form-input"
+                    style="width: 100%"
+                  />
+                </div>
+                <div style="flex: 1; max-width: 300px">
+                  <label for="service-category-filter" style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Category</label>
+                  <select 
+                    id="service-category-filter"
+                    v-model="serviceCategoryFilter"
+                    class="form-input"
+                    style="width: 100%"
+                  >
+                    <option value="">All Categories</option>
+                    <option v-for="cat in data.serviceCategories" :key="cat.id" :value="cat.id">
+                      {{ cat.name }}
+                    </option>
+                  </select>
+                </div>
               </div>
               <div class="table-wrap">
                 <table>
@@ -544,10 +618,10 @@
           <!-- Add Customer Form -->
           <div class="card" style="margin-bottom: 20px">
             <div class="card-header">
-              <h3 class="card-title">➕ Add New Customer</h3>
+              <h3 class="card-title">{{ isEditingCustomer ? '✎ Edit Customer' : '➕ Add New Customer' }}</h3>
             </div>
             <div class="card-body">
-              <form @submit.prevent="handleAddCustomer" style="max-width: 800px">
+              <form @submit.prevent="isEditingCustomer ? handleUpdateCustomer() : handleAddCustomer()" style="max-width: 800px">
                 <div class="grid-2">
                   <div class="form-group">
                     <label for="customer-name">Name *</label>
@@ -596,6 +670,18 @@
                     />
                   </div>
 
+                  <div class="form-group">
+                    <label for="customer-type">Customer Type</label>
+                    <select 
+                      id="customer-type"
+                      v-model="customerForm.customerType"
+                      class="form-input"
+                    >
+                      <option value="Normal">Normal</option>
+                      <option value="VIP">VIP</option>
+                    </select>
+                  </div>
+
                   <div class="form-group" style="grid-column: 1 / -1">
                     <label for="customer-address">Address</label>
                     <input 
@@ -622,9 +708,14 @@
                 <div v-if="customerError" class="error-message">{{ customerError }}</div>
                 <div v-if="customerSuccess" class="success-message">{{ customerSuccess }}</div>
 
-                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
-                  Add Customer
-                </button>
+                <div style="display: flex; gap: 12px; margin-top: 16px">
+                  <button type="submit" class="btn btn-primary">
+                    {{ isEditingCustomer ? 'Update Customer' : 'Add Customer' }}
+                  </button>
+                  <button v-if="isEditingCustomer" type="button" class="btn btn-outline" @click="cancelEditCustomer">
+                    Cancel
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -651,6 +742,9 @@
                       <th>Name</th>
                       <th>Email</th>
                       <th>Phone</th>
+                      <th>Customer Type</th>
+                      <th>Total Spent</th>
+                      <th>Points Balance</th>
                       <th>Preferences</th>
                       <th>No. of Visits</th>
                       <th>Invoices</th>
@@ -660,10 +754,13 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="customer in filteredCustomers" :key="customer.id">
+                    <tr v-for="customer in filteredCustomers" :key="customer.id" @click="viewCustomerVisits(customer)" style="cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.parentElement.style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.parentElement.style.backgroundColor = 'transparent'">
                       <td>{{ customer.name }}</td>
                       <td>{{ customer.email }}</td>
                       <td>{{ customer.phone }}</td>
+                      <td><span class="badge" :style="{ background: customer.customerType === 'VIP' ? '#FFD700' : '#95a5a6', color: customer.customerType === 'VIP' ? '#000' : '#fff', padding: '4px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }">{{ customer.customerType || 'Normal' }}</span></td>
+                      <td style="text-align: center; font-weight: 600; color: var(--success)">₹{{ customer.totalSpent || 0 }}</td>
+                      <td style="text-align: center; font-weight: 600; color: var(--primary)">{{ Math.round(customer.pointsBalance || 0) }}</td>
                       <td style="font-size: 12px; color: #666">{{ customer.preferences || '-' }}</td>
                       <td style="text-align: center; font-weight: 600">{{ customer.noOfVisits || 0 }}</td>
                       <td style="text-align: center"><span class="badge" style="background: var(--gold); color: white">{{ customer.invoices || 0 }}</span></td>
@@ -671,10 +768,10 @@
                       <td>{{ customer.registrationDate }}</td>
                       <td>
                         <div style="display: flex; gap: 6px">
-                          <button class="btn btn-sm btn-outline" @click="handleEditCustomer(customer)" style="padding: 4px 8px; font-size: 12px">
+                          <button class="btn btn-sm btn-outline" @click.stop="handleEditCustomer(customer)" style="padding: 4px 8px; font-size: 12px">
                             ✎ Edit
                           </button>
-                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click="handleDeleteCustomer(customer.id)">
+                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click.stop="handleDeleteCustomer(customer.id)">
                             🗑 Delete
                           </button>
                         </div>
@@ -892,7 +989,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="staff in filteredStaff" :key="staff.id">
+                    <tr v-for="staff in filteredStaff" :key="staff.id" @click="viewStaffBookings(staff)" style="cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.parentElement.style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.parentElement.style.backgroundColor = 'transparent'">
                       <td>{{ staff.name }}</td>
                       <td>{{ staff.role }}</td>
                       <td><span style="font-size: 12px; color: #666">{{ staff.skills || '-' }}</span></td>
@@ -905,10 +1002,10 @@
                       <td><span :class="['badge', staff.status === 'active' ? 'badge-green' : 'badge-red']">{{ staff.status }}</span></td>
                       <td>
                         <div style="display: flex; gap: 6px">
-                          <button class="btn btn-sm btn-outline" @click="handleEditStaff(staff)" style="padding: 4px 8px; font-size: 12px">
+                          <button class="btn btn-sm btn-outline" @click.stop="handleEditStaff(staff)" style="padding: 4px 8px; font-size: 12px">
                             ✎ Edit
                           </button>
-                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click="handleDeleteStaff(staff.id)">
+                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click.stop="handleDeleteStaff(staff.id)">
                             🗑 Delete
                           </button>
                         </div>
@@ -1199,67 +1296,29 @@
 
         <!-- ORDERS VIEW -->
         <div v-if="currentView === 'orders'" class="fade-in">
-          <!-- Pending Staff Orders -->
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">📮 Pending Staff Orders</h3>
-            </div>
-            <div class="card-body">
-              <div style="margin-bottom: 16px">
-                <input 
-                  v-model="orderFilter"
-                  type="text" 
-                  placeholder="🔍 Filter by product name or staff name..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
-              </div>
-              <div v-if="filteredOrders.length === 0" class="empty-state">
-                <div class="empty-state-icon">✅</div>
-                <div class="empty-state-text">{{ orderFilter.trim() ? 'No orders match the filter' : 'No pending orders - all caught up!' }}</div>
-              </div>
-              <div v-else class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Order ID</th>
-                      <th>Product</th>
-                      <th>Date</th>
-                      <th>Staff</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="order in filteredOrders" :key="order.id">
-                      <td>#{{ order.id }}</td>
-                      <td>{{ getProductNameForOrder(order.productId) }}</td>
-                      <td>{{ order.date }}</td>
-                      <td>{{ order.staffId ? getStaffName(order.staffId) : (order.requestedBy || 'N/A') }}</td>
-                      <td>
-                        <span class="badge badge-gold">{{ order.status }}</span>
-                      </td>
-                      <td>
-                        <button class="btn btn-sm btn-primary" @click="handleAcceptOrder(order)" style="margin-right: 6px">
-                          ✓ Accept
-                        </button>
-                        <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click="handleRejectOrder(order)">
-                          ✕ Reject
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          <!-- Order Tabs -->
+          <div style="display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 12px">
+            <button 
+              @click="orderTab = 'pending-orders'"
+              :style="{ background: orderTab === 'pending-orders' ? 'var(--gold)' : 'transparent', color: orderTab === 'pending-orders' ? 'white' : 'var(--text)', borderBottom: 'none', padding: '8px 16px', borderRadius: 'var(--radius)', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '500' }"
+            >
+              📋 Pending Invoices
+            </button>
+            <button 
+              @click="orderTab = 'replenishment'"
+              :style="{ background: orderTab === 'replenishment' ? 'var(--gold)' : 'transparent', color: orderTab === 'replenishment' ? 'white' : 'var(--text)', borderBottom: 'none', padding: '8px 16px', borderRadius: 'var(--radius)', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '500' }"
+            >
+              🔄 Replenishment Requests
+            </button>
           </div>
 
-          <!-- Completed Appointments Awaiting Invoice -->
-          <div class="card" style="margin-top: 20px">
+          <!-- PENDING INVOICES TAB -->
+          <div v-if="orderTab === 'pending-orders'" class="card">
             <div class="card-header">
-              <h3 class="card-title">🔔 Completed Appointments - Invoice Needed</h3>
+              <h3 class="card-title">📋 Pending Invoices</h3>
             </div>
             <div class="card-body">
+              <!-- Completed Appointments Awaiting Invoice -->
               <div style="margin-bottom: 16px">
                 <input 
                   v-model="completedAppointmentFilter"
@@ -1302,6 +1361,126 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- REPLENISHMENT REQUESTS TAB -->
+          <div v-if="orderTab === 'replenishment'" class="card">
+            <div class="card-header">
+              <h3 class="card-title">🔄 Inventory Replenishment</h3>
+            </div>
+            <div class="card-body">
+              <!-- Incoming Staff Requests -->
+              <div style="margin-bottom: 24px">
+                <h4 style="margin-bottom: 16px; font-weight: 600">📥 Incoming Staff Replenishment Requests</h4>
+                <div v-if="managerReplenishmentRequests.length === 0" class="empty-state">
+                  <div class="empty-state-icon">📥</div>
+                  <div class="empty-state-text">No incoming staff requests</div>
+                </div>
+                <div v-else class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>From Staff</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Reason</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="req in managerReplenishmentRequests" :key="req.id">
+                        <td>{{ req.staffName }}</td>
+                        <td>{{ getProductNameForOrder(req.productId) }}</td>
+                        <td>{{ req.quantity }}</td>
+                        <td>{{ req.reason }}</td>
+                        <td>{{ req.date }}</td>
+                        <td style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+                          <button @click="handleAcceptReplenishment(req)" class="btn btn-sm" style="background: var(--success); color: white; padding: 4px 8px; font-size: 12px; border: none; cursor: pointer; border-radius: var(--radius); white-space: nowrap;">✓ Accept</button>
+                          <button @click="handleApproveReplenishment(req)" class="btn btn-sm" style="background: #2196F3; color: white; padding: 4px 8px; font-size: 12px; border: none; cursor: pointer; border-radius: var(--radius); white-space: nowrap; font-weight: 500;">✓ Approve</button>
+                          <button @click="handleRejectReplenishment(req)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border: 1px solid #e74c3c; border-radius: var(--radius); white-space: nowrap; background: none; cursor: pointer;">✕ Reject</button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Add Replenishment Form -->
+              <form @submit.prevent="handleAddReplenishment" style="max-width: 600px; margin-bottom: 24px; padding: 16px; background: var(--light-bg); border-radius: var(--radius)">
+                <h4 style="margin-bottom: 16px; font-weight: 600">➕ Add Stock Replenishment</h4>
+                <div class="form-group">
+                  <label for="replen-product">Product Name *</label>
+                  <select v-model="replenishmentForm.productId" id="replen-product" class="form-input" required>
+                    <option value="">Select a product</option>
+                    <option v-for="product in data.products" :key="product.id" :value="product.id">
+                      {{ product.name }} (Current Stock: {{ product.currentStock }})
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="replen-qty">Quantity to Order *</label>
+                  <input v-model.number="replenishmentForm.quantity" id="replen-qty" type="number" class="form-input" placeholder="Enter quantity" required min="1" />
+                </div>
+                <div class="form-group">
+                  <label for="replen-reason">Reason for Order *</label>
+                  <textarea v-model="replenishmentForm.reason" id="replen-reason" class="form-input" placeholder="e.g., Low stock alert, High demand period..." required rows="2"></textarea>
+                </div>
+                <div class="form-group">
+                  <label for="replen-supplier">Supplier (Optional)</label>
+                  <input v-model="replenishmentForm.supplier" id="replen-supplier" type="text" class="form-input" placeholder="Supplier name" />
+                </div>
+                <div v-if="replenishmentError" class="error-message" style="margin-bottom: 12px">{{ replenishmentError }}</div>
+                <button type="submit" class="btn btn-primary" style="width: 100%">+ Add to Order List</button>
+              </form>
+
+              <!-- Pending Orders List -->
+              <div>
+                <h4 style="margin-bottom: 16px; font-weight: 600">📋 Items Pending Order ({{ pendingReplenishmentList.length }})</h4>
+                <div v-if="pendingReplenishmentList.length === 0" class="empty-state">
+                  <div class="empty-state-icon">🔄</div>
+                  <div class="empty-state-text">No items pending order</div>
+                </div>
+                <div v-else class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Current Stock</th>
+                        <th>Reason</th>
+                        <th>Supplier</th>
+                        <th>Source</th>
+                        <th>Added Date</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="item in pendingReplenishmentList" :key="item.id">
+                        <td><strong>{{ getProductNameForOrder(item.productId) }}</strong></td>
+                        <td>{{ item.quantity }}</td>
+                        <td style="color: item.currentStock < 5 ? '#e74c3c' : '#27ae60'">{{ item.currentStock }}</td>
+                        <td>{{ item.reason }}</td>
+                        <td>{{ item.supplier || '-' }}</td>
+                        <td><span class="badge" :style="{ background: item.supplier?.includes('Staff') ? '#3498db' : '#95a5a6', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }">{{ item.supplier?.includes('Staff') ? 'Staff Order' : 'Manual' }}</span></td>
+                        <td>{{ item.date }}</td>
+                        <td>
+                          <button @click="handleRemoveFromList(item.id)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c">Remove</button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Place Order Button -->
+              <div v-if="pendingReplenishmentList.length > 0" style="margin-top: 24px; padding-top: 24px; border-top: 2px solid var(--border); display: flex; gap: 12px">
+                <button @click="handlePlaceReplenishmentOrder" class="btn btn-primary" style="padding: 12px 24px; font-size: 14px">
+                  📤 Place Order ({{ pendingReplenishmentList.length }} items)
+                </button>
+                <span style="color: var(--text-muted); font-size: 13px; margin-top: 12px">Ready to order {{ pendingReplenishmentList.length }} item(s)</span>
               </div>
             </div>
           </div>
@@ -1441,7 +1620,7 @@
                       <td><span :class="['badge', appt.invoiceStatus === 'invoiced' ? 'badge-green' : 'badge-gold']">{{ appt.invoiceStatus }}</span></td>
                       <td>
                         <div style="display: flex; gap: 6px">
-                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px">
+                          <button class="btn btn-sm btn-outline" @click="viewInvoice(appt)" style="padding: 4px 8px; font-size: 12px">
                             📄 View
                           </button>
                           <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #27ae60; border-color: #27ae60" @click="handleSendInvoice(appt)">
@@ -1455,6 +1634,177 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- REWARDS VIEW -->
+        <div v-if="currentView === 'rewards'" class="fade-in">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">🎁 Reward Points Configuration</h3>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="handleUpdateRewards" style="max-width: 800px">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label for="points-per-rupee">Points per Rupee Spent</label>
+                    <input 
+                      id="points-per-rupee"
+                      v-model.number="rewardsForm.pointsPerRupee"
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      placeholder="e.g., 0.1"
+                      class="form-input"
+                      required
+                    />
+                    <small class="text-muted">Points earned per rupee spent (e.g., 0.1 = 10 points for ₹100)</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="points-for-redemption">Points Required for Redemption</label>
+                    <input 
+                      id="points-for-redemption"
+                      v-model.number="rewardsForm.pointsForRedemption"
+                      type="number"
+                      min="1"
+                      placeholder="e.g., 500"
+                      class="form-input"
+                      required
+                    />
+                    <small class="text-muted">Points needed to redeem discount</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="redemption-value">Redemption Value (₹)</label>
+                    <input 
+                      id="redemption-value"
+                      v-model.number="rewardsForm.redemptionValue"
+                      type="number"
+                      min="1"
+                      placeholder="e.g., 25"
+                      class="form-input"
+                      required
+                    />
+                    <small class="text-muted">Rupees discount for redemption points</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="vip-threshold">VIP Threshold (₹ spent)</label>
+                    <input 
+                      id="vip-threshold"
+                      v-model.number="rewardsForm.vipThreshold"
+                      type="number"
+                      min="1"
+                      placeholder="e.g., 5000"
+                      class="form-input"
+                      required
+                    />
+                    <small class="text-muted">Total spending to become VIP customer</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="first-visit-points">First Visit Bonus Points</label>
+                    <input 
+                      id="first-visit-points"
+                      v-model.number="rewardsForm.firstVisitPoints"
+                      type="number"
+                      min="0"
+                      placeholder="e.g., 20"
+                      class="form-input"
+                      required
+                    />
+                    <small class="text-muted">Bonus points for first-time customers</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="birthday-points">Birthday Bonus Points</label>
+                    <input 
+                      id="birthday-points"
+                      v-model.number="rewardsForm.birthdayPoints"
+                      type="number"
+                      min="0"
+                      placeholder="e.g., 50"
+                      class="form-input"
+                      required
+                    />
+                    <small class="text-muted">Bonus points on customer's birthday</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="vip-discount">VIP Discount (%)</label>
+                    <input 
+                      id="vip-discount"
+                      v-model.number="rewardsForm.vipDiscount"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.1"
+                      placeholder="e.g., 15"
+                      class="form-input"
+                      required
+                    />
+                    <small class="text-muted">Percentage discount for VIP customers</small>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="points-expiry">Points Expiry (Months)</label>
+                    <input 
+                      id="points-expiry"
+                      v-model.number="rewardsForm.pointsExpiryMonths"
+                      type="number"
+                      min="1"
+                      placeholder="e.g., 6"
+                      class="form-input"
+                      required
+                    />
+                    <small class="text-muted">Months until points expire</small>
+                  </div>
+                </div>
+
+                <div v-if="rewardsError" class="error-message">{{ rewardsError }}</div>
+                <div v-if="rewardsSuccess" class="success-message">{{ rewardsSuccess }}</div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
+                  💾 Save Reward Settings
+                </button>
+              </form>
+
+              <!-- Current Reward Summary -->
+              <div class="card" style="margin-top: 24px">
+                <div class="card-header">
+                  <h4 class="card-title">📊 Current Reward Summary</h4>
+                </div>
+                <div class="card-body">
+                  <div class="grid-2">
+                    <div class="stat-item">
+                      <div class="stat-label">Points Earning Rate</div>
+                      <div class="stat-value">{{ rewardsForm.pointsPerRupee * 100 }} pts per ₹100</div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-label">Redemption Rate</div>
+                      <div class="stat-value">{{ rewardsForm.pointsForRedemption }} pts = ₹{{ rewardsForm.redemptionValue }}</div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-label">VIP Threshold</div>
+                      <div class="stat-value">₹{{ rewardsForm.vipThreshold }} spent</div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-label">VIP Benefits</div>
+                      <div class="stat-value">{{ rewardsForm.vipDiscount }}% discount</div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-label">Bonus Points</div>
+                      <div class="stat-value">First visit: {{ rewardsForm.firstVisitPoints }} pts</div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-label">Points Expiry</div>
+                      <div class="stat-value">{{ rewardsForm.pointsExpiryMonths }} months</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1575,6 +1925,69 @@
     </div>
   </div>
 
+  <!-- Profile Edit Modal -->
+  <div v-if="showProfileEditModal" class="modal-overlay" @click="showProfileEditModal = false">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h3 class="modal-title">👤 Edit Profile</h3>
+        <button class="modal-close" @click="showProfileEditModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <form @submit.prevent="handleUpdateProfile">
+          <div class="form-group">
+            <label for="profile-name">Full Name</label>
+            <input 
+              id="profile-name"
+              v-model="profileEditForm.name" 
+              type="text" 
+              placeholder="Enter full name"
+              class="form-input"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="profile-email">Email</label>
+            <input 
+              id="profile-email"
+              v-model="profileEditForm.email" 
+              type="email" 
+              placeholder="Enter email address"
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="profile-phone">Phone</label>
+            <input 
+              id="profile-phone"
+              v-model="profileEditForm.phone" 
+              type="tel" 
+              placeholder="Enter phone number"
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="profile-address">Address</label>
+            <textarea 
+              id="profile-address"
+              v-model="profileEditForm.address" 
+              placeholder="Enter address"
+              class="form-input"
+              rows="3"
+            ></textarea>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 20px">
+            <button type="button" class="btn btn-outline" @click="showProfileEditModal = false" style="flex: 1">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- Financial Password Modal -->
   <div v-if="showFinancePasswordModal" class="modal-overlay" @click.self="showFinancePasswordModal = false">
     <div class="modal-content" @click.stop style="max-width: 400px">
@@ -1650,10 +2063,211 @@
       </div>
     </div>
   </div>
+
+  <!-- AI Assistant Button -->
+  <button 
+    class="ai-assistant-btn" 
+    @click="showAIAssistant = !showAIAssistant"
+    title="AI Assistant"
+  >
+    🤖
+  </button>
+
+  <!-- Staff Bookings Modal -->
+  <div v-if="showStaffBookingsModal && selectedStaffForBookings" class="modal-overlay" @click="showStaffBookingsModal = false">
+    <div class="modal-content" @click.stop style="max-width: 700px">
+      <div class="modal-header">
+        <h3 class="modal-title">📅 {{ selectedStaffForBookings.name }} - Past Bookings</h3>
+        <button class="modal-close" @click="showStaffBookingsModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <div v-if="staffBookings.length === 0" class="empty-state" style="padding: 32px; text-align: center">
+          <div style="font-size: 24px; margin-bottom: 12px">📭</div>
+          <div style="color: var(--text-muted)">No past bookings found</div>
+        </div>
+        <div v-else class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Customer</th>
+                <th>Service</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="booking in staffBookings" :key="booking.id">
+                <td>{{ getCustomerName(booking.customerId) }}</td>
+                <td>{{ getServiceName(booking.serviceId) }}</td>
+                <td>{{ booking.date }}</td>
+                <td><span :class="['badge', apptStatusBadge(booking.status)]">{{ booking.status }}</span></td>
+                <td>₹{{ getServicePrice(booking.serviceId) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Visits Modal -->
+  <div v-if="showCustomerVisitsModal && selectedCustomerForVisits" class="modal-overlay" @click="showCustomerVisitsModal = false">
+    <div class="modal-content" @click.stop style="max-width: 700px">
+      <div class="modal-header">
+        <h3 class="modal-title">👤 {{ selectedCustomerForVisits.name }} - Past Visits</h3>
+        <button class="modal-close" @click="showCustomerVisitsModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <div v-if="customerVisits.length === 0" class="empty-state" style="padding: 32px; text-align: center">
+          <div style="font-size: 24px; margin-bottom: 12px">📭</div>
+          <div style="color: var(--text-muted)">No past visits found</div>
+        </div>
+        <div v-else class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Service</th>
+                <th>Date</th>
+                <th>Staff</th>
+                <th>Status</th>
+                <th>Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="visit in customerVisits" :key="visit.id">
+                <td>{{ getServiceName(visit.serviceId) }}</td>
+                <td>{{ visit.date }}</td>
+                <td>{{ getStaffName(visit.staffId) }}</td>
+                <td><span :class="['badge', apptStatusBadge(visit.status)]">{{ visit.status }}</span></td>
+                <td>₹{{ getServicePrice(visit.serviceId) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invoice Details Modal -->
+  <div v-if="showInvoiceModal && selectedInvoice" class="modal-overlay" @click="showInvoiceModal = false">
+    <div class="modal-content" @click.stop style="max-width: 600px">
+      <div class="modal-header">
+        <h3 class="modal-title">📄 Invoice Details</h3>
+        <button class="modal-close" @click="showInvoiceModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="background: var(--light-bg); padding: 20px; border-radius: 8px; margin-bottom: 20px">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
+            <div style="border-right: 1px solid var(--border-color)">
+              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Invoice ID</div>
+              <div style="font-size: 18px; font-weight: 600; color: var(--charcoal)">#INV{{ String(1000 + (data.appointments.findIndex(a => a.id === selectedInvoice.id))).slice(-4) }}</div>
+            </div>
+            <div>
+              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Invoice Date</div>
+              <div style="font-size: 18px; font-weight: 600; color: var(--charcoal)">{{ selectedInvoice.date }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 24px">
+          <h4 style="font-size: 14px; font-weight: 600; color: var(--charcoal); margin-bottom: 12px">Customer Details</h4>
+          <div style="display: grid; gap: 8px">
+            <div style="display: grid; grid-template-columns: 140px 1fr">
+              <span style="color: var(--text-muted)">Name:</span>
+              <span style="font-weight: 500">{{ getCustomerName(selectedInvoice.customerId) }}</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 140px 1fr">
+              <span style="color: var(--text-muted)">Email:</span>
+              <span style="font-weight: 500">{{ data.customers.find(c => c.id === selectedInvoice.customerId)?.email || '-' }}</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 140px 1fr">
+              <span style="color: var(--text-muted)">Phone:</span>
+              <span style="font-weight: 500">{{ data.customers.find(c => c.id === selectedInvoice.customerId)?.phone || '-' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 24px">
+          <h4 style="font-size: 14px; font-weight: 600; color: var(--charcoal); margin-bottom: 12px">Service Details</h4>
+          <div style="display: grid; gap: 8px">
+            <div style="display: grid; grid-template-columns: 140px 1fr">
+              <span style="color: var(--text-muted)">Service:</span>
+              <span style="font-weight: 500">{{ getServiceName(selectedInvoice.serviceId) }}</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 140px 1fr">
+              <span style="color: var(--text-muted)">Service Amount:</span>
+              <span style="font-weight: 500">₹{{ getServicePrice(selectedInvoice.serviceId) }}</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 140px 1fr">
+              <span style="color: var(--text-muted)">Staff:</span>
+              <span style="font-weight: 500">{{ getStaffName(selectedInvoice.staffId) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top: 2px solid var(--border-color); padding-top: 16px; margin-bottom: 20px">
+          <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; margin-bottom: 8px">
+            <span style="color: var(--text-muted)">Subtotal:</span>
+            <span style="text-align: right; font-weight: 500">₹{{ getServicePrice(selectedInvoice.serviceId) }}</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; font-size: 14px; margin-bottom: 8px">
+            <span style="color: var(--text-muted)">Total Amount:</span>
+            <span style="text-align: right; font-weight: 600; color: var(--gold); font-size: 16px">₹{{ getServicePrice(selectedInvoice.serviceId) }}</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 140px 1fr">
+          <span style="color: var(--text-muted)">Payment Method:</span>
+          <span style="font-weight: 500; text-transform: capitalize">{{ selectedInvoice.paymentType || 'Cash' }}</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 140px 1fr; margin-top: 8px">
+          <span style="color: var(--text-muted)">Status:</span>
+          <span :class="['badge', selectedInvoice.invoiceStatus === 'invoiced' ? 'badge-green' : 'badge-gold']">{{ selectedInvoice.invoiceStatus }}</span>
+        </div>
+
+        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; gap: 8px">
+          <button class="btn btn-primary" style="flex: 1" @click="handleSendInvoice(selectedInvoice)">
+            📧 Send Email
+          </button>
+          <button class="btn btn-outline" style="flex: 1" @click="showInvoiceModal = false">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Assistant Chat Modal -->
+  <div v-if="showAIAssistant" class="ai-assistant-modal">
+    <div class="ai-assistant-content">
+      <div class="ai-assistant-header">
+        <h3 class="ai-title">🤖 Manager Assistant</h3>
+        <button class="ai-close-btn" @click="showAIAssistant = false">✕</button>
+      </div>
+      <div class="ai-assistant-chat">
+        <div class="ai-chat-messages">
+          <div v-for="(msg, idx) in aiMessages" :key="idx" :class="['ai-message', msg.type]">
+            <div class="ai-message-content">{{ msg.text }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="ai-assistant-input">
+        <input 
+          v-model="aiUserInput" 
+          type="text" 
+          placeholder="Ask me for help..."
+          class="ai-input-field"
+          @keyup.enter="sendAIMessage"
+        />
+        <button class="ai-send-btn" @click="sendAIMessage">Send</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAppStore } from "@/stores/appStore";
 
@@ -1661,10 +2275,19 @@ const router = useRouter();
 const appStore = useAppStore();
 
 const currentView = ref("dashboard");
+const sidebarOpen = ref(false);
 const selectedDate = ref(null);
 const selectedStaffDate = ref(new Date().toISOString().split('T')[0]);
 const hoveredStaff = ref(null);
 const showChangePasswordModal = ref(false);
+const showProfileMenu = ref(false);
+const showProfileEditModal = ref(false);
+const profileEditForm = ref({
+  name: '',
+  email: '',
+  phone: '',
+  address: ''
+});
 const passwordForm = ref({
   currentPassword: "",
   newPassword: "",
@@ -1681,6 +2304,13 @@ const financialPasswordError = ref("");
 const financeAuthenticated = ref(false);
 const reportsAuthenticated = ref(false);
 const pendingFinancialView = ref(null); // Track which view user tried to access
+
+// AI Assistant state
+const showAIAssistant = ref(false);
+const aiMessages = ref([
+  { type: 'assistant', text: 'Hi! I\'m your AI Assistant. I\'m here to help you manage appointments, customers, services, staff, packages, and resolve any issues. How can I assist you today?' }
+]);
+const aiUserInput = ref('');
 
 // Booking form state
 const bookingForm = ref({
@@ -1711,8 +2341,11 @@ const customerForm = ref({
   phone: "",
   dob: "",
   address: "",
-  preferences: ""
+  preferences: "",
+  customerType: "Normal"
 });
+const isEditingCustomer = ref(false);
+const editingCustomerId = ref(null);
 const customerError = ref("");
 const customerSuccess = ref("");
 
@@ -1755,6 +2388,7 @@ const inventorySuccess = ref("");
 
 // Filter states
 const serviceName = ref("");
+const serviceCategoryFilter = ref("");
 const customerName = ref("");
 const staffName = ref("");
 const productName = ref("");
@@ -1762,6 +2396,61 @@ const invoiceCustomerName = ref("");
 const bookingCustomerName = ref("");
 const orderFilter = ref("");
 const completedAppointmentFilter = ref("");
+
+// Customer search dropdown for appointment creation
+const bookingCustomerSearch = ref("");
+const showBookingCustomerDropdown = ref(false);
+
+// Service editing state
+const editingServiceId = ref(null);
+
+// Staff bookings modal state
+const showStaffBookingsModal = ref(false);
+const selectedStaffForBookings = ref(null);
+
+// Customer visits modal state
+const showCustomerVisitsModal = ref(false);
+const selectedCustomerForVisits = ref(null);
+
+// Invoice modal state
+const showInvoiceModal = ref(false);
+const selectedInvoice = ref(null);
+
+// Order Tab & Replenishment
+const orderTab = ref("pending-orders");
+const replenishmentForm = ref({
+  productId: "",
+  quantity: 1,
+  reason: "",
+  supplier: ""
+});
+const replenishmentError = ref("");
+const pendingReplenishmentList = ref([
+  { id: 1, productId: 2, quantity: 10, currentStock: 3, reason: "Low stock alert", supplier: "Beauty Supplies Ltd", date: "2026-03-20" },
+  { id: 2, productId: 4, quantity: 5, currentStock: 2, reason: "High demand", supplier: "Health & Wellness Co", date: "2026-03-21" }
+]);
+const managerReplenishmentRequests = ref([
+  { id: 1, staffName: "Alice Brown", productId: 2, quantity: 5, reason: "Low stock", date: "2026-03-22" },
+  { id: 2, staffName: "Carol Smith", productId: 4, quantity: 3, reason: "High demand", date: "2026-03-21" }
+]);
+const staffReplenishmentRequests = ref([
+  { id: 1, staffName: "Alice Brown", productId: 2, quantity: 5, reason: "Facial supplies", date: "2026-03-22", type: "replenishment" },
+  { id: 2, staffName: "Carol Smith", productId: 4, quantity: 3, purpose: "Massage oils", date: "2026-03-21", type: "staff-order" }
+]);
+
+// Rewards form state
+const rewardsForm = ref({
+  pointsPerRupee: 0.1,
+  pointsForRedemption: 500,
+  redemptionValue: 25,
+  vipThreshold: 5000,
+  firstVisitPoints: 20,
+  birthdayPoints: 50,
+  vipDiscount: 15,
+  pointsExpiryMonths: 6
+});
+const rewardsError = ref("");
+const rewardsSuccess = ref("");
 
 const user = computed(() => appStore.user);
 const data = computed(() => appStore.data);
@@ -1796,6 +2485,16 @@ const staffForSelectedDay = computed(() => {
     );
     return !!isPresent;
   });
+});
+
+const staffBookings = computed(() => {
+  if (!selectedStaffForBookings.value) return [];
+  return data.value.appointments.filter(appt => appt.staffId === selectedStaffForBookings.value.id);
+});
+
+const customerVisits = computed(() => {
+  if (!selectedCustomerForVisits.value) return [];
+  return data.value.appointments.filter(appt => appt.customerId === selectedCustomerForVisits.value.id);
 });
 
 const lowStockItems = computed(() => {
@@ -1853,6 +2552,55 @@ const systemAlerts = computed(() => {
   }
 
   return alerts;
+});
+
+// Helper function to check if bridal package is selected
+const hasBridalPackageSelected = () => {
+  return bookingForm.value.serviceIds.some(serviceId => {
+    const service = data.value.services.find(s => s.id === parseInt(serviceId));
+    return service && service.name === "Bridal Package";
+  });
+};
+
+// Compute minimum booking date based on service type
+const minBookingDate = computed(() => {
+  const today = new Date();
+  const minDate = new Date(today);
+  
+  if (hasBridalPackageSelected()) {
+    minDate.setMonth(minDate.getMonth() + 1); // 1 month for bridal package
+  } else {
+    minDate.setDate(minDate.getDate() + 1); // Tomorrow for normal services
+  }
+  
+  return minDate.toISOString().split('T')[0];
+});
+
+// Compute maximum booking date (6 months for bridal, 2 days for others)
+const maxBookingDate = computed(() => {
+  const today = new Date();
+  const maxDate = new Date(today);
+  
+  if (hasBridalPackageSelected()) {
+    maxDate.setMonth(maxDate.getMonth() + 6); // 6 months for bridal package
+  } else {
+    maxDate.setDate(maxDate.getDate() + 2); // 2 days for other services
+  }
+  
+  return maxDate.toISOString().split('T')[0];
+});
+
+// Helper text for booking date info
+const bookingDateInfo = computed(() => {
+  if (bookingForm.value.serviceIds.length === 0) {
+    return "Select a service to see available booking dates";
+  }
+  
+  if (hasBridalPackageSelected()) {
+    return `Bridal Package: Book 1 to 6 months in advance`;
+  } else {
+    return `Other services: Book from tomorrow onwards for 2 days`;
+  }
 });
 
 const pageTitle = computed(() => {
@@ -1984,10 +2732,11 @@ const displayedBookings = computed(() => {
 
 // Filtered data computed properties
 const filteredServices = computed(() => {
-  if (!serviceName.value.trim()) return data.value.services;
-  return data.value.services.filter(s => 
-    s.name.toLowerCase().includes(serviceName.value.toLowerCase())
-  );
+  return data.value.services.filter(s => {
+    const nameMatch = !serviceName.value.trim() || s.name.toLowerCase().includes(serviceName.value.toLowerCase());
+    const categoryMatch = !serviceCategoryFilter.value || s.categoryId == serviceCategoryFilter.value;
+    return nameMatch && categoryMatch;
+  });
 });
 
 const filteredCustomers = computed(() => {
@@ -2003,6 +2752,14 @@ const filteredStaff = computed(() => {
   return data.value.staff.filter(s => 
     s.name.toLowerCase().includes(staffName.value.toLowerCase()) ||
     s.email.toLowerCase().includes(staffName.value.toLowerCase())
+  );
+});
+
+// Filtered customers for booking creation form
+const filteredBookingCustomers = computed(() => {
+  if (!bookingCustomerSearch.value.trim()) return data.value.customers;
+  return data.value.customers.filter(c => 
+    c.name.toLowerCase().includes(bookingCustomerSearch.value.toLowerCase())
   );
 });
 
@@ -2129,6 +2886,11 @@ const logout = () => {
   router.push("/");
 };
 
+const handleLogout = () => {
+  showProfileMenu.value = false;
+  logout();
+};
+
 const handleChangePassword = () => {
   passwordError.value = "";
   passwordSuccess.value = "";
@@ -2175,7 +2937,33 @@ const handleChangePassword = () => {
   }, 1500);
 };
 
+const openProfileEdit = () => {
+  // Populate form with current user data
+  profileEditForm.value.name = user.value?.name || '';
+  profileEditForm.value.email = user.value?.email || '';
+  profileEditForm.value.phone = user.value?.phone || '';
+  profileEditForm.value.address = user.value?.address || '';
+  showProfileEditModal.value = true;
+};
+
+const handleUpdateProfile = () => {
+  // Update user profile
+  if (profileEditForm.value.name.trim()) {
+    appStore.user.name = profileEditForm.value.name;
+  }
+  
+  // In a real application, send this data to the backend
+  // For now, just show success message
+  showProfileEditModal.value = false;
+};
+
 // Booking handlers
+const selectBookingCustomer = (customer) => {
+  bookingForm.value.customerId = String(customer.id);
+  bookingCustomerSearch.value = customer.name;
+  showBookingCustomerDropdown.value = false;
+};
+
 const handleCreateBooking = () => {
   bookingError.value = "";
   bookingSuccess.value = "";
@@ -2197,6 +2985,20 @@ const handleCreateBooking = () => {
 
   if (!bookingForm.value.time) {
     bookingError.value = "Please select a time";
+    return;
+  }
+
+  // Validate booking date is within allowed range
+  const selectedDate = new Date(bookingForm.value.date);
+  const minDate = new Date(minBookingDate.value);
+  const maxDate = new Date(maxBookingDate.value);
+
+  if (selectedDate < minDate || selectedDate > maxDate) {
+    if (hasBridalPackageSelected()) {
+      bookingError.value = `Bridal Package must be booked 1 to 6 months in advance`;
+    } else {
+      bookingError.value = `Please select a date from tomorrow onwards for 2 days`;
+    }
     return;
   }
 
@@ -2259,18 +3061,36 @@ const handleAddService = () => {
     return;
   }
 
-  const newService = {
-    id: Math.max(...data.value.services.map(s => s.id || 0), 0) + 1,
-    categoryId: parseInt(serviceForm.value.categoryId),
-    name: serviceForm.value.name,
-    price: serviceForm.value.price,
-    duration: serviceForm.value.duration,
-    description: `${serviceForm.value.name} service`,
-    productsRequired: serviceForm.value.productsRequired || "None"
-  };
+  if (editingServiceId.value) {
+    // Update existing service
+    const index = data.value.services.findIndex(s => s.id === editingServiceId.value);
+    if (index > -1) {
+      data.value.services[index] = {
+        ...data.value.services[index],
+        categoryId: parseInt(serviceForm.value.categoryId),
+        name: serviceForm.value.name,
+        price: serviceForm.value.price,
+        duration: serviceForm.value.duration,
+        description: `${serviceForm.value.name} service`,
+        productsRequired: serviceForm.value.productsRequired || "None"
+      };
+      serviceSuccess.value = "Service updated successfully!";
+    }
+  } else {
+    // Create new service
+    const newService = {
+      id: Math.max(...data.value.services.map(s => s.id || 0), 0) + 1,
+      categoryId: parseInt(serviceForm.value.categoryId),
+      name: serviceForm.value.name,
+      price: serviceForm.value.price,
+      duration: serviceForm.value.duration,
+      description: `${serviceForm.value.name} service`,
+      productsRequired: serviceForm.value.productsRequired || "None"
+    };
 
-  data.value.services.push(newService);
-  serviceSuccess.value = "Service added successfully!";
+    data.value.services.push(newService);
+    serviceSuccess.value = "Service added successfully!";
+  }
 
   setTimeout(() => {
     serviceForm.value = {
@@ -2280,18 +3100,49 @@ const handleAddService = () => {
       duration: 0,
       productsRequired: ""
     };
+    editingServiceId.value = null;
     serviceSuccess.value = "";
   }, 1500);
 };
 
 const handleEditService = (service) => {
+  editingServiceId.value = service.id;
   serviceForm.value = {
     name: service.name,
-    categoryId: service.categoryId,
+    categoryId: String(service.categoryId),
     price: service.price,
     duration: service.duration,
     productsRequired: service.productsRequired || ""
   };
+};
+
+const cancelEditService = () => {
+  editingServiceId.value = null;
+  serviceForm.value = {
+    name: "",
+    categoryId: "",
+    price: 0,
+    duration: 0,
+    productsRequired: ""
+  };
+};
+
+// Staff bookings handler
+const viewStaffBookings = (staff) => {
+  selectedStaffForBookings.value = staff;
+  showStaffBookingsModal.value = true;
+};
+
+// Customer visits handler
+const viewCustomerVisits = (customer) => {
+  selectedCustomerForVisits.value = customer;
+  showCustomerVisitsModal.value = true;
+};
+
+// Invoice view handler
+const viewInvoice = (appointment) => {
+  selectedInvoice.value = appointment;
+  showInvoiceModal.value = true;
 };
 
 const handleDeleteService = (serviceId) => {
@@ -2336,6 +3187,11 @@ const handleAddCustomer = () => {
     dob: customerForm.value.dob,
     address: customerForm.value.address || "",
     preferences: customerForm.value.preferences || "",
+    customerType: customerForm.value.customerType || "Normal",
+    totalSpent: 0,
+    pointsBalance: data.value.rewards?.firstVisitPoints || 20,
+    pointsEarned: data.value.rewards?.firstVisitPoints || 20,
+    lastPointsUpdate: new Date().toISOString().split('T')[0],
     invoices: 0,
     noOfVisits: 0,
     registrationDate: new Date().toISOString().split('T')[0],
@@ -2351,10 +3207,137 @@ const handleAddCustomer = () => {
       email: "",
       phone: "",
       dob: "",
-      address: ""
+      address: "",
+      preferences: "",
+      customerType: "Normal"
     };
     customerSuccess.value = "";
   }, 1500);
+};
+
+const cancelEditCustomer = () => {
+  customerForm.value = {
+    name: "",
+    email: "",
+    phone: "",
+    dob: "",
+    address: "",
+    preferences: "",
+    customerType: "Normal"
+  };
+  isEditingCustomer.value = false;
+  editingCustomerId.value = null;
+  customerError.value = "";
+  customerSuccess.value = "";
+};
+
+const handleUpdateCustomer = () => {
+  customerError.value = "";
+  customerSuccess.value = "";
+
+  if (!customerForm.value.name) {
+    customerError.value = "Customer name is required";
+    return;
+  }
+
+  if (!customerForm.value.email) {
+    customerError.value = "Email is required";
+    return;
+  }
+
+  if (!customerForm.value.phone) {
+    customerError.value = "Phone is required";
+    return;
+  }
+
+  if (!customerForm.value.dob) {
+    customerError.value = "Date of birth is required";
+    return;
+  }
+
+  const customerIndex = data.value.customers.findIndex(c => c.id === editingCustomerId.value);
+  if (customerIndex === -1) {
+    customerError.value = "Customer not found";
+    return;
+  }
+
+  data.value.customers[customerIndex] = {
+    ...data.value.customers[customerIndex],
+    name: customerForm.value.name,
+    email: customerForm.value.email,
+    phone: customerForm.value.phone,
+    dob: customerForm.value.dob,
+    address: customerForm.value.address || "",
+    preferences: customerForm.value.preferences || "",
+    customerType: customerForm.value.customerType || "Normal"
+  };
+
+  customerSuccess.value = "Customer updated successfully!";
+  isEditingCustomer.value = false;
+  editingCustomerId.value = null;
+
+  setTimeout(() => {
+    customerForm.value = {
+      name: "",
+      email: "",
+      phone: "",
+      dob: "",
+      address: "",
+      preferences: "",
+      customerType: "Normal"
+    };
+    customerSuccess.value = "";
+  }, 1500);
+};
+
+// Initialize rewards form with store data
+const initializeRewardsForm = () => {
+  if (data.value.rewards) {
+    rewardsForm.value = { ...data.value.rewards };
+  }
+};
+
+// Call initialization
+initializeRewardsForm();
+
+const handleUpdateRewards = () => {
+  rewardsError.value = "";
+  rewardsSuccess.value = "";
+
+  // Validation
+  if (rewardsForm.value.pointsPerRupee <= 0) {
+    rewardsError.value = "Points per rupee must be greater than 0";
+    return;
+  }
+
+  if (rewardsForm.value.pointsForRedemption <= 0) {
+    rewardsError.value = "Points for redemption must be greater than 0";
+    return;
+  }
+
+  if (rewardsForm.value.redemptionValue <= 0) {
+    rewardsError.value = "Redemption value must be greater than 0";
+    return;
+  }
+
+  if (rewardsForm.value.vipThreshold <= 0) {
+    rewardsError.value = "VIP threshold must be greater than 0";
+    return;
+  }
+
+  if (rewardsForm.value.pointsExpiryMonths <= 0) {
+    rewardsError.value = "Points expiry must be greater than 0 months";
+    return;
+  }
+
+  // Update the store
+  data.value.rewards = { ...rewardsForm.value };
+
+  rewardsSuccess.value = "Reward settings updated successfully!";
+
+  setTimeout(() => {
+    rewardsSuccess.value = "";
+  }, 3000);
 };
 
 // Staff handlers
@@ -2588,6 +3571,59 @@ const verifyReportsPassword = () => {
   }
 };
 
+// AI Assistant handler
+const sendAIMessage = () => {
+  if (!aiUserInput.value.trim()) return;
+
+  // Add user message
+  aiMessages.value.push({ type: 'user', text: aiUserInput.value });
+
+  const userMessage = aiUserInput.value.toLowerCase();
+  aiUserInput.value = '';
+
+  // Simulate AI responses based on keywords
+  let assistantResponse = '';
+
+  if (userMessage.includes('appointment') || userMessage.includes('booking')) {
+    assistantResponse = 'I see you\'re asking about appointments. You can manage appointments in the "Appointments" section. You can create new appointments, edit existing ones, or view them by date. What would you like to do?';
+  } else if (userMessage.includes('customer')) {
+    assistantResponse = 'The Customers section shows all your clients, their contact information, preferences, visit history, and spending. You can add new customers, edit their details, or track customer loyalty there.';
+  } else if (userMessage.includes('service')) {
+    assistantResponse = 'You can create and manage services in the "Services" section. Add new services, set pricing, duration, products required, and manage all your service offerings there.';
+  } else if (userMessage.includes('staff') || userMessage.includes('stylist')) {
+    assistantResponse = 'You can view and manage your staff in the Staff Management section. Add new staff members, view their skills, attendance, appointments, and performance ratings.';
+  } else if (userMessage.includes('package')) {
+    assistantResponse = 'Service Packages allow you to bundle multiple services together in the "Service Packages" section. Create customized packages for special promotions or occasions.';
+  } else if (userMessage.includes('inventory') || userMessage.includes('product') || userMessage.includes('stock')) {
+    assistantResponse = 'The Inventory Management section lets you track products, stock levels, suppliers, and costs. You can see low stock alerts and manage orders from the Orders section.';
+  } else if (userMessage.includes('invoice') || userMessage.includes('billing') || userMessage.includes('payment')) {
+    assistantResponse = 'You can create and manage invoices in the Invoices section. Create invoices from completed appointments, track payment status, and send invoices to customers via email.';
+  } else if (userMessage.includes('finance') || userMessage.includes('profit') || userMessage.includes('revenue')) {
+    assistantResponse = 'The Finance section (password protected) shows your total revenue, product costs, staff salaries, overhead, and net profit. Access it from the sidebar for a complete financial overview.';
+  } else if (userMessage.includes('issue') || userMessage.includes('problem') || userMessage.includes('error')) {
+    assistantResponse = 'I\'m sorry you\'re experiencing an issue. Please describe the problem in detail, and I\'ll help you troubleshoot. Is it related to appointments, customers, services, staff, inventory, or invoices?';
+  } else if (userMessage.includes('help')) {
+    assistantResponse = 'I\'m here to help! I can assist you with:\n• Managing appointments & bookings\n• Customer information & preferences\n• Creating & managing services\n• Staff management & scheduling\n• Service packages\n• Inventory & product management\n• Invoices & billing\n• Finance & reports\n\nWhat would you like help with?';
+  } else if (userMessage.includes('hello') || userMessage.includes('hi')) {
+    assistantResponse = 'Hello! I\'m your AI Assistant for the Manager Dashboard. How can I help you today? Feel free to ask about appointments, customers, services, staff, packages, inventory, or any other concerns.';
+  } else if (userMessage.includes('overview') || userMessage.includes('stats') || userMessage.includes('dashboard')) {
+    assistantResponse = 'The Dashboard Overview shows you key metrics: Today\'s appointments, available staff, low stock items, and pending orders. This gives you a quick snapshot of your business for the day.';
+  } else {
+    assistantResponse = 'That\'s a great question! I can help with appointment management, customer details, service creation, staff management, packages, inventory, invoices, and financial reports. How would you like me to assist you?';
+  }
+
+  // Add assistant response after a small delay
+  setTimeout(() => {
+    aiMessages.value.push({ type: 'assistant', text: assistantResponse });
+    
+    // Auto-scroll to bottom
+    setTimeout(() => {
+      const chatBox = document.querySelector('.ai-chat-messages');
+      if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+    }, 0);
+  }, 500);
+};
+
 // Product/Inventory handlers
 const handleAddProduct = () => {
   inventoryError.value = "";
@@ -2694,8 +3730,11 @@ const handleEditCustomer = (customer) => {
     phone: customer.phone,
     dob: customer.dob,
     address: customer.address,
-    preferences: customer.preferences || ""
+    preferences: customer.preferences || "",
+    customerType: customer.customerType || "Normal"
   };
+  isEditingCustomer.value = true;
+  editingCustomerId.value = customer.id;
 };
 
 const handleDeleteCustomer = (customerId) => {
@@ -2746,6 +3785,163 @@ const handleRejectOrder = (order) => {
   }
 };
 
+const handleApproveReplenishment = (req) => {
+  const index = managerReplenishmentRequests.value.findIndex(r => r.id === req.id);
+  if (index > -1) {
+    const product = data.value.products.find(p => p.id === req.productId);
+    // Add to pending replenishment list
+    const newItem = {
+      id: Math.max(...pendingReplenishmentList.value.map(r => r.id || 0), 0) + 1,
+      productId: req.productId,
+      quantity: req.quantity,
+      currentStock: product?.currentStock || 0,
+      reason: req.reason,
+      supplier: "Staff Request",
+      date: req.date
+    };
+    pendingReplenishmentList.value.push(newItem);
+    // Remove from incoming requests
+    managerReplenishmentRequests.value.splice(index, 1);
+    alert(`✅ Request from ${req.staffName} approved and added to order list!`);
+    console.log(`Approved replenishment request: ${req.staffName} - ${getProductNameForOrder(req.productId)}`);
+  }
+};
+
+const handleAcceptReplenishment = (req) => {
+  const index = managerReplenishmentRequests.value.findIndex(r => r.id === req.id);
+  if (index > -1) {
+    const product = data.value.products.find(p => p.id === req.productId);
+    // Add to pending replenishment list
+    const newItem = {
+      id: Math.max(...pendingReplenishmentList.value.map(r => r.id || 0), 0) + 1,
+      productId: req.productId,
+      quantity: req.quantity,
+      currentStock: product?.currentStock || 0,
+      reason: req.reason,
+      supplier: "Staff Request - Accepted",
+      date: req.date
+    };
+    pendingReplenishmentList.value.push(newItem);
+    // Remove from incoming requests
+    managerReplenishmentRequests.value.splice(index, 1);
+    alert(`✅ Request from ${req.staffName} accepted and added to order list!`);
+    console.log(`Accepted replenishment request: ${req.staffName} - ${getProductNameForOrder(req.productId)}`);
+  }
+};
+
+const handleRejectReplenishment = (req) => {
+  if (confirm(`Reject replenishment request from ${req.staffName}?`)) {
+    const index = managerReplenishmentRequests.value.findIndex(r => r.id === req.id);
+    if (index > -1) {
+      managerReplenishmentRequests.value.splice(index, 1);
+      console.log(`❌ Rejected replenishment from ${req.staffName}`);
+    }
+  }
+};
+
+const handleApproveStaffOrder = (req) => {
+  const index = staffReplenishmentRequests.value.findIndex(r => r.id === req.id);
+  if (index > -1) {
+    staffReplenishmentRequests.value.splice(index, 1);
+    alert(`✅ Order from ${req.staffName} for ${getProductNameForOrder(req.productId)} (${req.quantity} units) has been approved!`);
+    console.log(`Approved staff order: ${req.staffName} - ${getProductNameForOrder(req.productId)}`);
+  }
+};
+
+const handleAcceptStaffOrder = (req) => {
+  const index = staffReplenishmentRequests.value.findIndex(r => r.id === req.id);
+  if (index > -1) {
+    const product = data.value.products.find(p => p.id === req.productId);
+    // Add to pending replenishment list
+    const newItem = {
+      id: Math.max(...pendingReplenishmentList.value.map(r => r.id || 0), 0) + 1,
+      productId: req.productId,
+      quantity: req.quantity,
+      currentStock: product?.currentStock || 0,
+      reason: req.reason || req.purpose || "Staff Order",
+      supplier: "Staff Request - Accepted",
+      date: req.date
+    };
+    pendingReplenishmentList.value.push(newItem);
+    // Remove from staff orders list
+    staffReplenishmentRequests.value.splice(index, 1);
+    alert(`✅ Order from ${req.staffName} accepted and added to pending order list!`);
+    console.log(`Accepted staff order: ${req.staffName} - ${getProductNameForOrder(req.productId)}`);
+  }
+};
+
+const handleRejectStaffOrder = (req) => {
+  const index = staffReplenishmentRequests.value.findIndex(r => r.id === req.id);
+  if (index > -1) {
+    staffReplenishmentRequests.value.splice(index, 1);
+    alert(`✅ Order from ${req.staffName} has been rejected!`);
+    console.log(`Rejected staff order: ${req.staffName}`);
+  }
+};
+
+const handleAddReplenishment = () => {
+  replenishmentError.value = "";
+
+  if (!replenishmentForm.value.productId) {
+    replenishmentError.value = "Please select a product";
+    return;
+  }
+
+  if (replenishmentForm.value.quantity < 1) {
+    replenishmentError.value = "Quantity must be at least 1";
+    return;
+  }
+
+  if (!replenishmentForm.value.reason.trim()) {
+    replenishmentError.value = "Please provide a reason for order";
+    return;
+  }
+
+  const product = data.value.products.find(p => p.id === parseInt(replenishmentForm.value.productId));
+  const newItem = {
+    id: Math.max(...pendingReplenishmentList.value.map(r => r.id || 0), 0) + 1,
+    productId: parseInt(replenishmentForm.value.productId),
+    quantity: replenishmentForm.value.quantity,
+    currentStock: product?.currentStock || 0,
+    reason: replenishmentForm.value.reason,
+    supplier: replenishmentForm.value.supplier || "TBD",
+    date: new Date().toISOString().split('T')[0]
+  };
+
+  pendingReplenishmentList.value.push(newItem);
+  
+  // Reset form
+  replenishmentForm.value = {
+    productId: "",
+    quantity: 1,
+    reason: "",
+    supplier: ""
+  };
+  
+  console.log(`Added ${getProductNameForOrder(newItem.productId)} (${newItem.quantity} units) to order list`);
+};
+
+const handleRemoveFromList = (id) => {
+  pendingReplenishmentList.value = pendingReplenishmentList.value.filter(item => item.id !== id);
+  console.log(`Removed item from replenishment order list`);
+};
+
+const handlePlaceReplenishmentOrder = () => {
+  if (pendingReplenishmentList.value.length === 0) {
+    alert("No items to order");
+    return;
+  }
+
+  const totalQty = pendingReplenishmentList.value.reduce((sum, item) => sum + item.quantity, 0);
+  const summary = `Order Placed Successfully!\n================================\nTotal Items: ${pendingReplenishmentList.value.length}\nTotal Quantity: ${totalQty} units\n\nOrder Status: Awaiting Delivery\nDate: ${new Date().toISOString().split('T')[0]}`;
+
+  alert(summary);
+  
+  // Clear the list after placing order
+  pendingReplenishmentList.value = [];
+  console.log(`Replenishment order placed for ${totalQty} units`);
+};
+
 const handleCreateInvoiceFromAppointment = (appt) => {
   // Pre-fill invoice form with appointment details
   invoiceForm.value = {
@@ -2766,6 +3962,27 @@ const handleCreateInvoiceFromAppointment = (appt) => {
   
   console.log(`📄 Creating invoice for appointment #${appt.id} (${getCustomerName(appt.customerId)})`);
 };
+
+// Close customer dropdown when clicking outside
+const handleClickOutside = (event) => {
+  const dropdown = document.querySelector('.custom-dropdown');
+  if (dropdown && !dropdown.contains(event.target)) {
+    showBookingCustomerDropdown.value = false;
+  }
+  
+  const profileSection = document.querySelector('.sidebar-user');
+  if (profileSection && !profileSection.contains(event.target)) {
+    showProfileMenu.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <style scoped>
@@ -2959,6 +4176,82 @@ const handleCreateInvoiceFromAppointment = (appt) => {
   background: var(--charcoal);
 }
 
+/* Custom Dropdown Styles */
+.custom-dropdown {
+  position: relative;
+}
+
+.custom-dropdown-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: white;
+  cursor: text;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.custom-dropdown-input:hover {
+  border-color: var(--gold);
+}
+
+.dropdown-search-input {
+  flex: 1;
+  border: none;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  background: transparent;
+}
+
+.dropdown-arrow {
+  padding: 0 12px;
+  color: var(--text-muted);
+  font-size: 11px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.custom-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 10;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.dropdown-option {
+  padding: 12px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--light-bg);
+  transition: background-color 0.2s;
+}
+
+.dropdown-option:hover {
+  background-color: var(--light-bg);
+}
+
+.dropdown-option.selected {
+  background-color: rgba(229, 170, 84, 0.15);
+  border-left: 3px solid var(--gold);
+  padding-left: 9px;
+}
+
+.dropdown-no-results {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
 /* Modal Styles */
 .modal-overlay {
   position: fixed;
@@ -3097,6 +4390,206 @@ const handleCreateInvoiceFromAppointment = (appt) => {
   color: #229954;
   font-size: 13px;
   margin-top: 12px;
+}
+
+/* AI Assistant Styles */
+.ai-assistant-btn {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--gold), #d4a574);
+  border: none;
+  color: white;
+  font-size: 28px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
+  transition: all 0.3s ease;
+  z-index: 999;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+
+.ai-assistant-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(212, 175, 55, 0.4);
+}
+
+.ai-assistant-btn:active {
+  transform: scale(0.95);
+}
+
+.dashboard-container > .ai-assistant-btn {
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.ai-assistant-modal {
+  position: fixed;
+  bottom: 100px;
+  right: 30px;
+  width: 380px;
+  height: 500px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+  z-index: 998;
+}
+
+.ai-assistant-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.ai-assistant-header {
+  padding: 16px;
+  background: linear-gradient(135deg, var(--gold), #d4a574);
+  color: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 12px 12px 0 0;
+}
+
+.ai-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.ai-close-btn {
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.ai-close-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.ai-assistant-chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f9f9f9;
+}
+
+.ai-chat-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.ai-message {
+  display: flex;
+  animation: fadeIn 0.3s ease;
+}
+
+.ai-message.user {
+  justify-content: flex-end;
+}
+
+.ai-message.assistant {
+  justify-content: flex-start;
+}
+
+.ai-message-content {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.ai-message.user .ai-message-content {
+  background: var(--gold);
+  color: white;
+  border-radius: 10px 4px 10px 10px;
+}
+
+.ai-message.assistant .ai-message-content {
+  background: #e8e8e8;
+  color: #333;
+  border-radius: 4px 10px 10px 10px;
+}
+
+.ai-assistant-input {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: white;
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 12px 12px;
+}
+
+.ai-input-field {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.ai-input-field:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(229, 170, 84, 0.1);
+}
+
+.ai-send-btn {
+  background: var(--gold);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ai-send-btn:hover {
+  background: #d4a574;
+}
+
+.ai-send-btn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+  .ai-assistant-modal {
+    width: calc(100vw - 48px);
+    height: 400px;
+    right: 24px;
+  }
+
+  .ai-message-content {
+    max-width: 90%;
+  }
 }
 </style>
 

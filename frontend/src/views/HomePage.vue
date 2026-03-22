@@ -229,7 +229,7 @@ const testimonials = [
 
 /* Navigation */
 .navbar {
-  background: rgba(250, 247, 242, 0.98);
+  background: rgba(220, 205, 190, 0.98);
   backdrop-filter: blur(10px);
   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
   position: sticky;

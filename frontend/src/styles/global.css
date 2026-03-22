@@ -416,7 +416,7 @@ tr:last-child td {
 }
 
 .sidebar-logo {
-  padding: 28px 20px 20px;
+  padding: 16px 20px 12px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
 
@@ -439,6 +439,9 @@ tr:last-child td {
   flex: 1;
   padding: 16px 0;
   overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .nav-section {
@@ -454,7 +457,7 @@ tr:last-child td {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 20px;
+  padding: 8px 20px;
   color: rgba(255,255,255,0.6);
   cursor: pointer;
   transition: all 0.2s;
@@ -805,6 +808,29 @@ tr:last-child td {
   background: var(--border);
 }
 
+.preferences-group {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.preference-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--charcoal);
+}
+
+.preference-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--gold);
+}
+
 /* Content layout */
 .content-layout {
   display: flex;
@@ -1101,4 +1127,347 @@ tr:last-child td {
   border-top-color: var(--gold);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+}
+
+/* =========================================
+   RESPONSIVE DESIGN - MOBILE FIRST
+   ========================================= */
+
+/* Small Devices: 480px and below */
+@media (max-width: 480px) {
+  .mobile-menu-toggle {
+    display: block !important;
+  }
+
+  .mobile-close-btn {
+    display: block !important;
+  }
+  :root {
+    --sidebar-width: 100%;
+  }
+
+  .page-content {
+    padding: 16px 12px;
+  }
+
+  .dashboard-container {
+    flex-direction: column;
+  }
+
+  .dashboard-sidebar {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    width: 280px;
+    height: 100vh;
+    z-index: 999;
+    transition: left 0.3s ease;
+    border-right: 1px solid var(--border);
+  }
+
+  .dashboard-sidebar.active,
+  .sidebar.active {
+    left: 0;
+  }
+
+  .sidebar {
+    position: fixed;
+    left: -100%;
+    top: 0;
+    width: 280px;
+    height: 100vh;
+    z-index: 999;
+    transition: left 0.3s ease;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+  }
+
+  .dashboard-main {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .content-layout {
+    flex-direction: column;
+  }
+
+  .main-content {
+    flex: 1;
+  }
+
+  .sidebar-profile {
+    width: 100%;
+  }
+
+  table {
+    font-size: 12px;
+  }
+
+  th, td {
+    padding: 10px 8px;
+  }
+
+  .form-input,
+  .form-group {
+    font-size: 16px;
+  }
+
+  .btn {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .btn-lg {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  .card {
+    border-radius: 8px;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
+
+  .modal {
+    max-width: 90vw;
+    margin: 20px;
+  }
+
+  .login-card {
+    padding: 32px 20px;
+    max-width: 95vw;
+  }
+
+  .login-tabs {
+    flex-wrap: wrap;
+    gap: 2px;
+  }
+
+  .login-tab {
+    flex: 1;
+    min-width: 70px;
+    padding: 6px 4px;
+    font-size: 11px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr !important;
+    gap: 20px;
+  }
+
+  .hero-title {
+    font-size: 32px;
+  }
+
+  .hero-subtitle {
+    font-size: 18px;
+  }
+
+  .hero-visual {
+    display: none;
+  }
+
+  .checkbox-group {
+    grid-template-columns: 1fr !important;
+  }
+
+  .preferences-group {
+    grid-template-columns: 1fr !important;
+  }
+
+  h1 { font-size: 24px; }
+  h2 { font-size: 20px; }
+  h3 { font-size: 16px; }
+}
+
+/* Medium Devices: 481px - 768px (Portrait tablets) */
+@media (min-width: 481px) and (max-width: 768px) {
+  :root {
+    --sidebar-width: 240px;
+  }
+
+  .page-content {
+    padding: 20px;
+  }
+
+  .dashboard-sidebar {
+    position: relative;
+    width: 240px;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+  }
+
+  .dashboard-main {
+    flex: 1;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 16px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .grid-2,
+  .grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .content-layout {
+    flex-direction: column;
+  }
+
+  .main-content {
+    min-height: auto;
+  }
+
+  table {
+    font-size: 13px;
+  }
+
+  th, td {
+    padding: 12px;
+  }
+
+  .form-input {
+    font-size: 15px;
+  }
+
+  .btn {
+    padding: 10px 18px;
+  }
+
+  .modal {
+    max-width: 90vw;
+  }
+
+  .login-card {
+    max-width: 95vw;
+    padding: 40px 28px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr !important;
+    padding: 40px 20px;
+  }
+
+  .hero-title {
+    font-size: 40px;
+  }
+
+  .hero-visual {
+    display: none;
+  }
+
+  .checkbox-group {
+    grid-template-columns: 1fr !important;
+  }
+
+  h1 { font-size: 28px; }
+  h2 { font-size: 22px; }
+}
+
+/* Large Devices: 769px and above (Desktop) */
+@media (min-width: 769px) {
+  :root {
+    --sidebar-width: 280px;
+  }
+
+  .page-content {
+    padding: 28px;
+  }
+
+  .dashboard-sidebar {
+    position: relative;
+    width: 280px;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+  }
+
+  .dashboard-main {
+    flex: 1;
+    margin-left: 0;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 20px;
+  }
+
+  .grid-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  .grid-3 {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  .grid-4 {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+
+  .hero {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .hero-visual {
+    display: flex;
+  }
+
+  .checkbox-group {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Extra Large Devices: 1024px and above */
+@media (min-width: 1024px) {
+  .page-content {
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr) !important;
+  }
+}
+
+/* Landscape orientation adjustments */
+@media (max-height: 600px) and (orientation: landscape) {
+  .page-content {
+    padding: 16px;
+  }
+
+  .stat-card {
+    padding: 12px;
+  }
+
+  .card-body {
+    padding: 16px;
+  }
 }

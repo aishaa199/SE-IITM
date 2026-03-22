@@ -104,6 +104,10 @@
           <input v-model="regForm.email" type="email" class="form-input" />
         </div>
         <div class="form-group">
+          <label class="form-label">Date of Birth</label>
+          <input v-model="regForm.dob" type="date" class="form-input" />
+        </div>
+        <div class="form-group">
           <label class="form-label">Phone</label>
           <input v-model="regForm.phone" type="text" class="form-input" />
         </div>
@@ -116,6 +120,15 @@
         <div class="form-group">
           <label class="form-label">Password *</label>
           <input v-model="regForm.password" type="password" class="form-input" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Service Preferences</label>
+          <div class="preferences-group">
+            <label v-for="service in ['Facial', 'Hair Care', 'Massage', 'Manicure', 'Pedicure', 'Threading', 'Waxing']" :key="service" class="preference-checkbox">
+              <input v-model="regForm.preferences" type="checkbox" :value="service">
+              <span>{{ service }}</span>
+            </label>
+          </div>
         </div>
         <button class="btn btn-primary w-full" style="margin-top: 8px; padding: 13px; font-size: 15px" @click="register" :disabled="isLoading">
           {{ isLoading ? "Creating Account..." : "Create Account" }}
@@ -137,7 +150,7 @@ const API_BASE_URL = "http://localhost:5000";
 
 const tab = ref("manager");
 const form = reactive({ userId: "", email: "", password: "", name: "", phone: "" });
-const regForm = reactive({ name: "", email: "", phone: "", password: "", address: "" });
+const regForm = reactive({ name: "", email: "", phone: "", password: "", address: "", dob: "", preferences: [] });
 const error = ref("");
 const regSuccess = ref(false);
 const isLoading = ref(false);
@@ -223,6 +236,8 @@ const register = async () => {
         phone: regForm.phone,
         address: regForm.address,
         password: regForm.password,
+        dob: regForm.dob,
+        preferences: regForm.preferences
       }),
     });
 
