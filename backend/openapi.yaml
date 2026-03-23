@@ -1,0 +1,141 @@
+openapi: 3.0.3
+info:
+  title: Salon Management API
+  description: Authentication and Management API for the Salon System.
+  version: 1.0.0
+
+servers:
+  - url: http://127.0.0.1:5000
+    description: Local Development Server
+
+paths:
+  /owner-login:
+    post:
+      tags:
+        - Authentication
+      summary: Owner Login
+      description: Authenticates a user with the 'owner' role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Missing username/password or incorrect password
+        '403':
+          description: Access denied (User is not an Owner)
+        '404':
+          description: User not found
+
+  /manager-login:
+    post:
+      tags:
+        - Authentication
+      summary: Manager Login
+      description: Authenticates a user with the 'manager' role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Missing username/password or incorrect password
+        '403':
+          description: Access denied (User is not a Manager)
+        '404':
+          description: User not found
+
+  /staff-login:
+    post:
+      tags:
+        - Authentication
+      summary: Staff Login
+      description: Authenticates a user with the 'staff' role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Missing username/password or incorrect password
+        '403':
+          description: Access denied (User is not a Staff member)
+        '404':
+          description: User not found
+
+  /customer-login:
+    post:
+      tags:
+        - Authentication
+      summary: Customer Login
+      description: Authenticates a user with the 'customer' role.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Successful authentication
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Missing username/password or incorrect password
+        '403':
+          description: Access denied (User is not a Customer)
+        '404':
+          description: User not found
+
+components:
+  schemas:
+    LoginRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          example: owner_user
+        password:
+          type: string
+          example: password123
+      required:
+        - username
+        - password
+
+    LoginResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          description: Authentication token for subsequent requests.
+        username:
+          type: string
+        role:
+          type: string
+          example: owner
