@@ -3,9 +3,9 @@ import { ref, reactive } from "vue";
 
 const INITIAL_DATA = {
   staff: [
-    { id: 1, name: "Amara Osei", role: "Senior Stylist", email: "amara@glowsuite.com", phone: "050-111-2222", doj: "2022-03-15", userId: "amara01", password: "pass123", status: "active", registrationDate: "2022-03-15", salary: 2000, rating: 4.8 },
-    { id: 2, name: "Priya Nair", role: "Nail Technician", email: "priya@glowsuite.com", phone: "024-333-4444", doj: "2023-01-20", userId: "priya02", password: "pass123", status: "active", registrationDate: "2023-01-20", salary: 1500, rating: 4.7 },
-    { id: 3, name: "Kwame Mensah", role: "Barber", email: "kwame@glowsuite.com", phone: "020-555-6666", doj: "2021-07-10", userId: "kwame03", password: "pass123", status: "active", registrationDate: "2021-07-10", salary: 1800, rating: 4.9 },
+    { id: 1, name: "Amara Osei", role: "Senior Stylist", skills: "Hair Cutting, Styling, Coloring, Balayage", email: "amara@glowsuite.com", phone: "050-111-2222", doj: "2022-03-15", userId: "amara01", password: "pass123", status: "active", registrationDate: "2022-03-15", salary: 2000, rating: 4.8 },
+    { id: 2, name: "Priya Nair", role: "Nail Technician", skills: "Gel Manicure, Pedicure, Nail Art, Extensions", email: "priya@glowsuite.com", phone: "024-333-4444", doj: "2023-01-20", userId: "priya02", password: "pass123", status: "active", registrationDate: "2023-01-20", salary: 1500, rating: 4.7 },
+    { id: 3, name: "Kwame Mensah", role: "Barber", skills: "Hair Cutting, Beard Grooming, Fades, Shaping", email: "kwame@glowsuite.com", phone: "020-555-6666", doj: "2021-07-10", userId: "kwame03", password: "pass123", status: "active", registrationDate: "2021-07-10", salary: 1800, rating: 4.9 },
   ],
   serviceCategories: [
     { id: 1, name: "Hair", description: "All hair services" },
@@ -17,6 +17,7 @@ const INITIAL_DATA = {
     { id: 2, categoryId: 1, name: "Balayage", price: 220, duration: 180, description: "Hand-painted highlights" },
     { id: 3, categoryId: 2, name: "Gel Manicure", price: 55, duration: 60, description: "Long-lasting gel polish" },
     { id: 4, categoryId: 3, name: "Hydra Facial", price: 120, duration: 75, description: "Deep cleansing facial" },
+    { id: 5, categoryId: 1, name: "Bridal Package", price: 500, duration: 240, description: "Complete bridal makeup and styling" },
   ],
   appointments: [
     { id: 1, customerId: 1, serviceId: 1, staffId: 1, date: "2026-03-05", status: "confirmed", notes: "Trim only", invoiceStatus: "pending" },
@@ -25,9 +26,9 @@ const INITIAL_DATA = {
     { id: 4, customerId: 1, serviceId: 2, staffId: 1, date: "2026-03-04", status: "completed", notes: "", invoiceStatus: "invoiced" },
   ],
   customers: [
-    { id: 1, name: "Sofia Mensah", email: "sofia@email.com", phone: "030-111-2222", address: "14 Cantonments Rd", dob: "1992-06-15", preferences: "Prefers Amara, sensitive scalp", registrationDate: "2025-01-10", password: "pass123" },
-    { id: 2, name: "Akosua Darko", email: "akosua@email.com", phone: "024-333-5555", address: "", dob: "1988-11-20", preferences: "Gel nails only, nude shades", registrationDate: "2025-03-22", password: "pass123" },
-    { id: 3, name: "James Otieno", email: "james@email.com", phone: "020-777-8888", address: "7 Airport Hills", dob: "1995-04-05", preferences: "No fragrance products", registrationDate: "2025-06-14", password: "pass123" },
+    { id: 1, name: "Sofia Mensah", email: "sofia@email.com", phone: "030-111-2222", address: "14 Cantonments Rd", dob: "1992-06-15", preferences: "Prefers Amara, sensitive scalp", registrationDate: "2025-01-10", password: "pass123", customerType: "VIP", totalSpent: 5500, pointsBalance: 550, pointsEarned: 550, lastPointsUpdate: "2026-03-04" },
+    { id: 2, name: "Akosua Darko", email: "akosua@email.com", phone: "024-333-5555", address: "", dob: "1988-11-20", preferences: "Gel nails only, nude shades", registrationDate: "2025-03-22", password: "pass123", customerType: "Normal", totalSpent: 55, pointsBalance: 5.5, pointsEarned: 5.5, lastPointsUpdate: "2026-03-03" },
+    { id: 3, name: "James Otieno", email: "james@email.com", phone: "020-777-8888", address: "7 Airport Hills", dob: "1995-04-05", preferences: "No fragrance products", registrationDate: "2025-06-14", password: "pass123", customerType: "Normal", totalSpent: 120, pointsBalance: 12, pointsEarned: 12, lastPointsUpdate: "2026-03-04" },
   ],
   products: [
     { id: 1, name: "L'Oreal Serum", categoryName: "Hair Care", stock: 8, unit: "bottle", costPrice: 45, sellPrice: 85, supplier: "BeautyPro Ltd", supplierContact: "0302-111-222", minStock: 5, description: "Hydrating hair serum" },
@@ -50,7 +51,20 @@ const INITIAL_DATA = {
     { id: 1, staffId: 1, date: "2026-03-04", status: "present" },
     { id: 2, staffId: 2, date: "2026-03-04", status: "present" },
     { id: 3, staffId: 3, date: "2026-03-04", status: "absent" },
+    { id: 4, staffId: 1, date: "2026-03-20", status: "present" },
+    { id: 5, staffId: 2, date: "2026-03-20", status: "present" },
+    { id: 6, staffId: 3, date: "2026-03-20", status: "present" },
   ],
+  rewards: {
+    pointsPerRupee: 0.1, // 10 points per 100 rupees
+    pointsForRedemption: 500, // 500 points for redemption
+    redemptionValue: 25, // 25 rupees discount
+    vipThreshold: 5000, // 5000 rupees spent to become VIP
+    firstVisitPoints: 20, // Bonus points for first visit
+    birthdayPoints: 50, // Bonus points on birthday
+    vipDiscount: 15, // 15% discount for VIP
+    pointsExpiryMonths: 6 // Points expire after 6 months
+  },
 };
 
 export const useAppStore = defineStore("app", () => {

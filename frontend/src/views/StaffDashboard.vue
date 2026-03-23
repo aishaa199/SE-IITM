@@ -1,22 +1,34 @@
 <template>
   <div class="content-layout">
+    <!-- Mobile Menu Toggle -->
+    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: white; border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <line x1="3" y1="12" x2="21" y2="12"></line>
+        <line x1="3" y1="18" x2="21" y2="18"></line>
+      </svg>
+    </div>
+
     <!-- Sidebar -->
-    <div class="sidebar">
-      <div class="sidebar-logo">
-        <div class="sidebar-logo-text">Glow Suite</div>
-        <div class="sidebar-logo-sub">Staff Portal</div>
+    <div :class="['sidebar', { active: sidebarOpen }]">
+      <div style="display: flex; justify-content: space-between; align-items: center">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-text">Glow Suite</div>
+          <div class="sidebar-logo-sub">Staff Portal</div>
+        </div>
+        <button style="display: none; background: none; border: none; cursor: pointer; font-size: 24px" @click="sidebarOpen = false" class="mobile-close-btn">✕</button>
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section">My Schedule</div>
         <div
           :class="['nav-item', { active: currentView === 'dashboard' }]"
-          @click="currentView = 'dashboard'"
+          @click="currentView = 'dashboard'; sidebarOpen = false"
         >
           <span class="nav-icon">📊</span> Dashboard
         </div>
         <div
           :class="['nav-item', { active: currentView === 'appointments' }]"
-          @click="currentView = 'appointments'"
+          @click="currentView = 'appointments'; sidebarOpen = false"
         >
           <span class="nav-icon">📅</span> My Appointments
         </div>
@@ -24,33 +36,33 @@
         <div class="nav-section">Operations</div>
         <div
           :class="['nav-item', { active: currentView === 'order-products' }]"
-          @click="currentView = 'order-products'"
+          @click="currentView = 'order-products'; sidebarOpen = false"
         >
           <span class="nav-icon">📦</span> Order Products
         </div>
-
-        <div class="nav-section">Account</div>
-        <div
-          :class="['nav-item', { active: currentView === 'profile' }]"
-          @click="currentView = 'profile'"
-        >
-          <span class="nav-icon">👤</span> My Profile
-        </div>
       </nav>
       <div class="sidebar-footer">
-        <div class="sidebar-user">
+        <div class="sidebar-user" @click="showProfileMenu = !showProfileMenu" style="cursor: pointer; position: relative">
           <div class="sidebar-avatar">{{ staffData.name[0] }}</div>
           <div>
             <div class="sidebar-username">{{ staffData.name }}</div>
             <div class="sidebar-role">{{ staffData.role }}</div>
           </div>
+          <div style="font-size: 18px">▼</div>
+
+          <!-- Profile Dropdown Menu -->
+          <div v-if="showProfileMenu" style="position: absolute; bottom: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; margin-bottom: 8px">
+            <button @click="currentView = 'profile'; showProfileMenu = false" style="width: 100%; padding: 12px 16px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid var(--border)">
+              👤 Profile
+            </button>
+            <button @click="showChangePasswordModal = true; showProfileMenu = false" style="width: 100%; padding: 12px 16px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid var(--border)">
+              🔑 Change Password
+            </button>
+            <button @click="handleLogout" style="width: 100%; padding: 12px 16px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px">
+              🚪 Logout
+            </button>
+          </div>
         </div>
-        <button class="btn btn-ghost w-full" style="margin-top: 12px; font-size: 12px" @click="showChangePasswordModal = true">
-          🔑 Change Password
-        </button>
-        <button class="btn btn-ghost w-full" style="margin-top: 8px; font-size: 12px" @click="logout">
-          Logout
-        </button>
       </div>
     </div>
 
@@ -148,6 +160,53 @@
           </div>
         </div>
 
+        <!-- Customer Ratings & Reviews -->
+        <div v-if="currentView === 'dashboard'" class="card" style="margin-top: 24px">
+          <div class="card-header">
+            <h3 class="card-title">⭐ Customer Ratings & Reviews</h3>
+          </div>
+          <div class="card-body">
+            <div v-if="staffRatings.totalRatings > 0">
+              <!-- Overall Rating Summary -->
+              <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-bottom: 24px; padding: 16px; background: var(--light-bg); border-radius: var(--radius)">
+                <div style="text-align: center">
+                  <div style="font-size: 32px; font-weight: 700; color: var(--gold)">{{ staffRatings.averageRating }}</div>
+                  <div class="text-muted" style="font-size: 13px">Average Rating</div>
+                  <div style="margin-top: 8px; letter-spacing: 2px">
+                    <span v-for="i in 5" :key="i" :style="{ color: i <= Math.round(staffRatings.averageRating) ? 'var(--gold)' : 'var(--border)' }">⭐</span>
+                  </div>
+                </div>
+                <div style="text-align: center">
+                  <div style="font-size: 32px; font-weight: 700; color: var(--info)">{{ staffRatings.totalRatings }}</div>
+                  <div class="text-muted" style="font-size: 13px">Total Reviews</div>
+                  <div style="margin-top: 8px; font-size: 12px; color: var(--text-muted)">From customers</div>
+                </div>
+              </div>
+
+              <!-- Individual Ratings List -->
+              <div style="max-height: 400px; overflow-y: auto">
+                <div v-for="rating in staffRatings.feedbacks" :key="rating.id" style="padding: 16px; border-bottom: 1px solid var(--border); display: flex; gap: 12px">
+                  <div style="flex: 1">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px">
+                      <div style="font-weight: 600; font-size: 13px">{{ rating.customerName }}</div>
+                      <div style="letter-spacing: 1px">
+                        <span v-for="i in 5" :key="i" :style="{ color: i <= rating.rating ? 'var(--gold)' : 'var(--border)', fontSize: '12px' }">⭐</span>
+                      </div>
+                    </div>
+                    <div style="color: var(--text-muted); font-size: 13px; margin-bottom: 8px">{{ rating.comment }}</div>
+                    <div style="font-size: 11px; color: var(--border)">{{ formatDate(rating.date) }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-state">
+              <div class="empty-state-icon">⭐</div>
+              <div class="empty-state-text">No customer ratings yet</div>
+              <div class="text-muted" style="font-size: 12px; margin-top: 8px">Complete appointments to receive customer reviews</div>
+            </div>
+          </div>
+        </div>
+
         <!-- APPOINTMENTS VIEW -->
         <div v-if="currentView === 'appointments'" class="fade-in">
           <div class="card">
@@ -159,7 +218,7 @@
                 <input 
                   v-model="appointmentCustomerFilter"
                   type="text" 
-                  placeholder="🔍 Filter by customer name..." 
+                  placeholder="🔍 Filter by customer name or service..." 
                   class="form-input"
                   style="width: 100%; max-width: 300px"
                 />
@@ -178,7 +237,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="appt in filteredAppointments" :key="appt.id">
+                    <tr v-for="appt in filteredAppointments" :key="appt.id" @click="handleViewAppointmentDetails(appt)" style="cursor: pointer; transition: background-color 0.2s" @mouseover="$event.target.closest('tr').style.backgroundColor = 'var(--light-bg)'" @mouseout="$event.target.closest('tr').style.backgroundColor = 'transparent'">
                       <td>{{ appt.customerName }}</td>
                       <td>{{ appt.service }}</td>
                       <td>{{ appt.date ? appt.date : 'Today' }} {{ appt.time }}</td>
@@ -188,7 +247,7 @@
                         <span :class="['badge', getStatusBadgeClass(appt.status)]">{{ appt.status }}</span>
                       </td>
                       <td>
-                        <button v-if="appt.status !== 'completed'" class="btn btn-sm btn-primary" @click="handleMarkAppointmentComplete(appt)" style="padding: 4px 8px; font-size: 12px">
+                        <button v-if="appt.status !== 'completed'" class="btn btn-sm btn-primary" @click.stop="handleMarkAppointmentComplete(appt)" style="padding: 4px 8px; font-size: 12px">
                           ✓ Complete
                         </button>
                         <span v-else class="text-muted" style="font-size: 12px">Completed</span>
@@ -203,11 +262,43 @@
 
         <!-- ORDER PRODUCTS VIEW -->
         <div v-if="currentView === 'order-products'" class="fade-in">
-          <div class="card">
+          <!-- Order Tabs -->
+          <div style="display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 12px">
+            <button 
+              @click="orderTab = 'new-orders'"
+              :style="{ background: orderTab === 'new-orders' ? 'var(--gold)' : 'transparent', color: orderTab === 'new-orders' ? 'white' : 'var(--text)', borderBottom: 'none', padding: '8px 16px', borderRadius: 'var(--radius)', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '500' }"
+            >
+              📦 New Orders
+            </button>
+            <button 
+              @click="orderTab = 'replenishment'"
+              :style="{ background: orderTab === 'replenishment' ? 'var(--gold)' : 'transparent', color: orderTab === 'replenishment' ? 'white' : 'var(--text)', borderBottom: 'none', padding: '8px 16px', borderRadius: 'var(--radius)', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '500' }"
+            >
+              🔄 Replenishment
+            </button>
+            <button 
+              @click="orderTab = 'incoming-requests'"
+              :style="{ background: orderTab === 'incoming-requests' ? 'var(--gold)' : 'transparent', color: orderTab === 'incoming-requests' ? 'white' : 'var(--text)', borderBottom: 'none', padding: '8px 16px', borderRadius: 'var(--radius)', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '500' }"
+            >
+              📥 Incoming Requests ({{ incomingRequests.length }})
+            </button>
+          </div>
+
+          <!-- NEW ORDERS TAB -->
+          <div v-if="orderTab === 'new-orders'" class="card">
             <div class="card-header">
               <h3 class="card-title">📦 Order Products</h3>
             </div>
             <div class="card-body">
+              <div style="margin-bottom: 20px">
+                <input 
+                  v-model="orderForm.serviceSearch"
+                  type="text" 
+                  placeholder="🔍 Filter services..." 
+                  class="form-input"
+                  style="width: 100%; max-width: 300px"
+                />
+              </div>
               <form @submit.prevent="handleOrderProduct" style="max-width: 600px">
                 <div class="form-group">
                   <label for="product-category">Product Category *</label>
@@ -227,33 +318,92 @@
 
                 <div class="form-group">
                   <label for="product-name">Product Name *</label>
+                  <div class="custom-dropdown" v-if="orderForm.selectedCategory" @click.stop>
+                    <div 
+                      class="custom-dropdown-input"
+                      @click="showProductDropdown = !showProductDropdown"
+                      :style="{ borderColor: showProductDropdown ? 'var(--gold)' : 'var(--border)' }"
+                    >
+                      <input 
+                        id="product-name"
+                        v-model="orderForm.productSearch" 
+                        type="text" 
+                        placeholder="Type to search products..."
+                        class="dropdown-search-input"
+                        @focus="showProductDropdown = true"
+                        @input="showProductDropdown = true"
+                      />
+                      <span class="dropdown-arrow">▼</span>
+                    </div>
+                    <div v-if="showProductDropdown" class="custom-dropdown-menu">
+                      <div 
+                        v-if="filteredProductsByCategory.length === 0" 
+                        class="dropdown-no-results"
+                      >
+                        No products found
+                      </div>
+                      <div 
+                        v-for="product in filteredProductsByCategory" 
+                        :key="product.id"
+                        class="dropdown-option"
+                        @click="selectProduct(product)"
+                        :class="{ selected: orderForm.productId === String(product.id) }"
+                      >
+                        <div style="font-weight: 500">{{ product.name }}</div>
+                        <div class="text-muted" style="font-size: 12px">Stock: {{ product.currentStock }}</div>
+                      </div>
+                    </div>
+                  </div>
                   <select 
+                    v-else
                     id="product-name"
                     v-model="orderForm.productId" 
                     class="form-input"
                     required
-                    :disabled="!orderForm.selectedCategory"
+                    disabled
                   >
-                    <option value="">{{ orderForm.selectedCategory ? 'Select a product' : 'Please select a category first' }}</option>
-                    <option v-for="product in filteredProductsByCategory" :key="product.id" :value="product.id">
-                      {{ product.name }} (Stock: {{ product.currentStock }})
-                    </option>
+                    <option value="">Please select a category first</option>
                   </select>
                 </div>
 
                 <div class="form-group">
                   <label for="service">Service It's Required For *</label>
-                  <select 
-                    id="service"
-                    v-model="orderForm.serviceId" 
-                    class="form-input"
-                    required
-                  >
-                    <option value="">Select a service</option>
-                    <option v-for="service in staffData.services" :key="service.id" :value="service.id">
-                      {{ service.name }} - ₹{{ service.price }}
-                    </option>
-                  </select>
+                  <div class="custom-dropdown" @click.stop>
+                    <div 
+                      class="custom-dropdown-input"
+                      @click="showServiceDropdown = !showServiceDropdown"
+                      :style="{ borderColor: showServiceDropdown ? 'var(--gold)' : 'var(--border)' }"
+                    >
+                      <input 
+                        id="service"
+                        v-model="orderForm.serviceSearch" 
+                        type="text" 
+                        placeholder="Type to search services..."
+                        class="dropdown-search-input"
+                        @focus="showServiceDropdown = true"
+                        @input="showServiceDropdown = true"
+                      />
+                      <span class="dropdown-arrow">▼</span>
+                    </div>
+                    <div v-if="showServiceDropdown" class="custom-dropdown-menu">
+                      <div 
+                        v-if="filteredServices.length === 0" 
+                        class="dropdown-no-results"
+                      >
+                        No services found
+                      </div>
+                      <div 
+                        v-for="service in filteredServices" 
+                        :key="service.id"
+                        class="dropdown-option"
+                        @click="selectService(service)"
+                        :class="{ selected: orderForm.serviceId === String(service.id) }"
+                      >
+                        <div style="font-weight: 500">{{ service.name }}</div>
+                        <div class="text-muted" style="font-size: 12px">₹{{ service.price }}</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div v-if="orderError" class="error-message">{{ orderError }}</div>
@@ -267,7 +417,7 @@
           </div>
 
           <!-- Orders History -->
-          <div class="card" style="margin-top: 24px">
+          <div class="card" style="margin-top: 24px" v-if="orderTab === 'new-orders'">
             <div class="card-header">
               <h3 class="card-title">My Orders</h3>
             </div>
@@ -281,7 +431,7 @@
                   <input 
                     v-model="orderProductFilter"
                     type="text" 
-                    placeholder="🔍 Filter by product name..." 
+                    placeholder="🔍 Filter by product name or service..." 
                     class="form-input"
                     style="width: 100%; max-width: 300px"
                   />
@@ -309,6 +459,123 @@
               </div>
             </div>
           </div>
+
+          <!-- REPLENISHMENT TAB -->
+          <div v-if="orderTab === 'replenishment'" class="card">
+            <div class="card-header">
+              <h3 class="card-title">🔄 Stock Replenishment</h3>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="handleAddReplenishment" style="max-width: 600px; margin-bottom: 24px">
+                <div class="form-group">
+                  <label for="replen-product">Product *</label>
+                  <select v-model="replenishmentForm.productId" id="replen-product" class="form-input" required>
+                    <option value="">Select a product</option>
+                    <option v-for="product in staffData.products" :key="product.id" :value="product.id">
+                      {{ product.name }} (Current: {{ product.currentStock }})
+                    </option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="replen-quantity">Quantity to Order *</label>
+                  <input v-model.number="replenishmentForm.quantity" id="replen-quantity" type="number" class="form-input" placeholder="Enter quantity" required min="1" />
+                </div>
+                <div class="form-group">
+                  <label for="replen-reason">Reason *</label>
+                  <textarea v-model="replenishmentForm.reason" id="replen-reason" class="form-input" placeholder="e.g., Low stock, High demand..." required rows="2"></textarea>
+                </div>
+                <div v-if="replenishmentError" class="error-message">{{ replenishmentError }}</div>
+                <button type="submit" class="btn btn-primary">+ Add to Replenishment List</button>
+              </form>
+
+              <!-- Replenishment Requests List -->
+              <div class="card" style="margin-top: 24px">
+                <div class="card-header">
+                  <h3 class="card-title">Pending Replenishment Requests ({{ replenishmentRequests.length }})</h3>
+                </div>
+                <div class="card-body">
+                  <div v-if="replenishmentRequests.length === 0" class="empty-state">
+                    <div class="empty-state-icon">🔄</div>
+                    <div class="empty-state-text">No replenishment requests</div>
+                  </div>
+                  <div v-else class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Product</th>
+                          <th>Quantity</th>
+                          <th>Reason</th>
+                          <th>Date</th>
+                          <th>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="req in replenishmentRequests" :key="req.id">
+                          <td>{{ getProductName(req.productId) }}</td>
+                          <td>{{ req.quantity }}</td>
+                          <td>{{ req.reason }}</td>
+                          <td>{{ req.date }}</td>
+                          <td>
+                            <button @click="deleteReplenishment(req.id)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px">Remove</button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- INCOMING REQUESTS TAB -->
+          <div v-if="orderTab === 'incoming-requests'" class="card">
+            <div class="card-header">
+              <h3 class="card-title">📥 Incoming Order Requests from Staff</h3>
+            </div>
+            <div class="card-body">
+              <div v-if="incomingRequests.length === 0" class="empty-state">
+                <div class="empty-state-icon">📥</div>
+                <div class="empty-state-text">No incoming requests</div>
+              </div>
+              <div v-else class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>From Staff</th>
+                      <th>Product</th>
+                      <th>Quantity</th>
+                      <th>Purpose</th>
+                      <th>Date</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="req in incomingRequests" :key="req.id">
+                      <td>{{ req.staffName }}</td>
+                      <td>{{ getProductName(req.productId) }}</td>
+                      <td>{{ req.quantity }}</td>
+                      <td>{{ req.purpose }}</td>
+                      <td>{{ req.date }}</td>
+                      <td style="display: flex; gap: 6px">
+                        <button @click="acceptIncomingRequest(req.id)" class="btn btn-sm" style="background: var(--success); color: white; padding: 4px 8px; font-size: 12px; border: none; cursor: pointer; border-radius: var(--radius)">✓ Accept</button>
+                        <button @click="declineIncomingRequest(req.id)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px">✕ Decline</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- SUBMIT TO MANAGER -->
+          <div style="margin-top: 24px; display: flex; gap: 12px" v-if="replenishmentRequests.length > 0 || acceptedRequests.length > 0">
+            <button @click="submitAllToManager" class="btn btn-primary" style="padding: 12px 24px; font-size: 14px">
+              📤 Submit {{replenishmentRequests.length + acceptedRequests.length }} Items to Manager
+            </button>
+            <span style="color: var(--text-muted); font-size: 13px; margin-top: 8px">
+              ({{ replenishmentRequests.length }} replenishment + {{ acceptedRequests.length }} accepted requests)
+            </span>
+          </div>
         </div>
 
 <!-- PROFILE VIEW -->
@@ -335,12 +602,71 @@
                   <label>Role</label>
                   <input type="text" :value="staffData.role" class="form-input" disabled />
                 </div>
-                <button class="btn btn-primary" style="margin-top: 20px">
+                <div class="form-group">
+                  <label>Date of Birth</label>
+                  <input type="text" :value="staffData.dob || 'Not provided'" class="form-input" disabled />
+                </div>
+                <div class="form-group">
+                  <label>Address</label>
+                  <textarea class="form-input" disabled rows="2">{{ staffData.address || 'Not provided' }}</textarea>
+                </div>
+                <div class="form-group">
+                  <label>Skills</label>
+                  <textarea class="form-input" disabled rows="2">{{ staffData.skills || 'Not provided' }}</textarea>
+                </div>
+                <button class="btn btn-primary" style="margin-top: 20px" @click="openProfileEdit">
                   Edit Profile
                 </button>
               </div>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Appointment Details Modal -->
+  <div v-if="showAppointmentDetailsModal" class="modal-overlay" @click="showAppointmentDetailsModal = false">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h3 class="modal-title">📅 Appointment Details</h3>
+        <button class="modal-close" @click="showAppointmentDetailsModal = false">✕</button>
+      </div>
+      <div class="modal-body" v-if="selectedAppointment">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px">
+          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)"> 
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Customer Name</div>
+            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.customerName }}</div>
+          </div>
+          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Service</div>
+            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.service }}</div>
+          </div>
+          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Date</div>
+            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.date ? selectedAppointment.date : 'Today' }}</div>
+          </div>
+          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Time</div>
+            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.time }}</div>
+          </div>
+          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Duration</div>
+            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.duration }} minutes</div>
+          </div>
+          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Amount</div>
+            <div style="font-weight: 600; font-size: 14px; color: var(--success)">₹{{ selectedAppointment.amount }}</div>
+          </div>
+          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Status</div>
+            <span :class="['badge', getStatusBadgeClass(selectedAppointment.status)]">{{ selectedAppointment.status }}</span>
+          </div>
+        </div>
+        <div style="display: flex; gap: 12px; margin-top: 20px">
+          <button class="btn btn-outline" @click="showAppointmentDetailsModal = false" style="flex: 1">
+            Close
+          </button>
         </div>
       </div>
     </div>
@@ -449,14 +775,106 @@
       </div>
     </div>
   </div>
+
+  <!-- Edit Profile Modal -->
+  <div v-if="showProfileEditModal" class="modal-overlay" @click="showProfileEditModal = false">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h3 class="modal-title">✏️ Edit Profile</h3>
+        <button class="modal-close" @click="showProfileEditModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <form @submit.prevent="handleUpdateProfile">
+          <div class="form-group">
+            <label for="edit-name">Name *</label>
+            <input 
+              id="edit-name"
+              v-model="profileForm.name" 
+              type="text" 
+              placeholder="Enter your name"
+              class="form-input"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-email">Email *</label>
+            <input 
+              id="edit-email"
+              v-model="profileForm.email" 
+              type="email" 
+              placeholder="Enter your email"
+              class="form-input"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-phone">Phone *</label>
+            <input 
+              id="edit-phone"
+              v-model="profileForm.phone" 
+              type="tel" 
+              placeholder="Enter your phone number"
+              class="form-input"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-dob">Date of Birth</label>
+            <input 
+              id="edit-dob"
+              v-model="profileForm.dob" 
+              type="date" 
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="edit-address">Address</label>
+            <textarea 
+              id="edit-address"
+              v-model="profileForm.address" 
+              placeholder="Enter your address"
+              class="form-input"
+              rows="3"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label for="edit-skills">Skills</label>
+            <textarea 
+              id="edit-skills"
+              v-model="profileForm.skills" 
+              placeholder="Enter your skills"
+              class="form-input"
+              rows="3"
+            ></textarea>
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 20px">
+            <button type="button" class="btn btn-outline" @click="showProfileEditModal = false" style="flex: 1">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useAppStore } from "../stores/appStore";
 
 const currentView = ref("dashboard");
+const sidebarOpen = ref(false);
 const showChangePasswordModal = ref(false);
+const showProfileMenu = ref(false);
+const showProfileEditModal = ref(false);
 const showMarkAttendanceModal = ref(false);
+const showAppointmentDetailsModal = ref(false);
+const selectedAppointment = ref(null);
+const showProductDropdown = ref(false);
+const showServiceDropdown = ref(false);
 const passwordForm = ref({
   currentPassword: "",
   newPassword: "",
@@ -470,7 +888,17 @@ const orderForm = ref({
   productId: "",
   quantity: 1,
   serviceId: "",
-  selectedCategory: ""
+  selectedCategory: "",
+  productSearch: "",
+  serviceSearch: ""
+});
+const profileForm = ref({
+  name: "",
+  email: "",
+  phone: "",
+  dob: "",
+  address: "",
+  skills: ""
 });
 const passwordError = ref("");
 const passwordSuccess = ref("");
@@ -478,6 +906,21 @@ const attendanceError = ref("");
 const attendanceSuccess = ref("");
 const orderError = ref("");
 const orderSuccess = ref("");
+
+// Order Tab & Replenishment
+const orderTab = ref("new-orders");
+const replenishmentForm = ref({
+  productId: "",
+  quantity: 1,
+  reason: ""
+});
+const replenishmentError = ref("");
+const replenishmentRequests = ref([]);
+const incomingRequests = ref([
+  { id: 1, staffName: "Alice Brown", productId: 2, quantity: 5, purpose: "Facial supplies", date: "2026-03-22" },
+  { id: 2, staffName: "Carol Smith", productId: 4, quantity: 3, purpose: "Massage oils", date: "2026-03-21" }
+]);
+const acceptedRequests = ref([]);
 
 // Filter states
 const appointmentCustomerFilter = ref("");
@@ -529,25 +972,50 @@ const filteredAppointments = computed(() => {
   });
   
   if (!appointmentCustomerFilter.value.trim()) return filteredByDate;
+  const searchTerm = appointmentCustomerFilter.value.toLowerCase();
   return filteredByDate.filter(appt =>
-    appt.customerName.toLowerCase().includes(appointmentCustomerFilter.value.toLowerCase())
+    appt.customerName.toLowerCase().includes(searchTerm) ||
+    appt.service.toLowerCase().includes(searchTerm)
   );
 });
 
 const filteredOrders = computed(() => {
   if (!orderProductFilter.value.trim()) return staffData.orders;
+  const searchTerm = orderProductFilter.value.toLowerCase();
   return staffData.orders.filter(order => {
     const productName = getProductName(order.productId).toLowerCase();
-    return productName.includes(orderProductFilter.value.toLowerCase());
+    const serviceName = getServiceName(order.serviceId).toLowerCase();
+    return productName.includes(searchTerm) || serviceName.includes(searchTerm);
   });
 });
 
 const filteredProductsByCategory = computed(() => {
   if (!orderForm.value.selectedCategory) return [];
-  return staffData.products.filter(product => {
+  let filtered = staffData.products.filter(product => {
     const category = getCategoryForProduct(product.id);
     return category === orderForm.value.selectedCategory;
   });
+
+  // Apply search filter if search term exists
+  if (orderForm.value.productSearch.trim()) {
+    filtered = filtered.filter(product =>
+      product.name.toLowerCase().includes(orderForm.value.productSearch.toLowerCase())
+    );
+  }
+
+  return filtered;
+});
+
+const filteredServices = computed(() => {
+  let services = staffData.services || [];
+  
+  if (orderForm.value.serviceSearch.trim()) {
+    services = services.filter(service =>
+      service.name.toLowerCase().includes(orderForm.value.serviceSearch.toLowerCase())
+    );
+  }
+  
+  return services;
 });
 
 // Mock data
@@ -556,6 +1024,9 @@ const staffData = {
   role: "Beauty Therapist",
   email: "sarah@example.com",
   phone: "+233 123 456 789",
+  dob: "1992-03-15",
+  address: "123 Main Street, Accra, Ghana",
+  skills: "Hair Styling, Makeup, Skincare, Customer Service",
   todayStats: {
     appointmentsCount: 5,
     completedCount: 2,
@@ -616,6 +1087,8 @@ const staffData = {
       date: "2026-03-05",
       time: "10:00 AM",
       status: "confirmed",
+      duration: 45,
+      amount: 40,
     },
     {
       id: 7,
@@ -624,6 +1097,8 @@ const staffData = {
       date: "2026-03-06",
       time: "02:00 PM",
       status: "confirmed",
+      duration: 120,
+      amount: 150,
     },
   ],
   earnings: [
@@ -697,6 +1172,33 @@ const getOrderStatusBadgeClass = (status) => {
   return badges[status] || "badge-gray";
 };
 
+// Get ratings received by current staff member
+const appStore = useAppStore();
+const currentStaffId = 1; // Amara Osei - would come from authenticated user in production
+
+const staffRatings = computed(() => {
+  const staffFeedbacks = appStore.data.feedbacks.filter(f => f.staffId === currentStaffId);
+  if (staffFeedbacks.length === 0) return { feedbacks: [], averageRating: 0 };
+  
+  const totalRating = staffFeedbacks.reduce((sum, f) => sum + f.rating, 0);
+  const averageRating = (totalRating / staffFeedbacks.length).toFixed(1);
+  
+  // Enrich feedbacks with customer names
+  const enrichedFeedbacks = staffFeedbacks.map(f => {
+    const customer = appStore.data.customers.find(c => c.id === f.customerId);
+    return {
+      ...f,
+      customerName: customer ? customer.name : "Anonymous Customer"
+    };
+  });
+  
+  return {
+    feedbacks: enrichedFeedbacks,
+    averageRating: parseFloat(averageRating),
+    totalRatings: staffFeedbacks.length
+  };
+});
+
 const getProductName = (productId) => {
   const product = staffData.products.find(p => p.id === productId);
   return product ? product.name : "Unknown";
@@ -715,6 +1217,23 @@ const getCategoryForProduct = (productId) => {
     4: "Skin Care"
   };
   return categoriesMap[productId] || "Other";
+};
+
+const handleViewAppointmentDetails = (appt) => {
+  selectedAppointment.value = { ...appt };
+  showAppointmentDetailsModal.value = true;
+};
+
+const selectProduct = (product) => {
+  orderForm.value.productId = String(product.id);
+  orderForm.value.productSearch = product.name;
+  showProductDropdown.value = false;
+};
+
+const selectService = (service) => {
+  orderForm.value.serviceId = String(service.id);
+  orderForm.value.serviceSearch = service.name;
+  showServiceDropdown.value = false;
 };
 
 const handleMarkAppointmentComplete = (appt) => {
@@ -866,16 +1385,152 @@ const handleOrderProduct = () => {
       productId: "",
       quantity: 1,
       serviceId: "",
-      selectedCategory: ""
+      selectedCategory: "",
+      productSearch: ""
     };
     orderSuccess.value = "";
+    showProductDropdown.value = false;
   }, 1500);
+};
+
+const handleAddReplenishment = () => {
+  replenishmentError.value = "";
+
+  if (!replenishmentForm.value.productId) {
+    replenishmentError.value = "Product is required";
+    return;
+  }
+
+  if (replenishmentForm.value.quantity < 1) {
+    replenishmentError.value = "Quantity must be at least 1";
+    return;
+  }
+
+  if (!replenishmentForm.value.reason.trim()) {
+    replenishmentError.value = "Reason is required";
+    return;
+  }
+
+  const newReplenishment = {
+    id: Math.max(...replenishmentRequests.value.map(r => r.id || 0), 0) + 1,
+    productId: parseInt(replenishmentForm.value.productId),
+    quantity: replenishmentForm.value.quantity,
+    reason: replenishmentForm.value.reason,
+    date: new Date().toISOString().split('T')[0],
+    staffName: staffData.name,
+    status: "pending"
+  };
+
+  replenishmentRequests.value.push(newReplenishment);
+  
+  // Reset form
+  replenishmentForm.value = {
+    productId: "",
+    quantity: 1,
+    reason: ""
+  };
+};
+
+const deleteReplenishment = (id) => {
+  replenishmentRequests.value = replenishmentRequests.value.filter(r => r.id !== id);
+};
+
+const acceptIncomingRequest = (id) => {
+  const request = incomingRequests.value.find(r => r.id === id);
+  if (request) {
+    acceptedRequests.value.push({ ...request, acceptedAt: new Date().toISOString().split('T')[0] });
+    incomingRequests.value = incomingRequests.value.filter(r => r.id !== id);
+  }
+};
+
+const declineIncomingRequest = (id) => {
+  incomingRequests.value = incomingRequests.value.filter(r => r.id !== id);
+};
+
+const submitAllToManager = () => {
+  const consolidatedList = [
+    ...replenishmentRequests.value.map(r => ({ type: 'replenishment', ...r })),
+    ...acceptedRequests.value.map(r => ({ type: 'staff-request', ...r }))
+  ];
+
+  // Create summary message
+  const summary = `
+    Replenishment & Orders Submission
+    ================================
+    Replenishment Requests: ${replenishmentRequests.value.length}
+    Accepted Staff Requests: ${acceptedRequests.value.length}
+    Total Items: ${consolidatedList.length}
+    
+    Submitted by: ${staffData.name}
+    Date: ${new Date().toISOString().split('T')[0]}
+  `;
+
+  alert(summary + '\n\nThis submission has been sent to the Manager Dashboard.');
+  
+  // Clear lists after submission
+  replenishmentRequests.value = [];
+  acceptedRequests.value = [];
 };
 
 const logout = () => {
   // Add logout logic here
   console.log("Logout");
 };
+
+const handleLogout = () => {
+  showProfileMenu.value = false;
+  logout();
+};
+
+const openProfileEdit = () => {
+  profileForm.value = {
+    name: staffData.name,
+    email: staffData.email,
+    phone: staffData.phone,
+    dob: staffData.dob || "",
+    address: staffData.address || "",
+    skills: staffData.skills || ""
+  };
+  showProfileEditModal.value = true;
+};
+
+const handleUpdateProfile = () => {
+  // Update staff data with form values
+  staffData.name = profileForm.value.name;
+  staffData.email = profileForm.value.email;
+  staffData.phone = profileForm.value.phone;
+  staffData.dob = profileForm.value.dob;
+  staffData.address = profileForm.value.address;
+  staffData.skills = profileForm.value.skills;
+  
+  // Close modal and show success
+  showProfileEditModal.value = false;
+  console.log("Profile updated successfully");
+};
+
+// Close dropdown when clicking outside
+const handleClickOutside = (e) => {
+  // Close product dropdown
+  const productDropdown = document.querySelector('.custom-dropdown');
+  if (productDropdown && !productDropdown.contains(e.target)) {
+    showProductDropdown.value = false;
+    showServiceDropdown.value = false;
+  }
+  
+  // Close profile menu
+  const sidebarUser = document.querySelector('.sidebar-user');
+  if (sidebarUser && !sidebarUser.contains(e.target)) {
+    showProfileMenu.value = false;
+  }
+};
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
 </script>
 
 <style scoped>
@@ -1041,5 +1696,81 @@ const logout = () => {
 
 .modal-body {
   padding: 20px;
+}
+
+/* Custom Dropdown Styles */
+.custom-dropdown {
+  position: relative;
+}
+
+.custom-dropdown-input {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: white;
+  cursor: text;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.custom-dropdown-input:hover {
+  border-color: var(--gold);
+}
+
+.dropdown-search-input {
+  flex: 1;
+  border: none;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  background: transparent;
+}
+
+.dropdown-arrow {
+  padding: 0 12px;
+  color: var(--text-muted);
+  font-size: 11px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.custom-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 10;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+.dropdown-option {
+  padding: 12px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--light-bg);
+  transition: background-color 0.2s;
+}
+
+.dropdown-option:hover {
+  background-color: var(--light-bg);
+}
+
+.dropdown-option.selected {
+  background-color: rgba(229, 170, 84, 0.15);
+  border-left: 3px solid var(--gold);
+  padding-left: 9px;
+}
+
+.dropdown-no-results {
+  padding: 12px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
 }
 </style>
