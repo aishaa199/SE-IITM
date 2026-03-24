@@ -113,8 +113,137 @@ paths:
         '404':
           description: User not found
 
+  /api/create-manager:
+    post:
+      summary: Create a new Manager (Owner only)
+      tags:
+        - Owner
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ManagerCreate'
+      responses:
+        '200':
+          description: Manager created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  username:
+                    type: string
+        '400':
+          description: Invalid input or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '500':
+          description: Internal server error (Profile creation failed)
+
+  /api/change-password:
+    put:
+      summary: Change password for current authenticated user
+      tags:
+        - User
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+      responses:
+        '200':
+          description: Password changed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+        '400':
+          description: Validation error or wrong current password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MessageResponse'
+
 components:
+  securitySchemes:
+    tokenAuth:
+      type: apiKey
+      in: header
+      name: Authentication-Token
+      description: Token-based authentication required for secured routes.
+
   schemas:
+    ManagerCreate:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        fullname:
+          type: string
+          example: "John Doe"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        phone:
+          type: string
+          example: "1234567890"
+        skills:
+          type: string
+          example: "Hair Styling, Coloring"
+        role:
+          type: string
+          example: "Senior Manager"
+        dob:
+          type: string
+          format: date
+          example: "1990-01-01"
+        doj:
+          type: string
+          format: date
+          example: "2023-10-25"
+        username:
+          type: string
+          example: "johndoe_mgr"
+        password:
+          type: string
+          format: password
+          example: "securePassword123"
+
+    ChangePassword:
+      type: object
+      required:
+        - current_password
+        - new_password
+        - confirm_password
+      properties:
+        current_password:
+          type: string
+          format: password
+        new_password:
+          type: string
+          format: password
+        confirm_password:
+          type: string
+          format: password
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+
     LoginRequest:
       type: object
       properties:

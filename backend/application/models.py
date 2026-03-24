@@ -179,6 +179,7 @@ class Manager(db.Model, UserMixin):
     __tablename__ = 'manager_master'
     manager_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     manager_name = db.Column(db.String(100), nullable=False)
+    manager_email = db.Column(db.String(120), nullable=True)
     manager_contact = db.Column(db.String(20), nullable=False)
     manager_skills = db.Column(db.String(255), nullable=False)
     manager_role = db.Column(db.String(50), nullable=False, default='Manager')
