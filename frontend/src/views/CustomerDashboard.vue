@@ -436,6 +436,83 @@
           </div>
         </div>
 
+        <!-- PROFILE VIEW -->
+        <div v-if="currentView === 'profile'" class="fade-in">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">👤 My Profile</h3>
+            </div>
+            <div class="card-body">
+              <div style="max-width: 600px">
+                <!-- Profile Header -->
+                <div style="display: flex; align-items: center; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 2px solid var(--border)">
+                  <div class="sidebar-avatar" style="width: 80px; height: 80px; font-size: 32px; display: flex; align-items: center; justify-content: center">{{ customerData.name[0] }}</div>
+                  <div style="flex: 1; margin-left: 16px">
+                    <h2 style="margin: 0 0 4px 0; font-size: 24px; color: var(--charcoal)">{{ customerData.name }}</h2>
+                    <div style="font-size: 14px; color: var(--text-muted)">{{ customerData.membershipStatus }} Member</div>
+                  </div>
+                </div>
+
+                <!-- Profile Details -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px">
+                  <div class="detail-item">
+                    <label class="detail-label">Email</label>
+                    <div class="detail-value">{{ customerData.email }}</div>
+                  </div>
+                  <div class="detail-item">
+                    <label class="detail-label">Phone</label>
+                    <div class="detail-value">{{ customerData.phone }}</div>
+                  </div>
+                  <div class="detail-item">
+                    <label class="detail-label">Address</label>
+                    <div class="detail-value">{{ customerData.address || 'Not provided' }}</div>
+                  </div>
+                  <div class="detail-item">
+                    <label class="detail-label">Date of Birth</label>
+                    <div class="detail-value">{{ customerData.dob || 'Not provided' }}</div>
+                  </div>
+                  <div class="detail-item">
+                    <label class="detail-label">Member Since</label>
+                    <div class="detail-value">{{ customerData.memberSince }}</div>
+                  </div>
+                </div>
+
+                <!-- Account Stats -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; padding: 16px; background: var(--light-bg); border-radius: var(--radius)">
+                  <div>
+                    <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px">Total Spent</div>
+                    <div style="font-size: 20px; font-weight: 600; color: var(--gold)">₹{{ customerData.totalSpent }}</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px">Membership Status</div>
+                    <div style="font-size: 20px; font-weight: 600; color: var(--charcoal)">{{ customerData.membershipStatus }}</div>
+                  </div>
+                </div>
+
+                <!-- Preferred Services -->
+                <div style="margin-bottom: 24px">
+                  <h4 style="margin-bottom: 12px; color: var(--charcoal); font-size: 16px">💖 Preferred Services</h4>
+                  <div v-if="preferredServicesList.length === 0" style="color: var(--text-muted); font-style: italic">
+                    No preferred services selected
+                  </div>
+                  <div v-else style="display: flex; flex-wrap: wrap; gap: 8px">
+                    <span v-for="service in preferredServicesList" :key="service.id" class="badge badge-gold" style="padding: 6px 12px; border-radius: 20px; font-size: 14px; font-weight: 600">
+                      {{ service.name }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 12px">
+                  <button class="btn btn-primary" style="flex: 1" @click="openProfileEdit">
+                    ✏️ Edit Profile
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- FEEDBACK VIEW -->
         <div v-if="currentView === 'feedback'" class="fade-in">
           <div class="card">
@@ -523,15 +600,32 @@
         <form @submit.prevent="handleUpdateProfile">
           <div class="form-group">
             <label for="profile-name">Full Name</label>
-            <input id="profile-name" type="text" placeholder="Enter full name" class="form-input" />
+            <input id="profile-name" v-model="profileForm.name" type="text" placeholder="Enter full name" class="form-input" />
           </div>
           <div class="form-group">
             <label for="profile-email">Email</label>
-            <input id="profile-email" type="email" placeholder="Enter email" class="form-input" />
+            <input id="profile-email" v-model="profileForm.email" type="email" placeholder="Enter email" class="form-input" />
           </div>
           <div class="form-group">
             <label for="profile-phone">Phone</label>
-            <input id="profile-phone" type="tel" placeholder="Enter phone" class="form-input" />
+            <input id="profile-phone" v-model="profileForm.phone" type="tel" placeholder="Enter phone" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label>Preferred Services</label>
+            <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--light-bg)">
+              <div v-for="service in customerData.availableServices" :key="service.id" style="margin-bottom: 8px">
+                <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px">
+                  <input 
+                    type="checkbox" 
+                    :value="service.id" 
+                    v-model="profileForm.preferredServices"
+                    style="margin-right: 8px"
+                  />
+                  <span>{{ service.name }} ({{ service.category }})</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-hint">Select your favorite services for personalized recommendations</div>
           </div>
           <div style="display: flex; gap: 12px; margin-top: 20px">
             <button type="button" class="btn btn-outline" style="flex: 1" @click="showProfileEditModal = false">Cancel</button>
@@ -662,6 +756,11 @@
 
 <script setup>
 import { ref, computed } from "vue";
+import { useRouter } from "vue-router";
+import { useAppStore } from "../stores/appStore";
+
+const router = useRouter();
+const appStore = useAppStore();
 
 const currentView = ref("dashboard");
 const sidebarOpen = ref(false);
@@ -671,6 +770,12 @@ const showProfileEditModal = ref(false);
 const showAppointmentDetailsModal = ref(false);
 const selectedAppointment = ref(null);
 const loadingAppointmentDetails = ref(false);
+const profileForm = ref({
+  name: "",
+  email: "",
+  phone: "",
+  preferredServices: []
+});
 const passwordForm = ref({
   currentPassword: "",
   newPassword: "",
@@ -714,9 +819,11 @@ const customerData = {
   email: "john@example.com",
   phone: "+233 123 456 789",
   address: "123 Main Street, Accra",
+  dob: "1992-05-20",
   memberSince: "2024-01-15",
   membershipStatus: "Gold",
   totalSpent: 1250,
+  preferredServices: [1, 4, 6], // IDs of preferred services
   todayStats: {
     upcomingAppointments: 1,
     totalAppointments: 12,
@@ -850,6 +957,8 @@ const customerData = {
   ]
 };
 
+const preferredServiceIds = ref([...customerData.preferredServices]);
+
 // Available stylists
 const availableStylists = ref([
   { id: 1, name: "Sarah Johnson", rating: 4.8, skills: "Hair Styling, Coloring" },
@@ -867,6 +976,14 @@ const availableTimes = computed(() => {
     times.push(`${String(hour).padStart(2, '0')}:30`);
   }
   return times;
+});
+
+// Preferred services list
+const preferredServicesList = computed(() => {
+  const selectedIds = preferredServiceIds.value.map((id) => Number(id));
+  return customerData.availableServices.filter(service => 
+    selectedIds.includes(Number(service.id))
+  );
 });
 
 // Get today's date for min date validation
@@ -938,7 +1055,8 @@ const pageTitle = computed(() => {
     "book-appointment": "Book Appointment",
     appointments: "My Appointments",
     feedback: "Feedback & Reviews",
-    services: "Browse Services"
+    services: "Browse Services",
+    profile: "My Profile"
   };
   return titles[currentView.value] || "Customer Dashboard";
 });
@@ -1062,17 +1180,28 @@ const handleChangePassword = () => {
 };
 
 const openProfileEdit = () => {
+  profileForm.value = {
+    name: customerData.name,
+    email: customerData.email,
+    phone: customerData.phone,
+    preferredServices: [...preferredServiceIds.value]
+  };
   showProfileEditModal.value = true;
 };
 
 const handleUpdateProfile = () => {
-  // Profile update logic here
+  customerData.name = profileForm.value.name.trim() || customerData.name;
+  customerData.email = profileForm.value.email.trim() || customerData.email;
+  customerData.phone = profileForm.value.phone.trim() || customerData.phone;
+  const normalizedPreferred = profileForm.value.preferredServices.map((id) => Number(id));
+  preferredServiceIds.value = [...normalizedPreferred];
+  customerData.preferredServices = [...normalizedPreferred];
   showProfileEditModal.value = false;
 };
 
 const handleLogout = () => {
-  showProfileMenu.value = false;
-  logout();
+  appStore.logout();
+  router.push("/login/customer");
 };
 
 const startBookingFromService = (serviceId) => {

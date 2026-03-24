@@ -1,6 +1,7 @@
 import os
 
 from flask import Flask, render_template, request
+from flask_cors import CORS
 from application.models import db
 from application.sec import datastore
 from flask_security import Security
@@ -11,6 +12,7 @@ def create_app():
     app = Flask(__name__, instance_relative_config=True)
     os.makedirs(app.instance_path, exist_ok=True)
     app.config.from_object(DevelopmentConfig)
+    CORS(app, resources={r"/*": {"origins": "*"}})
     db.init_app(app)
     
     # Initialize Security

@@ -73,12 +73,6 @@
           </button>
         </template>
 
-        <!-- Demo Credentials -->
-        <div style="margin-top: 16px; text-align: center">
-          <p style="font-size: 11px; color: var(--text-muted)">
-            Demo: owner/admin123 · manager/admin123 · staff: amara01/pass123 · customer: sofia@email.com/pass123
-          </p>
-        </div>
       </template>
 
       <!-- Register Tab -->
@@ -139,11 +133,12 @@
 </template>
 
 <script setup>
-import { ref, reactive } from "vue";
-import { useRouter } from "vue-router";
+import { ref, reactive, watch } from "vue";
+import { useRouter, useRoute } from "vue-router";
 import { useAppStore } from "@/stores/appStore";
 
 const router = useRouter();
+const route = useRoute();
 const appStore = useAppStore();
 
 const API_BASE_URL = "http://localhost:5000";
@@ -158,7 +153,23 @@ const isLoading = ref(false);
 const switchTab = (newTab) => {
   tab.value = newTab;
   error.value = "";
+
+  if (newTab !== "register") {
+    router.replace(`/login/${newTab}`);
+  }
 };
+
+watch(
+  () => route.path,
+  (path) => {
+    const role = path.split("/")[2];
+    if (["owner", "manager", "staff", "customer"].includes(role)) {
+      tab.value = role;
+      error.value = "";
+    }
+  },
+  { immediate: true }
+);
 
 const login = async () => {
   error.value = "";
@@ -169,17 +180,17 @@ const login = async () => {
     let payload = {};
 
     if (tab.value === "owner") {
-      endpoint = `${API_BASE_URL}/api/auth/login/owner`;
-      payload = { userId: form.userId, password: form.password };
+      endpoint = `${API_BASE_URL}/owner-login`;
+      payload = { username: form.userId, password: form.password };
     } else if (tab.value === "manager") {
-      endpoint = `${API_BASE_URL}/api/auth/login/manager`;
-      payload = { userId: form.userId, password: form.password };
+      endpoint = `${API_BASE_URL}/manager-login`;
+      payload = { username: form.userId, password: form.password };
     } else if (tab.value === "staff") {
-      endpoint = `${API_BASE_URL}/api/auth/login/staff`;
-      payload = { userId: form.userId, password: form.password };
+      endpoint = `${API_BASE_URL}/staff-login`;
+      payload = { username: form.userId, password: form.password };
     } else if (tab.value === "customer") {
-      endpoint = `${API_BASE_URL}/api/auth/login/customer`;
-      payload = { email: form.email, password: form.password };
+      endpoint = `${API_BASE_URL}/customer-login`;
+      payload = { username: form.email, password: form.password };
     }
 
     const response = await fetch(endpoint, {
@@ -190,13 +201,18 @@ const login = async () => {
 
     const data = await response.json();
 
-    if (data.success) {
+    if (response.ok && data.token) {
+      const normalizedUser = {
+        username: data.username || payload.username,
+        role: (data.role || tab.value).toLowerCase(),
+      };
+
       // Store token in localStorage
       localStorage.setItem("authToken", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
       
       // Update app store
-      appStore.login({ token: data.token, ...data.user });
+      appStore.login({ token: data.token, ...normalizedUser });
       router.push("/");
     } else {
       error.value = data.message || "Login failed. Please try again.";
