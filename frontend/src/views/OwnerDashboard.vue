@@ -851,39 +851,60 @@
   </div>
 
   <!-- Change Password Modal -->
-  <div v-if="showChangePasswordModal" style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px)" @click="showChangePasswordModal = false">
-    <div style="background: var(--card-bg); border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); width: 100%; max-width: 400px; padding: 24px; border: 1px solid var(--border)" @click.stop>
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px">
-        <h3 style="margin: 0; font-size: 20px; font-weight: 600">🔑 Change Password</h3>
-        <button @click="showChangePasswordModal = false" style="background: none; border: none; color: var(--text); cursor: pointer; font-size: 24px">✕</button>
+  <div v-if="showChangePasswordModal" class="modal-overlay" @click="showChangePasswordModal = false">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h3 class="modal-title">🔑 Change Password</h3>
+        <button class="modal-close" @click="showChangePasswordModal = false">✕</button>
       </div>
-
-      <form @submit.prevent="handleChangePassword" style="display: grid; gap: 16px">
-        <div>
-          <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px">Current Password</label>
-          <input v-model="passwordForm.currentPassword" type="password" placeholder="Enter current password" class="form-input" required />
-        </div>
-
-        <div>
-          <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px">New Password</label>
-          <input v-model="passwordForm.newPassword" type="password" placeholder="Enter new password" class="form-input" required />
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px">At least 8 characters</div>
-        </div>
-
-        <div>
-          <label style="display: block; margin-bottom: 8px; font-weight: 600; font-size: 14px">Confirm Password</label>
-          <input v-model="passwordForm.confirmPassword" type="password" placeholder="Confirm new password" class="form-input" required />
-        </div>
-
-        <div v-if="passwordError" style="color: #ef4444; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; font-size: 14px">
-          {{ passwordError }}
-        </div>
-
-        <div style="display: flex; gap: 12px; margin-top: 12px">
-          <button type="submit" class="btn btn-primary" style="flex: 1">Update Password</button>
-          <button type="button" class="btn btn-secondary" style="flex: 1" @click="showChangePasswordModal = false">Cancel</button>
-        </div>
-      </form>
+      <div class="modal-body">
+        <form @submit.prevent="handleChangePassword">
+          <div class="form-group">
+            <label for="current-password">Current Password</label>
+            <input 
+              id="current-password"
+              v-model="passwordForm.currentPassword" 
+              type="password" 
+              placeholder="Enter current password"
+              class="form-input"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="new-password">New Password</label>
+            <input 
+              id="new-password"
+              v-model="passwordForm.newPassword" 
+              type="password" 
+              placeholder="Enter new password"
+              class="form-input"
+              required
+            />
+            <div class="form-hint">At least 8 characters</div>
+          </div>
+          <div class="form-group">
+            <label for="confirm-password">Confirm Password</label>
+            <input 
+              id="confirm-password"
+              v-model="passwordForm.confirmPassword" 
+              type="password" 
+              placeholder="Confirm new password"
+              class="form-input"
+              required
+            />
+          </div>
+          <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
+          <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
+          <div style="display: flex; gap: 12px; margin-top: 20px">
+            <button type="button" class="btn btn-outline" @click="showChangePasswordModal = false" style="flex: 1">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              Update Password
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -1281,12 +1302,19 @@ export default {
       confirmPassword: ''
     });
     const passwordError = ref('');
+    const passwordSuccess = ref('');
 
     const handleChangePassword = () => {
       passwordError.value = '';
+      passwordSuccess.value = '';
 
-      if (!passwordForm.value.currentPassword || !passwordForm.value.newPassword || !passwordForm.value.confirmPassword) {
-        passwordError.value = 'All fields are required';
+      if (!passwordForm.value.currentPassword) {
+        passwordError.value = 'Current password is required';
+        return;
+      }
+
+      if (!passwordForm.value.newPassword) {
+        passwordError.value = 'New password is required';
         return;
       }
 
@@ -1300,15 +1328,22 @@ export default {
         return;
       }
 
-      // TODO: Validate current password with backend
-      // For now, just show success and close
-      alert('Password changed successfully!');
-      showChangePasswordModal.value = false;
-      passwordForm.value = {
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      };
+      if (passwordForm.value.currentPassword === passwordForm.value.newPassword) {
+        passwordError.value = 'New password must be different from current password';
+        return;
+      }
+
+      passwordSuccess.value = 'Password changed successfully!';
+      
+      setTimeout(() => {
+        passwordForm.value = {
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        };
+        passwordSuccess.value = '';
+        showChangePasswordModal.value = false;
+      }, 1500);
     };
 
     return {
@@ -1351,6 +1386,7 @@ export default {
       showChangePasswordModal,
       passwordForm,
       passwordError,
+      passwordSuccess,
       handleChangePassword,
       newBranchForm,
       branchError,
@@ -1458,6 +1494,44 @@ export default {
 
 .fade-in {
   animation: fadeIn 0.3s ease;
+}
+
+.change-password-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.change-password-modal {
+  background: #f8f6ef;
+  color: #2f2f2f;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 400px;
+  padding: 24px;
+  border: 1px solid #ddd5c6;
+}
+
+.change-password-modal .form-input {
+  background-color: #fff;
+  border-color: #d7d1c2;
+  color: #2f2f2f;
+}
+
+.change-password-modal .btn-secondary {
+  background-color: #f1ece0;
+  color: #2f2f2f;
+  border-color: #d7d1c2;
+}
+
+.change-password-modal .btn-secondary:hover {
+  background-color: #e8e1d2;
 }
 
 @keyframes fadeIn {
@@ -1736,4 +1810,115 @@ table tbody tr:hover {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .modal-content {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    width: 100%;
+    max-width: 420px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: slideUp 0.3s ease;
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(20px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .modal-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text);
+    transition: all 0.2s ease;
+  }
+
+  .modal-close:hover {
+    opacity: 0.7;
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    font-size: 14px;
+  }
+
+  .form-hint {
+    font-size: 12px;
+    color: #999;
+    margin-top: 4px;
+  }
+
+  .error-message {
+    color: #f44336;
+    padding: 12px;
+    background: rgba(244, 67, 54, 0.1);
+    border-radius: 4px;
+    font-size: 14px;
+    margin: 16px 0;
+  }
+
+  .success-message {
+    color: #4caf50;
+    padding: 12px;
+    background: rgba(76, 175, 80, 0.1);
+    border-radius: 4px;
+    font-size: 14px;
+    margin: 16px 0;
+  }
 </style>

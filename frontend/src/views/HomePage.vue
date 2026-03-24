@@ -11,7 +11,7 @@
           <a href="#features" class="nav-link">Features</a>
           <a href="#services" class="nav-link">Services</a>
           <a href="#about" class="nav-link">About</a>
-          <router-link to="/login" class="nav-link btn btn-primary">Login</router-link>
+          <router-link to="/login/customer" class="nav-link btn btn-primary">Login</router-link>
         </div>
       </div>
     </nav>
@@ -25,7 +25,7 @@
           <p class="hero-subtitle">Transform Your Beauty Salon with Smart Management</p>
           <p class="hero-description">All-in-one platform designed for modern beauty businesses</p>
           <div class="hero-buttons">
-            <router-link to="/login" class="btn btn-primary btn-lg">
+            <router-link to="/login/customer" class="btn btn-primary btn-lg">
               Get Started Now
             </router-link>
           </div>
@@ -83,7 +83,7 @@
       <div class="cta-container">
         <h2 class="cta-title">Ready to Transform Your Salon?</h2>
         <p class="cta-subtitle">Join hundreds of successful salons already using Glow Suite</p>
-        <router-link to="/login" class="btn btn-primary btn-lg">
+        <router-link to="/login/customer" class="btn btn-primary btn-lg">
           Start Free Trial Today
         </router-link>
       </div>

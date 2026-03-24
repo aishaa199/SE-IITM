@@ -7,6 +7,7 @@ import StaffDashboard from '@/views/StaffDashboard.vue'
 import CustomerDashboard from '@/views/CustomerDashboard.vue'
 import OwnerDashboard from '@/views/OwnerDashboard.vue'
 
+
 const routes = [
   {
     path: '/',
@@ -15,8 +16,31 @@ const routes = [
   },
   {
     path: '/login',
-    name: 'login',
+    redirect: '/login/manager',
+  },
+  {
+    path: '/login/owner',
+    name: 'login-owner',
     component: LoginView,
+    meta: { loginRole: 'owner' }
+  },
+  {
+    path: '/login/manager',
+    name: 'login-manager',
+    component: LoginView,
+    meta: { loginRole: 'manager' }
+  },
+  {
+    path: '/login/staff',
+    name: 'login-staff',
+    component: LoginView,
+    meta: { loginRole: 'staff' }
+  },
+  {
+    path: '/login/customer',
+    name: 'login-customer',
+    component: LoginView,
+    meta: { loginRole: 'customer' }
   },
   {
     path: '/dashboard',
@@ -78,20 +102,8 @@ router.beforeEach((to, from, next) => {
   const appStore = useAppStore()
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const testMode = to.matched.some(record => record.meta.testMode)
-  const isLoginPage = to.path === '/'
+  const isLoginPage = to.path === '/' || to.path.startsWith('/login')
   
-  // Test mode - auto-login with test user
-  if (testMode) {
-    const testRole = to.meta.testRole
-    if (testRole === 'staff') {
-      appStore.login({ role: 'staff', userId: 'amara01', name: 'Amara Osei' })
-    } else if (testRole === 'customer') {
-      appStore.login({ role: 'customer', email: 'sofia@email.com', name: 'Sofia Mensah' })
-    } else if (testRole === 'manager') {
-      appStore.login({ role: 'manager', userId: 'manager', name: 'Manager' })
-    }
-    return next()
-  }
   
   // If trying to access protected route without auth
   if (requiresAuth && !appStore.isAuthenticated) {
@@ -101,7 +113,9 @@ router.beforeEach((to, from, next) => {
   // If logged in and trying to access login page, redirect to appropriate dashboard
   if (isLoginPage && appStore.isAuthenticated) {
     const userRole = appStore.user?.role?.toLowerCase()
-    if (userRole === 'staff') {
+    if (userRole === 'owner') {
+      return next('/owner-dashboard')
+    } else if (userRole === 'staff') {
       return next('/staff-dashboard')
     } else if (userRole === 'customer') {
       return next('/customer-dashboard')
