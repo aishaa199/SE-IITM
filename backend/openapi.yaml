@@ -174,6 +174,250 @@ paths:
               schema:
                 $ref: '#/components/schemas/MessageResponse'
 
+  /product:
+    get:
+      summary: Get all products
+      tags:
+        - Product
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+    post:
+      summary: Create a product
+      tags:
+        - Product
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '201':
+          description: Product created
+  /product/{product_id}:
+    parameters:
+      - name: product_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Update a product
+      tags:
+        - Product
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProductCreate'
+      responses:
+        '200':
+          description: Product updated
+    delete:
+      summary: Delete a product
+      tags:
+        - Product
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Product deleted
+
+  /customer:
+    get:
+      summary: Get all customers
+      tags:
+        - Customer
+      responses:
+        '200':
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Customer'
+    post:
+      summary: Create a customer
+      tags:
+        - Customer
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreate'
+      responses:
+        '201':
+          description: Customer created
+  /customer/{customer_id}:
+    parameters:
+      - name: customer_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Update a customer
+      tags:
+        - Customer
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerCreate'
+      responses:
+        '200':
+          description: Customer updated
+    delete:
+      summary: Delete a customer
+      tags:
+        - Customer
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Customer deleted
+
+  /staff:
+    get:
+      summary: Get all staff
+      tags:
+        - Staff
+      responses:
+        '200':
+          description: List of staff members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Staff'
+    post:
+      summary: Create a staff member
+      tags:
+        - Staff
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffCreate'
+      responses:
+        '201':
+          description: Staff created
+  /staff/{staff_id}:
+    parameters:
+      - name: staff_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Update a staff member
+      tags:
+        - Staff
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StaffCreate'
+      responses:
+        '200':
+          description: Staff updated
+    delete:
+      summary: Delete a staff member
+      tags:
+        - Staff
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Staff deleted
+
+  /service:
+    get:
+      summary: Get all active services
+      tags:
+        - Service
+      responses:
+        '200':
+          description: List of active services
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Service'
+    post:
+      summary: Create a service
+      tags:
+        - Service
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceCreate'
+      responses:
+        '201':
+          description: Service created
+  /service/{service_id}:
+    parameters:
+      - name: service_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    put:
+      summary: Update a service
+      tags:
+        - Service
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServiceCreate'
+      responses:
+        '200':
+          description: Service updated
+    delete:
+      summary: Delete a service
+      tags:
+        - Service
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Service deleted
+
 components:
   securitySchemes:
     tokenAuth:
@@ -183,6 +427,71 @@ components:
       description: Token-based authentication required for secured routes.
 
   schemas:
+    Product:
+      type: object
+      properties:
+        product_id: {type: integer}
+        product_name: {type: string}
+        product_price: {type: number}
+        product_min_stock: {type: integer}
+        product_curr_stock: {type: integer}
+        product_low_stock_alert: {type: boolean}
+    ProductCreate:
+      type: object
+      required: [product_name, product_price, product_min_stock, product_curr_stock]
+      properties:
+        product_name: {type: string}
+        product_price: {type: number}
+        product_min_stock: {type: integer}
+        product_curr_stock: {type: integer}
+
+    Customer:
+      type: object
+      properties:
+        cust_id: {type: integer}
+        cust_name: {type: string}
+        cust_ph: {type: string}
+        cust_email: {type: string}
+        cust_reward_points: {type: integer}
+    CustomerCreate:
+      type: object
+      required: [cust_name, cust_ph, cust_email]
+      properties:
+        cust_name: {type: string}
+        cust_ph: {type: string}
+        cust_email: {type: string}
+
+    Staff:
+      type: object
+      properties:
+        staff_id: {type: integer}
+        staff_name: {type: string}
+        staff_ph: {type: string}
+        staff_email: {type: string}
+        staff_salary: {type: number}
+    StaffCreate:
+      type: object
+      required: [staff_name, staff_ph, staff_email, staff_salary]
+      properties:
+        staff_name: {type: string}
+        staff_ph: {type: string}
+        staff_email: {type: string}
+        staff_salary: {type: number}
+
+    Service:
+      type: object
+      properties:
+        service_id: {type: integer}
+        service_desc: {type: string}
+        to_date: {type: string, format: date}
+        active_flg: {type: boolean}
+    ServiceCreate:
+      type: object
+      required: [service_desc, to_date]
+      properties:
+        service_desc: {type: string}
+        to_date: {type: string, format: date}
+
     ManagerCreate:
       type: object
       required:

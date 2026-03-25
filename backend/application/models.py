@@ -37,7 +37,7 @@ class Service(db.Model):
     service_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     service_desc = db.Column(db.String(50), nullable=False)
     service_category = db.Column(db.String(50), nullable=False)  
-    from_date = db.Column(db.Date, nullable=False, default=db.func.current_date()) #Start date of the service offering, can be used for tracking the service lifecycle
+    from_date = db.Column(db.Date, nullable=False, default=db.func.current_date()) #Start date of the service offering, can be used for tracking the service lifecycle7
     to_date = db.Column(db.Date, nullable=True) #End date of the service offering, can be used for tracking the service lifecycle
     active_flg = db.Column(db.Boolean, default=True)  #Flag to track whether the service is active.
     service_price = db.Column(db.Float, nullable=False)
@@ -52,10 +52,12 @@ class Staff(db.Model):
     staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     staff_name = db.Column(db.String(100), nullable=False)
     staff_contact = db.Column(db.String(20), nullable=False)
+    staff_email = db.Column(db.String(120), nullable=False)
     staff_skills = db.Column(db.String(255), nullable=False)
     staff_role = db.Column(db.String(50), nullable=False)
     staff_dob = db.Column(db.Date, nullable=False)
     staff_doj = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    staff_salary = db.Column(db.Float, nullable=False)
     staff_cumulative_rating = db.Column(db.Float, default=0.0)
     no_of_reviews = db.Column(db.Integer, default=0)
 
@@ -90,6 +92,7 @@ class Product(db.Model):
     product_supplier_name = db.Column(db.String(100), nullable=False)
     product_supplier_contact = db.Column(db.String(20), nullable=False)
     product_supplier_email = db.Column(db.String(120), nullable=False)
+    product_low_stock_alert = db.Column(db.Boolean, default=False) #Flag to indicate if the product is low in stock, can be used for triggering alerts for replenishment
 
 
 class Appointment(db.Model):
