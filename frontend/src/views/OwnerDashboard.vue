@@ -4,7 +4,7 @@
     <div class="dashboard-sidebar">
       <div class="sidebar-header">
         <h2 style="color: var(--gold); font-size: 24px; margin: 0">👑 Owner Hub</h2>
-        <p style="color: #999; margin: 8px 0 0 0; font-size: 12px">{{ ownerData.ownerName }}</p>
+        <p style="color: #6f675a; margin: 8px 0 0 0; font-size: 12px">{{ ownerData.ownerName }}</p>
       </div>
 
       <div class="sidebar-menu">
@@ -124,7 +124,7 @@
                   </svg>
                   <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center">
                     <div style="font-size: 36px; font-weight: bold; color: var(--gold)">{{ totalCustomers }}</div>
-                    <div style="font-size: 12px; color: #999">Total</div>
+                    <div style="font-size: 12px; color: #6f675a">Total</div>
                   </div>
                 </div>
                 
@@ -167,50 +167,50 @@
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
                   <div style="width: 60px; height: 150px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
                     @mouseenter="hoveredBar = 'mon'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'mon'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹500</div>
+                    <div v-if="hoveredBar === 'mon'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹500</div>
                   </div>
                   <div style="font-weight: 700">Mon</div>
-                  <div style="font-size: 12px; color: #999">₹500</div>
+                  <div style="font-size: 12px; color: #6f675a">₹500</div>
                 </div>
 
                 <!-- Tuesday -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
                   <div style="width: 60px; height: 200px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
                     @mouseenter="hoveredBar = 'tue'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'tue'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹750</div>
+                    <div v-if="hoveredBar === 'tue'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹750</div>
                   </div>
                   <div style="font-weight: 700">Tue</div>
-                  <div style="font-size: 12px; color: #999">₹750</div>
+                  <div style="font-size: 12px; color: #6f675a">₹750</div>
                 </div>
 
                 <!-- Wednesday -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
                   <div style="width: 60px; height: 180px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
                     @mouseenter="hoveredBar = 'wed'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'wed'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹600</div>
+                    <div v-if="hoveredBar === 'wed'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹600</div>
                   </div>
                   <div style="font-weight: 700">Wed</div>
-                  <div style="font-size: 12px; color: #999">₹600</div>
+                  <div style="font-size: 12px; color: #6f675a">₹600</div>
                 </div>
 
                 <!-- Thursday -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
                   <div style="width: 60px; height: 240px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
                     @mouseenter="hoveredBar = 'thu'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'thu'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹800</div>
+                    <div v-if="hoveredBar === 'thu'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹800</div>
                   </div>
                   <div style="font-weight: 700">Thu</div>
-                  <div style="font-size: 12px; color: #999">₹800</div>
+                  <div style="font-size: 12px; color: #6f675a">₹800</div>
                 </div>
 
                 <!-- Friday -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
                   <div style="width: 60px; height: 190px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
                     @mouseenter="hoveredBar = 'fri'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'fri'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹650</div>
+                    <div v-if="hoveredBar === 'fri'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹650</div>
                   </div>
                   <div style="font-weight: 700">Fri</div>
-                  <div style="font-size: 12px; color: #999">₹650</div>
+                  <div style="font-size: 12px; color: #6f675a">₹650</div>
                 </div>
               </div>
             </div>
@@ -230,7 +230,7 @@
                     @mouseenter="hoveredBar = idx"
                     @mouseleave="hoveredBar = null"
                   >
-                    <div v-if="hoveredBar === idx" style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 6px 12px; border-radius: 4px; font-weight: 600; white-space: nowrap; font-size: 14px">₹{{ booking.amount }}</div>
+                    <div v-if="hoveredBar === idx" style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 6px 12px; border-radius: 4px; font-weight: 600; white-space: nowrap; font-size: 14px">₹{{ booking.amount }}</div>
                   </div>
                   <div style="font-weight: 600">Day {{ idx + 1 }}</div>
                   <div class="text-muted" style="font-size: 12px">₹{{ booking.amount }}</div>
@@ -623,23 +623,23 @@
               <div class="card-header" style="display: flex; justify-content: space-between; align-items: center">
                 <div>
                   <h3 class="card-title" style="margin: 0">{{ branch.name }}</h3>
-                  <p style="margin: 4px 0 0 0; color: #999; font-size: 12px">📍 {{ branch.location }}</p>
+                  <p style="margin: 4px 0 0 0; color: #6f675a; font-size: 12px">📍 {{ branch.location }}</p>
                 </div>
               </div>
               <div class="card-body">
                 <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 6px">
-                  <div style="font-size: 12px; color: #999; margin-bottom: 4px">Manager</div>
+                  <div style="font-size: 12px; color: #6f675a; margin-bottom: 4px">Manager</div>
                   <div style="font-weight: 600; color: var(--gold)">{{ branch.manager }}</div>
                 </div>
 
                 <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 6px">
-                  <div style="font-size: 12px; color: #999; margin-bottom: 4px">Contact</div>
+                  <div style="font-size: 12px; color: #6f675a; margin-bottom: 4px">Contact</div>
                   <div style="font-size: 13px">📞 {{ branch.phone }}</div>
                   <div style="font-size: 13px">✉️ {{ branch.email }}</div>
                 </div>
 
                 <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 6px">
-                  <div style="font-size: 12px; color: #999; margin-bottom: 4px">Stats</div>
+                  <div style="font-size: 12px; color: #6f675a; margin-bottom: 4px">Stats</div>
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px">
                     <div>👥 {{ branch.customers }} Customers</div>
                     <div>📅 {{ branch.bookings }} Bookings</div>
@@ -648,7 +648,7 @@
                 </div>
 
                 <div style="padding: 12px; background: var(--light-bg); border-radius: 6px; margin-bottom: 12px">
-                  <div style="font-size: 12px; color: #999; margin-bottom: 4px">Status</div>
+                  <div style="font-size: 12px; color: #6f675a; margin-bottom: 4px">Status</div>
                   <span :class="['badge', branch.status === 'active' ? 'badge-success' : 'badge-danger']">{{ branch.status }}</span>
                 </div>
 
@@ -791,56 +791,94 @@
           <div class="card" style="margin-bottom: 24px">
             <div class="card-header">
               <h3 class="card-title">Create New Manager</h3>
+              <p class="manager-form-subtitle">Fill in manager details and assign the manager to a branch.</p>
             </div>
             <div class="card-body">
-              <form @submit.prevent="handleCreateManager" style="max-width: 600px">
-                <div style="display: grid; gap: 16px">
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Full Name *</label>
-                    <input v-model="newManagerForm.name" type="text" placeholder="Enter manager name" class="form-input" required />
-                  </div>
+              <form @submit.prevent="handleCreateManager" class="manager-form">
+                <div class="manager-form-layout">
+                  <section class="manager-form-section">
+                    <h4 class="manager-section-title">Profile</h4>
+                    <div class="manager-form-grid">
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Full Name *</label>
+                        <input v-model="newManagerForm.name" type="text" placeholder="Enter manager name" class="form-input" required />
+                      </div>
 
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Email *</label>
-                    <input v-model="newManagerForm.email" type="email" placeholder="Enter email address" class="form-input" required />
-                  </div>
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Email *</label>
+                        <input v-model="newManagerForm.email" type="email" placeholder="Enter email address" class="form-input" required />
+                      </div>
 
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Phone *</label>
-                    <input v-model="newManagerForm.phone" type="tel" placeholder="Enter phone number" class="form-input" required />
-                  </div>
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Phone *</label>
+                        <input v-model="newManagerForm.phone" type="tel" placeholder="Enter phone number" class="form-input" required />
+                      </div>
 
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Assign to Branch *</label>
-                    <select v-model.number="newManagerForm.branchId" class="form-input" required>
-                      <option value="">Select a branch</option>
-                      <option v-for="branch in ownerData.branches" :key="branch.id" :value="branch.id">
-                        {{ branch.name }}
-                      </option>
-                    </select>
-                  </div>
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Date of Birth *</label>
+                        <input v-model="newManagerForm.dob" type="date" class="form-input" required />
+                      </div>
+                    </div>
+                  </section>
 
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Username *</label>
-                    <input v-model="newManagerForm.userId" type="text" placeholder="Enter username" class="form-input" required />
-                  </div>
+                  <section class="manager-form-section">
+                    <h4 class="manager-section-title">Employment</h4>
+                    <div class="manager-form-grid">
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Role *</label>
+                        <input v-model="newManagerForm.role" type="text" placeholder="Enter role" class="form-input" required />
+                      </div>
 
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Password *</label>
-                    <input v-model="newManagerForm.password" type="password" placeholder="Enter password" class="form-input" required />
-                  </div>
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Assign to Branch *</label>
+                        <select v-model.number="newManagerForm.branchId" class="form-input" required>
+                          <option value="">Select a branch</option>
+                          <option v-for="branch in ownerData.branches" :key="branch.id" :value="branch.id">
+                            {{ branch.name }}
+                          </option>
+                        </select>
+                      </div>
 
-                  <div v-if="managerError" style="color: #ef4444; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px">
-                    {{ managerError }}
-                  </div>
-                  <div v-if="managerSuccess" style="color: #22c55e; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px">
-                    {{ managerSuccess }}
-                  </div>
+                      <div class="manager-form-item manager-form-item-full">
+                        <label class="manager-form-label">Skills *</label>
+                        <input v-model="newManagerForm.skills" type="text" placeholder="Enter skills (e.g., Hair Styling, Team Management)" class="form-input" required />
+                        <span class="manager-form-hint">Use commas to separate multiple skills.</span>
+                      </div>
 
-                  <div style="display: flex; gap: 12px; margin-top: 12px">
-                    <button type="submit" class="btn btn-primary">✅ Create Manager</button>
-                    <button type="button" class="btn btn-secondary" @click="resetManagerForm">Clear Form</button>
-                  </div>
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Date of Joining *</label>
+                        <input v-model="newManagerForm.doj" type="date" class="form-input" required />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="manager-form-section">
+                    <h4 class="manager-section-title">Account Access</h4>
+                    <div class="manager-form-grid">
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Username *</label>
+                        <input v-model="newManagerForm.userId" type="text" placeholder="Enter username" class="form-input" required />
+                      </div>
+
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Password *</label>
+                        <input v-model="newManagerForm.password" type="password" placeholder="Enter password" class="form-input" required />
+                        <span class="manager-form-hint">Minimum 8 characters.</span>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                <div v-if="managerError" class="manager-form-error">
+                  {{ managerError }}
+                </div>
+                <div v-if="managerSuccess" class="manager-form-success">
+                  {{ managerSuccess }}
+                </div>
+
+                <div class="manager-form-actions">
+                  <button type="submit" class="btn btn-primary manager-form-btn">Create Manager</button>
+                  <button type="button" class="btn btn-secondary manager-form-btn" @click="resetManagerForm">Clear Form</button>
                 </div>
               </form>
             </div>
@@ -919,6 +957,7 @@ export default {
   setup() {
     const router = useRouter();
     const appStore = useAppStore();
+    const API_BASE_URL = 'http://localhost:5000';
     const currentView = ref('overview');
     const selectedBranchId = ref(1);
 
@@ -1232,6 +1271,10 @@ export default {
       name: '',
       email: '',
       phone: '',
+      skills: '',
+      role: '',
+      dob: '',
+      doj: '',
       branchId: '',
       userId: '',
       password: ''
@@ -1240,11 +1283,12 @@ export default {
     const managerError = ref('');
     const managerSuccess = ref('');
 
-    const handleCreateManager = () => {
+    const handleCreateManager = async () => {
       managerError.value = '';
       managerSuccess.value = '';
 
       if (!newManagerForm.value.name || !newManagerForm.value.email || !newManagerForm.value.phone || 
+          !newManagerForm.value.skills || !newManagerForm.value.role || !newManagerForm.value.dob || !newManagerForm.value.doj ||
           !newManagerForm.value.branchId || !newManagerForm.value.userId || !newManagerForm.value.password) {
         managerError.value = 'All fields are required';
         return;
@@ -1255,21 +1299,59 @@ export default {
         return;
       }
 
-      const newManager = {
-        id: managers.value.length + 1,
-        name: newManagerForm.value.name,
-        email: newManagerForm.value.email,
-        phone: newManagerForm.value.phone,
-        branchId: newManagerForm.value.branchId,
-        userId: newManagerForm.value.userId,
-        password: newManagerForm.value.password,
-        createdDate: new Date().toISOString().split('T')[0]
-      };
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        managerError.value = 'You are not authenticated. Please log in again.';
+        return;
+      }
 
-      managers.value.push(newManager);
-      managerSuccess.value = `Manager "${newManagerForm.value.name}" created successfully!`;
-      resetManagerForm();
-      setTimeout(() => { managerSuccess.value = ''; }, 3000);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/create-manager`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authentication-Token': token,
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            fullname: newManagerForm.value.name,
+            email: newManagerForm.value.email,
+            phone: newManagerForm.value.phone,
+            skills: newManagerForm.value.skills,
+            role: newManagerForm.value.role,
+            dob: newManagerForm.value.dob,
+            doj: newManagerForm.value.doj,
+            username: newManagerForm.value.userId,
+            password: newManagerForm.value.password,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          managerError.value = data.message || 'Failed to create manager';
+          return;
+        }
+
+        managers.value.push({
+          id: managers.value.length + 1,
+          name: newManagerForm.value.name,
+          email: newManagerForm.value.email,
+          phone: newManagerForm.value.phone,
+          skills: newManagerForm.value.skills,
+          role: newManagerForm.value.role,
+          dob: newManagerForm.value.dob,
+          doj: newManagerForm.value.doj,
+          branchId: newManagerForm.value.branchId,
+          userId: newManagerForm.value.userId,
+          createdDate: new Date().toISOString().split('T')[0],
+        });
+
+        managerSuccess.value = data.message || `Manager "${newManagerForm.value.name}" created successfully!`;
+        resetManagerForm();
+        setTimeout(() => { managerSuccess.value = ''; }, 3000);
+      } catch (error) {
+        managerError.value = 'Unable to connect to server. Please try again.';
+      }
     };
 
     const resetManagerForm = () => {
@@ -1277,6 +1359,10 @@ export default {
         name: '',
         email: '',
         phone: '',
+        skills: '',
+        role: '',
+        dob: '',
+        doj: '',
         branchId: '',
         userId: '',
         password: ''
@@ -1304,7 +1390,7 @@ export default {
     const passwordError = ref('');
     const passwordSuccess = ref('');
 
-    const handleChangePassword = () => {
+    const handleChangePassword = async () => {
       passwordError.value = '';
       passwordSuccess.value = '';
 
@@ -1333,17 +1419,46 @@ export default {
         return;
       }
 
-      passwordSuccess.value = 'Password changed successfully!';
-      
-      setTimeout(() => {
-        passwordForm.value = {
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        };
-        passwordSuccess.value = '';
-        showChangePasswordModal.value = false;
-      }, 1500);
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        passwordError.value = 'You are not authenticated. Please log in again.';
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/change-password`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            'Authentication-Token': token,
+          },
+          body: JSON.stringify({
+            current_password: passwordForm.value.currentPassword,
+            new_password: passwordForm.value.newPassword,
+            confirm_password: passwordForm.value.confirmPassword,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          passwordError.value = data.message || 'Failed to change password';
+          return;
+        }
+
+        passwordSuccess.value = data.message || 'Password changed successfully!';
+        setTimeout(() => {
+          passwordForm.value = {
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: ''
+          };
+          passwordSuccess.value = '';
+          showChangePasswordModal.value = false;
+        }, 1500);
+      } catch (error) {
+        passwordError.value = 'Unable to connect to server. Please try again.';
+      }
     };
 
     return {
@@ -1405,11 +1520,11 @@ export default {
 
 :root {
   --gold: #d4af37;
-  --bg: #1a1a1a;
-  --card-bg: #2a2a2a;
-  --text: #e0e0e0;
-  --border: #444;
-  --light-bg: #3a3a3a;
+  --bg: #f6f2e9;
+  --card-bg: #fffaf0;
+  --text: #2f2a23;
+  --border: #d9cfbf;
+  --light-bg: #efe7d8;
   --success: #4caf50;
   --danger: #f44336;
   --warning: #ff9800;
@@ -1571,7 +1686,7 @@ export default {
 }
 
 .stat-label {
-  color: #999;
+  color: #6f675a;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1637,10 +1752,105 @@ export default {
   transition: all 0.3s ease;
 }
 
+.form-input::placeholder {
+  color: #746a5c;
+  opacity: 1;
+}
+
 .form-input:focus {
   outline: none;
   border-color: var(--gold);
   box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}
+
+.manager-form-subtitle {
+  margin: 8px 0 0;
+  color: #6f675a;
+  font-size: 13px;
+}
+
+.manager-form {
+  max-width: 900px;
+}
+
+.manager-form-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.manager-form-section {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: linear-gradient(180deg, rgba(255, 252, 246, 0.92), rgba(249, 241, 227, 0.96));
+}
+
+.manager-section-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8a6a1f;
+}
+
+.manager-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.manager-form-item {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(120, 102, 70, 0.18);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.manager-form-item-full {
+  grid-column: span 2;
+}
+
+.manager-form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #3a332a;
+}
+
+.manager-form-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #7c7261;
+}
+
+.manager-form-error {
+  color: #ef4444;
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+  margin-top: 14px;
+}
+
+.manager-form-success {
+  color: #22c55e;
+  padding: 12px;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: 8px;
+  margin-top: 14px;
+}
+
+.manager-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 6px;
+}
+
+.manager-form-btn {
+  min-width: 150px;
 }
 
 .error-message {
@@ -1738,22 +1948,22 @@ table tbody tr:hover {
 
 .badge-success {
   background-color: rgba(76, 175, 80, 0.2);
-  color: #81c784;
+  color: #256b2a;
 }
 
 .badge-danger {
   background-color: rgba(244, 67, 54, 0.2);
-  color: #ff8a8a;
+  color: #a3342b;
 }
 
 .badge-warning {
   background-color: rgba(255, 152, 0, 0.2);
-  color: #ffb74d;
+  color: #9a5b00;
 }
 
 .badge-info {
   background-color: rgba(33, 150, 243, 0.2);
-  color: #64b5f6;
+  color: #1f5ea8;
 }
 
 .report-item {
@@ -1783,7 +1993,7 @@ table tbody tr:hover {
 }
 
 .text-muted {
-  color: #999;
+  color: #6f675a;
   font-size: 13px;
 }
 
@@ -1808,6 +2018,22 @@ table tbody tr:hover {
 
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .manager-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-form-item-full {
+    grid-column: span 1;
+  }
+
+  .manager-form-actions {
+    flex-direction: column;
+  }
+
+  .manager-form-btn {
+    width: 100%;
   }
 }
   .modal-overlay {
@@ -1900,7 +2126,7 @@ table tbody tr:hover {
 
   .form-hint {
     font-size: 12px;
-    color: #999;
+    color: #6f675a;
     margin-top: 4px;
   }
 

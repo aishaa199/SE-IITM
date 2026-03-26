@@ -37,7 +37,7 @@ class Service(db.Model):
     service_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     service_desc = db.Column(db.String(50), nullable=False)
     service_category = db.Column(db.String(50), nullable=False)  
-    from_date = db.Column(db.Date, nullable=False, default=db.func.current_date()) #Start date of the service offering, can be used for tracking the service lifecycle
+    from_date = db.Column(db.Date, nullable=False, default=db.func.current_date()) #Start date of the service offering, can be used for tracking the service lifecycle7
     to_date = db.Column(db.Date, nullable=True) #End date of the service offering, can be used for tracking the service lifecycle
     active_flg = db.Column(db.Boolean, default=True)  #Flag to track whether the service is active.
     service_price = db.Column(db.Float, nullable=False)
@@ -52,10 +52,12 @@ class Staff(db.Model):
     staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     staff_name = db.Column(db.String(100), nullable=False)
     staff_contact = db.Column(db.String(20), nullable=False)
+    staff_email = db.Column(db.String(120), nullable=False)
     staff_skills = db.Column(db.String(255), nullable=False)
     staff_role = db.Column(db.String(50), nullable=False)
     staff_dob = db.Column(db.Date, nullable=False)
     staff_doj = db.Column(db.Date, nullable=False, default=db.func.current_date())
+    staff_salary = db.Column(db.Float, nullable=False)
     staff_cumulative_rating = db.Column(db.Float, default=0.0)
     no_of_reviews = db.Column(db.Integer, default=0)
 
@@ -69,7 +71,7 @@ class Customer(db.Model):
     customer_contact = db.Column(db.String(20), nullable=False)
     customer_dob = db.Column(db.Date, nullable=False)
     customer_reg_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
-    customer_email = db.Column(db.String(120), nullable=True)
+    customer_email = db.Column(db.String(120), nullable=False, unique=True)
     customer_address = db.Column(db.String(255), nullable=True)
     number_of_visits = db.Column(db.Integer, nullable=False, default=0)
     customer_type = db.Column(db.String(50), nullable=False)
@@ -90,20 +92,27 @@ class Product(db.Model):
     product_supplier_name = db.Column(db.String(100), nullable=False)
     product_supplier_contact = db.Column(db.String(20), nullable=False)
     product_supplier_email = db.Column(db.String(120), nullable=False)
+    product_low_stock_alert = db.Column(db.Boolean, default=False) #Flag to indicate if the product is low in stock, can be used for triggering alerts for replenishment
+
+
+# Association table for Appointment and Service (Many-to-Many)
+appointment_services = db.Table('appointment_services',
+    db.Column('appointment_id', db.Integer, db.ForeignKey('appointments.appointment_id'), primary_key=True),
+    db.Column('service_id', db.Integer, db.ForeignKey('service_master.service_id'), primary_key=True)
+)
 
 
 class Appointment(db.Model):
     __tablename__ = 'appointments'
     appointment_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer_master.customer_id'), nullable=False)
-    staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service_master.service_id'), nullable=False)
+    staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=True)
     appointment_datetime = db.Column(db.DateTime, nullable=False)
 
     # Relationships to access related data easily
     customer = db.relationship('Customer', backref=db.backref('appointments', lazy=True))
     staff = db.relationship('Staff', backref=db.backref('appointments', lazy=True))
-    service = db.relationship('Service', backref=db.backref('appointments', lazy=True))
+    services = db.relationship('Service', secondary=appointment_services, backref=db.backref('appointments', lazy=True))
 
 
 class Invoice(db.Model):
@@ -112,7 +121,6 @@ class Invoice(db.Model):
     invoice_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     customer_id = db.Column(db.Integer, db.ForeignKey('customer_master.customer_id'), nullable=False)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service_master.service_id'), nullable=False)
     other_charges = db.Column(db.Float, nullable=True)
     rewards_earned = db.Column(db.Integer, nullable=False, default=0)
     rewards_utilized = db.Column(db.Integer, nullable=False, default=0)
@@ -122,7 +130,8 @@ class Invoice(db.Model):
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('invoices', lazy=True))
     staff = db.relationship('Staff', backref=db.backref('invoices', lazy=True))
-    service = db.relationship('Service', backref=db.backref('invoices', lazy=True))
+    # Note: As an invoice is usually for a completed appointment, 
+    # you might want to link to Appointment directly or handle service listing in the view/logic.
 
 
 class InventoryTransaction(db.Model):
@@ -179,6 +188,7 @@ class Manager(db.Model, UserMixin):
     __tablename__ = 'manager_master'
     manager_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     manager_name = db.Column(db.String(100), nullable=False)
+    manager_email = db.Column(db.String(120), nullable=True)
     manager_contact = db.Column(db.String(20), nullable=False)
     manager_skills = db.Column(db.String(255), nullable=False)
     manager_role = db.Column(db.String(50), nullable=False, default='Manager')
@@ -213,7 +223,7 @@ class CustomerReward(db.Model):
 class SalonConfig(db.Model):
     __tablename__ = 'salon_config'
     setting_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    param_name = db.Column(db.String(100), nullable=False)
+    param_name = db.Column(db.String(100), unique=True, nullable=False)
     param_value = db.Column(db.String(255), nullable=False)
     from_date = db.Column(db.DateTime, nullable=False)
     to_date = db.Column(db.DateTime, nullable=True)

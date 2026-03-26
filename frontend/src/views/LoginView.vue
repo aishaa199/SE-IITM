@@ -213,7 +213,13 @@ const login = async () => {
       
       // Update app store
       appStore.login({ token: data.token, ...normalizedUser });
-      router.push("/");
+      const dashboardRouteByRole = {
+        owner: "/owner-dashboard",
+        manager: "/manager-dashboard",
+        staff: "/staff-dashboard",
+        customer: "/customer-dashboard",
+      };
+      router.push(dashboardRouteByRole[normalizedUser.role] || "/dashboard");
     } else {
       error.value = data.message || "Login failed. Please try again.";
     }

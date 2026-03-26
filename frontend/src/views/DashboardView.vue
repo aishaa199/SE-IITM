@@ -313,6 +313,18 @@
                   </div>
 
                   <div class="form-group">
+                    <label for="booking-customer-email">Customer Email</label>
+                    <input
+                      id="booking-customer-email"
+                      :value="selectedBookingCustomer?.email || ''"
+                      type="email"
+                      class="form-input"
+                      placeholder="Auto-filled after selecting customer"
+                      readonly
+                    />
+                  </div>
+
+                  <div class="form-group">
                     <label for="booking-stylist">Stylist (Optional)</label>
                     <select 
                       id="booking-stylist"
@@ -414,7 +426,7 @@
                 <input 
                   v-model="bookingCustomerName"
                   type="text" 
-                  placeholder="🔍 Filter by customer name..." 
+                  placeholder="🔍 Filter by customer name or email..." 
                   class="form-input"
                   style="width: 100%; max-width: 300px"
                 />
@@ -910,6 +922,17 @@
                   </div>
 
                   <div class="form-group">
+                    <label for="staff-dob">Date of Birth *</label>
+                    <input
+                      id="staff-dob"
+                      v-model="staffForm.dob"
+                      type="date"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
                     <label for="staff-doj">Date of Joining *</label>
                     <input 
                       id="staff-doj"
@@ -980,6 +1003,7 @@
                       <th>Skills</th>
                       <th>Email</th>
                       <th>Phone</th>
+                      <th>Date of Birth</th>
                       <th>Date of Joining</th>
                       <th>Rating</th>
                       <th>Attendance</th>
@@ -995,6 +1019,7 @@
                       <td><span style="font-size: 12px; color: #666">{{ staff.skills || '-' }}</span></td>
                       <td>{{ staff.email }}</td>
                       <td>{{ staff.phone }}</td>
+                      <td>{{ staff.dob || '-' }}</td>
                       <td>{{ staff.doj }}</td>
                       <td><span style="font-weight: 600; color: #f5a623">⭐ {{ staff.rating || 'N/A' }}</span></td>
                       <td><span :class="['badge', staffAttendanceBadge(staff.id)]">{{ getStaffAttendance(staff.id) }}</span></td>
@@ -1104,6 +1129,30 @@
                       required
                     />
                   </div>
+
+                  <div class="form-group">
+                    <label for="product-supplier-contact">Supplier Contact *</label>
+                    <input
+                      id="product-supplier-contact"
+                      v-model="inventoryForm.supplierContact"
+                      type="text"
+                      placeholder="e.g., +91-9876543210"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="product-supplier-email">Supplier Email *</label>
+                    <input
+                      id="product-supplier-email"
+                      v-model="inventoryForm.supplierEmail"
+                      type="email"
+                      placeholder="e.g., supplier@company.com"
+                      class="form-input"
+                      required
+                    />
+                  </div>
                 </div>
 
                 <div v-if="inventoryError" class="error-message">{{ inventoryError }}</div>
@@ -1145,7 +1194,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="product in filteredProducts" :key="product.id">
+                    <tr v-for="product in filteredProducts" :key="product.id" @click="viewProductDetails(product)" style="cursor: pointer">
                       <td>{{ product.name }}</td>
                       <td>{{ product.categoryName }}</td>
                       <td><span :class="['badge', product.stock <= product.minStock ? 'badge-red' : 'badge-green']">{{ product.stock }} {{ product.unit }}</span></td>
@@ -1154,10 +1203,10 @@
                       <td class="text-muted">{{ product.supplier }}</td>
                       <td>
                         <div style="display: flex; gap: 6px">
-                          <button class="btn btn-sm btn-outline" @click="handleEditProduct(product)" style="padding: 4px 8px; font-size: 12px">
+                          <button class="btn btn-sm btn-outline" @click.stop="handleEditProduct(product)" style="padding: 4px 8px; font-size: 12px">
                             ✎ Edit
                           </button>
-                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click="handleDeleteProduct(product.id)">
+                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click.stop="handleDeleteProduct(product.id)">
                             🗑 Delete
                           </button>
                         </div>
@@ -1323,7 +1372,7 @@
                 <input 
                   v-model="completedAppointmentFilter"
                   type="text" 
-                  placeholder="🔍 Filter by customer, staff, or service name..." 
+                  placeholder="🔍 Filter by customer name/email, staff, or service..." 
                   class="form-input"
                   style="width: 100%; max-width: 300px"
                 />
@@ -2238,6 +2287,33 @@
     </div>
   </div>
 
+  <!-- Product Details Modal -->
+  <div v-if="showProductDetailsModal && selectedProduct" class="modal-overlay" @click="showProductDetailsModal = false">
+    <div class="modal-content" @click.stop style="max-width: 640px">
+      <div class="modal-header">
+        <h3 class="modal-title">📦 Product Details</h3>
+        <button class="modal-close" @click="showProductDetailsModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+          <div><strong>Name:</strong> {{ selectedProduct.name || '-' }}</div>
+          <div><strong>Category:</strong> {{ selectedProduct.categoryName || '-' }}</div>
+          <div><strong>Stock:</strong> {{ selectedProduct.stock ?? '-' }} {{ selectedProduct.unit || '' }}</div>
+          <div><strong>Min Stock:</strong> {{ selectedProduct.minStock ?? '-' }}</div>
+          <div><strong>Cost Price:</strong> ₹{{ selectedProduct.costPrice ?? '-' }}</div>
+          <div><strong>Sell Price:</strong> ₹{{ selectedProduct.sellPrice ?? '-' }}</div>
+          <div><strong>Supplier:</strong> {{ selectedProduct.supplier || '-' }}</div>
+          <div><strong>Supplier Contact:</strong> {{ selectedProduct.supplierContact || '-' }}</div>
+          <div style="grid-column: 1 / -1"><strong>Supplier Email:</strong> {{ selectedProduct.supplierEmail || '-' }}</div>
+          <div style="grid-column: 1 / -1"><strong>Description:</strong> {{ selectedProduct.description || '-' }}</div>
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 20px">
+          <button class="btn btn-outline" @click="showProductDetailsModal = false">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- AI Assistant Chat Modal -->
   <div v-if="showAIAssistant" class="ai-assistant-modal">
     <div class="ai-assistant-content">
@@ -2273,6 +2349,7 @@ import { useAppStore } from "@/stores/appStore";
 
 const router = useRouter();
 const appStore = useAppStore();
+const API_BASE_URL = "http://localhost:5000";
 
 const currentView = ref("dashboard");
 const sidebarOpen = ref(false);
@@ -2356,6 +2433,7 @@ const staffForm = ref({
   email: "",
   phone: "",
   skills: "",
+  dob: "",
   doj: "",
   salary: 0,
   username: ""
@@ -2381,7 +2459,9 @@ const inventoryForm = ref({
   stock: 0,
   minStock: 0,
   costPrice: 0,
-  supplier: ""
+  supplier: "",
+  supplierContact: "",
+  supplierEmail: ""
 });
 const inventoryError = ref("");
 const inventorySuccess = ref("");
@@ -2415,6 +2495,8 @@ const selectedCustomerForVisits = ref(null);
 // Invoice modal state
 const showInvoiceModal = ref(false);
 const selectedInvoice = ref(null);
+const showProductDetailsModal = ref(false);
+const selectedProduct = ref(null);
 
 // Order Tab & Replenishment
 const orderTab = ref("pending-orders");
@@ -2452,7 +2534,21 @@ const rewardsForm = ref({
 const rewardsError = ref("");
 const rewardsSuccess = ref("");
 
-const user = computed(() => appStore.user);
+const user = computed(() => {
+  const currentUser = appStore.user;
+  if (!currentUser) {
+    return {
+      name: "Manager",
+      userId: "manager",
+      role: "manager"
+    };
+  }
+  return {
+    name: currentUser.name || currentUser.username || "Manager",
+    userId: currentUser.userId || currentUser.username || "manager",
+    role: currentUser.role || "manager"
+  };
+});
 const data = computed(() => appStore.data);
 
 const today = () => {
@@ -2763,6 +2859,10 @@ const filteredBookingCustomers = computed(() => {
   );
 });
 
+const selectedBookingCustomer = computed(() => {
+  return data.value.customers.find(c => String(c.id) === bookingForm.value.customerId) || null;
+});
+
 const filteredProducts = computed(() => {
   if (!productName.value.trim()) return data.value.products;
   return data.value.products.filter(p => 
@@ -2783,7 +2883,9 @@ const filteredBookings = computed(() => {
   if (!bookingCustomerName.value.trim()) return displayedBookings.value;
   return displayedBookings.value.filter(appt => {
     const customerNameStr = getCustomerName(appt.customerId).toLowerCase();
-    return customerNameStr.includes(bookingCustomerName.value.toLowerCase());
+    const customerEmailStr = getCustomerEmail(appt.customerId).toLowerCase();
+    const searchTerm = bookingCustomerName.value.toLowerCase();
+    return customerNameStr.includes(searchTerm) || customerEmailStr.includes(searchTerm);
   });
 });
 
@@ -2801,10 +2903,12 @@ const filteredCompletedAppointments = computed(() => {
   if (!completedAppointmentFilter.value.trim()) return completedAppointments.value;
   return completedAppointments.value.filter(appt => {
     const customerNameStr = getCustomerName(appt.customerId).toLowerCase();
+    const customerEmailStr = getCustomerEmail(appt.customerId).toLowerCase();
     const staffNameStr = (getStaffName(appt.staffId) || "Unassigned").toLowerCase();
     const serviceNameStr = getServiceName(appt.serviceId).toLowerCase();
     const searchTerm = completedAppointmentFilter.value.toLowerCase();
     return customerNameStr.includes(searchTerm) || 
+           customerEmailStr.includes(searchTerm) ||
            staffNameStr.includes(searchTerm) || 
            serviceNameStr.includes(searchTerm);
   });
@@ -2813,6 +2917,10 @@ const filteredCompletedAppointments = computed(() => {
 // Helper functions
 const getCustomerName = (id) => {
   return data.value.customers.find(c => c.id === id)?.name || "Unknown";
+};
+
+const getCustomerEmail = (id) => {
+  return data.value.customers.find(c => c.id === id)?.email || "";
 };
 
 const getServiceName = (id) => {
@@ -2891,7 +2999,7 @@ const handleLogout = () => {
   logout();
 };
 
-const handleChangePassword = () => {
+const handleChangePassword = async () => {
   passwordError.value = "";
   passwordSuccess.value = "";
 
@@ -2921,20 +3029,46 @@ const handleChangePassword = () => {
     return;
   }
 
-  // In a real application, validate the current password with backend
-  // For now, we'll just show success and reset the form
-  passwordSuccess.value = "Password changed successfully!";
-  
-  // Reset form
-  setTimeout(() => {
-    passwordForm.value = {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: ""
-    };
-    passwordSuccess.value = "";
-    showChangePasswordModal.value = false;
-  }, 1500);
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    passwordError.value = "You are not authenticated. Please log in again.";
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/change-password`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token,
+      },
+      body: JSON.stringify({
+        current_password: passwordForm.value.currentPassword,
+        new_password: passwordForm.value.newPassword,
+        confirm_password: passwordForm.value.confirmPassword,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      passwordError.value = data.message || "Failed to change password";
+      return;
+    }
+
+    passwordSuccess.value = data.message || "Password changed successfully!";
+    setTimeout(() => {
+      passwordForm.value = {
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      };
+      passwordSuccess.value = "";
+      showChangePasswordModal.value = false;
+    }, 1500);
+  } catch (error) {
+    passwordError.value = "Unable to connect to server. Please try again.";
+  }
 };
 
 const openProfileEdit = () => {
@@ -2949,7 +3083,9 @@ const openProfileEdit = () => {
 const handleUpdateProfile = () => {
   // Update user profile
   if (profileEditForm.value.name.trim()) {
-    appStore.user.name = profileEditForm.value.name;
+    if (appStore.user) {
+      appStore.user.name = profileEditForm.value.name;
+    }
   }
   
   // In a real application, send this data to the backend
@@ -3370,6 +3506,11 @@ const handleAddStaff = () => {
     return;
   }
 
+  if (!staffForm.value.dob) {
+    staffError.value = "Date of birth is required";
+    return;
+  }
+
   if (!staffForm.value.doj) {
     staffError.value = "Date of joining is required";
     return;
@@ -3392,6 +3533,7 @@ const handleAddStaff = () => {
     email: staffForm.value.email,
     phone: staffForm.value.phone,
     skills: staffForm.value.skills,
+    dob: staffForm.value.dob,
     doj: staffForm.value.doj,
     username: staffForm.value.username,
     status: "active",
@@ -3409,6 +3551,7 @@ const handleAddStaff = () => {
       email: "",
       phone: "",
       skills: "",
+      dob: "",
       doj: "",
       salary: 0,
       username: ""
@@ -3649,6 +3792,16 @@ const handleAddProduct = () => {
     return;
   }
 
+  if (!inventoryForm.value.supplierContact) {
+    inventoryError.value = "Supplier contact is required";
+    return;
+  }
+
+  if (!inventoryForm.value.supplierEmail) {
+    inventoryError.value = "Supplier email is required";
+    return;
+  }
+
   const newProduct = {
     id: Math.max(...data.value.products.map(p => p.id || 0), 0) + 1,
     name: inventoryForm.value.name,
@@ -3658,7 +3811,8 @@ const handleAddProduct = () => {
     costPrice: inventoryForm.value.costPrice,
     sellPrice: inventoryForm.value.costPrice * 1.5,
     supplier: inventoryForm.value.supplier,
-    supplierContact: "",
+    supplierContact: inventoryForm.value.supplierContact,
+    supplierEmail: inventoryForm.value.supplierEmail,
     description: `${inventoryForm.value.name} product`
   };
 
@@ -3672,7 +3826,9 @@ const handleAddProduct = () => {
       stock: 0,
       minStock: 0,
       costPrice: 0,
-      supplier: ""
+      supplier: "",
+      supplierContact: "",
+      supplierEmail: ""
     };
     inventorySuccess.value = "";
   }, 1500);
@@ -3685,7 +3841,9 @@ const handleEditProduct = (product) => {
     stock: product.stock,
     minStock: product.minStock,
     costPrice: product.costPrice,
-    supplier: product.supplier
+    supplier: product.supplier,
+    supplierContact: product.supplierContact || "",
+    supplierEmail: product.supplierEmail || ""
   };
 };
 
@@ -3698,6 +3856,11 @@ const handleDeleteProduct = (productId) => {
   }
 };
 
+const viewProductDetails = (product) => {
+  selectedProduct.value = product;
+  showProductDetailsModal.value = true;
+};
+
 // Staff edit/delete handlers
 const handleEditStaff = (staff) => {
   staffForm.value = {
@@ -3706,6 +3869,7 @@ const handleEditStaff = (staff) => {
     email: staff.email,
     phone: staff.phone,
     skills: staff.skills || "",
+    dob: staff.dob || "",
     doj: staff.doj,
     salary: staff.salary,
     username: staff.username,

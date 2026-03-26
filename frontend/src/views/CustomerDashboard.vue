@@ -761,6 +761,7 @@ import { useAppStore } from "../stores/appStore";
 
 const router = useRouter();
 const appStore = useAppStore();
+const API_BASE_URL = "http://localhost:5000";
 
 const currentView = ref("dashboard");
 const sidebarOpen = ref(false);
@@ -1137,7 +1138,7 @@ const viewAppointmentDetails = async (appointmentId) => {
   }
 };
 
-const handleChangePassword = () => {
+const handleChangePassword = async () => {
   passwordError.value = "";
   passwordSuccess.value = "";
 
@@ -1166,17 +1167,46 @@ const handleChangePassword = () => {
     return;
   }
 
-  passwordSuccess.value = "Password changed successfully!";
-  
-  setTimeout(() => {
-    passwordForm.value = {
-      currentPassword: "",
-      newPassword: "",
-      confirmPassword: ""
-    };
-    passwordSuccess.value = "";
-    showChangePasswordModal.value = false;
-  }, 1500);
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    passwordError.value = "You are not authenticated. Please log in again.";
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/change-password`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token,
+      },
+      body: JSON.stringify({
+        current_password: passwordForm.value.currentPassword,
+        new_password: passwordForm.value.newPassword,
+        confirm_password: passwordForm.value.confirmPassword,
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      passwordError.value = data.message || "Failed to change password";
+      return;
+    }
+
+    passwordSuccess.value = data.message || "Password changed successfully!";
+    setTimeout(() => {
+      passwordForm.value = {
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      };
+      passwordSuccess.value = "";
+      showChangePasswordModal.value = false;
+    }, 1500);
+  } catch (error) {
+    passwordError.value = "Unable to connect to server. Please try again.";
+  }
 };
 
 const openProfileEdit = () => {
