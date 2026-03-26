@@ -418,6 +418,183 @@ paths:
         '200':
           description: Service deleted
 
+  /appointment:
+    get:
+      summary: Get all appointments (Filterable by date)
+      tags:
+        - Appointment
+      security:
+        - tokenAuth: []
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            description: Filter appointments by date (YYYY-MM-DD)
+      responses:
+        '200':
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+    post:
+      summary: Create a new appointment
+      tags:
+        - Appointment
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentCreate'
+      responses:
+        '201':
+          description: Appointment created
+        '400':
+          description: Missing required fields or invalid format
+        '404':
+          description: Customer or Staff not found
+
+  /appointment/{appointment_id}:
+    parameters:
+      - name: appointment_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get a specific appointment
+      tags:
+        - Appointment
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Appointment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '404':
+          description: Appointment not found
+    put:
+      summary: Update an appointment
+      tags:
+        - Appointment
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AppointmentUpdate'
+      responses:
+        '200':
+          description: Appointment updated
+        '404':
+          description: Appointment or Staff not found
+    delete:
+      summary: Delete an appointment
+      tags:
+        - Appointment
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Appointment deleted
+        '404':
+          description: Appointment not found
+
+  /salon-config:
+    get:
+      summary: Get all salon configurations
+      tags:
+        - SalonConfig
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: List of configurations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SalonConfig'
+
+  /salon-config/{setting_id}:
+    parameters:
+      - name: setting_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get a specific configuration
+      tags:
+        - SalonConfig
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Configuration detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalonConfig'
+    put:
+      summary: Update a configuration
+      tags:
+        - SalonConfig
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SalonConfigUpdate'
+      responses:
+        '200':
+          description: Configuration updated
+        '404':
+          description: Configuration not found
+
+  /staff-appointments:
+    get:
+      summary: Get today's or specific date appointments for the logged-in staff member
+      tags:
+        - Staff
+      security:
+        - tokenAuth: []
+      parameters:
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            description: Date to filter appointments (YYYY-MM-DD). Defaults to today.
+      responses:
+        '200':
+          description: List of staff appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffAppointment'
+        '404':
+          description: No records found
+
 components:
   securitySchemes:
     tokenAuth:
@@ -529,6 +706,77 @@ components:
           type: string
           format: password
           example: "securePassword123"
+
+    Appointment:
+      type: object
+      properties:
+        appointment_id: {type: integer}
+        customer_id: {type: integer}
+        customer_name: {type: string}
+        staff_id: {type: integer}
+        staff_name: {type: string}
+        datetime: {type: string, format: date-time}
+        services:
+          type: array
+          items:
+            $ref: '#/components/schemas/SimpleService'
+
+    SimpleService:
+      type: object
+      properties:
+        id: {type: integer}
+        name: {type: string}
+        price: {type: number}
+
+    AppointmentCreate:
+      type: object
+      required: [customer_email, service_ids, appointment_datetime]
+      properties:
+        customer_email: {type: string}
+        staff_name: {type: string}
+        service_ids:
+          type: array
+          items: {type: integer}
+        appointment_datetime: {type: string, format: date-time}
+
+    AppointmentUpdate:
+      type: object
+      properties:
+        staff_name: {type: string}
+        service_ids:
+          type: array
+          items: {type: integer}
+        appointment_datetime: {type: string, format: date-time}
+
+    SalonConfig:
+      type: object
+      properties:
+        setting_id: {type: integer}
+        param_name: {type: string}
+        param_value: {type: string}
+        from_date: {type: string, format: date}
+        to_date: {type: string, format: date}
+
+    SalonConfigUpdate:
+      type: object
+      properties:
+        param_value: {type: string}
+        from_date: {type: string, format: date}
+        to_date: {type: string, format: date}
+
+    StaffAppointment:
+      type: object
+      properties:
+        appointment_id: {type: integer}
+        customer_name: {type: string}
+        datetime: {type: string, format: date-time}
+        services:
+          type: array
+          items:
+            type: object
+            properties:
+              id: {type: integer}
+              name: {type: string}
 
     ChangePassword:
       type: object

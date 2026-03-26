@@ -547,6 +547,15 @@ service_fields = {
     'no_of_reviews': fields.Integer
 }
 
+################################## Salon Config Serialization Fields ###################
+salon_config_fields = {
+    'setting_id': fields.Integer,
+    'param_name': fields.String,
+    'param_value': fields.String,
+    'from_date': fields.String,
+    'to_date': fields.String
+}
+
 ################################## Service API ##########################################
 class ServiceResource(Resource):
 ################################## Get Service ###########################################
@@ -610,10 +619,20 @@ class ServiceResource(Resource):
             service.service_duration = data.get('service_duration', service.service_duration)
             service.service_products = data.get('service_products', service.service_products)
             
-            if 'from_date' in data:
-                service.from_date = datetime.strptime(data['from_date'], '%Y-%m-%d').date()
+            if 'from_date' in data and data['from_date'] is not None and data['from_date'] != "":
+                try:
+                    service.from_date = datetime.strptime(data['from_date'], '%Y-%m-%d').date()
+                except (ValueError, TypeError):
+                    return {"message": "Invalid from_date format. Use YYYY-MM-DD"}, 400
+            
             if 'to_date' in data:
-                service.to_date = datetime.strptime(data['to_date'], '%Y-%m-%d').date()
+                if data['to_date'] is None or data['to_date'] == "":
+                    service.to_date = None
+                else:
+                    try:
+                        service.to_date = datetime.strptime(data['to_date'], '%Y-%m-%d').date()
+                    except (ValueError, TypeError):
+                        return {"message": "Invalid to_date format. Use YYYY-MM-DD"}, 400
             update_service_curr_flag(service.service_id)
             db.session.commit()
             
@@ -645,6 +664,331 @@ class ServiceResource(Resource):
             db.session.rollback()
             return {"message": f"Failed to delete service: {str(e)}"}, 500
 
+################################## Appointment Resource #####################################
+class AppointmentResource(Resource):
+################################## Get Appointment #######################################
+    @auth_required("token")
+    @roles_required("manager")
+    def get(self, appointment_id=None):
+        if appointment_id:
+            # Fetch single appointment
+            appointment = Appointment.query.get(appointment_id)
+            if not appointment:
+                return {"message": "Appointment not found"}, 404
+            
+            # Use marshal or manual dict for more control over nested data
+            return {
+                "appointment_id": appointment.appointment_id,
+                "customer_id": appointment.customer_id,
+                "customer_name": appointment.customer.customer_name,
+                "staff_id": appointment.staff_id,
+                "staff_name": appointment.staff.staff_name if appointment.staff else None,
+                "datetime": appointment.appointment_datetime.isoformat(),
+                "services": [{"id": s.service_id, "name": s.service_desc, "price": s.service_price} 
+                             for s in appointment.services if s.active_flg]
+            }
+        else:
+            # Fetch all appointments
+            # Filter by date if provided in query params (?date=YYYY-MM-DD)
+            date_filter_str = request.args.get('date')
+            query = Appointment.query
+
+            if date_filter_str:
+                try:
+                    filter_date = datetime.strptime(date_filter_str, '%Y-%m-%d').date()
+                    query = query.filter(db.func.date(Appointment.appointment_datetime) == filter_date)
+                except ValueError:
+                    return {"message": "Invalid date format for filter. Use YYYY-MM-DD"}, 400
+
+            appointments = query.all()
+            result = []
+            for appt in appointments:
+                result.append({
+                    "appointment_id": appt.appointment_id,
+                    "customer_id": appt.customer_id,
+                    "customer_name": appt.customer.customer_name,
+                    "staff_id": appt.staff_id,
+                    "staff_name": appt.staff.staff_name if appt.staff else None,
+                    "datetime": appt.appointment_datetime.isoformat(),
+                    "services": [{"id": s.service_id, "name": s.service_desc} 
+                                 for s in appt.services if s.active_flg]
+                })
+            return result
+
+################################## Create Appointment #######################################
+    @auth_required("token")
+    @roles_required("manager")
+    def post(self):
+        data = request.get_json()
+        customer_email = data.get('customer_email')
+        staff_name = data.get('staff_name')
+        service_ids = data.get('service_ids') # List of service IDs
+        datetime_str = data.get('appointment_datetime')
+
+        if not (customer_email and service_ids and datetime_str):
+            return {"message": "Missing required fields. Requires: customer_email, appointment_datetime, service_ids"}, 400
+
+        try:
+            appt_datetime = datetime.fromisoformat(datetime_str)
+        except ValueError:
+            return {"message": "Invalid datetime format. Use ISO format YYYY-MM-DDTHH:MM:SS"}, 400
+
+        # Validate customer
+        customer = Customer.query.filter_by(customer_email=customer_email).first()
+        if not customer: return {"message": "Customer not found"}, 404
+
+        # Validate staff if provided
+        staff_id = None
+        if staff_name:
+            staff = Staff.query.filter_by(staff_name=staff_name).first()
+            if not staff: return {"message": "Staff with provided name not found"}, 404
+            staff_id = staff.staff_id
+
+        # Parse and validate services (must be active)
+        if not isinstance(service_ids, list):
+            return {"message": "service_ids must be a list of integers"}, 400
+            
+        services = Service.query.filter(Service.service_id.in_(service_ids), Service.active_flg == True).all()
+        
+        if len(services) != len(set(service_ids)):
+            return {"message": "Some services were either not found, are inactive, or duplicates were provided"}, 400
+
+        try:
+            new_appt = Appointment(
+                customer_id=customer.customer_id,
+                staff_id=staff_id,
+                appointment_datetime=appt_datetime
+            )
+            # Add services to the many-to-many relationship
+            new_appt.services.extend(services)
+            
+            db.session.add(new_appt)
+            db.session.commit()
+            return {"message": "Appointment created successfully", "appointment_id": new_appt.appointment_id}, 201
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to create appointment: {str(e)}"}, 500
+
+################################## Edit Appointment #######################################
+    @auth_required("token")
+    @roles_required("manager")
+
+    def put(self, appointment_id):
+        appointment = Appointment.query.get(appointment_id)
+        if not appointment:
+            return {"message": "Appointment not found"}, 404
+
+        data = request.get_json()
+        staff_name = data.get('staff_name')
+        service_ids = data.get('service_ids') # List of service IDs
+        datetime_str = data.get('appointment_datetime')
+
+        try:
+            # Handle staff_name updates (including setting to null/None)
+            if 'staff_name' in data:
+                staff_id = None
+                if staff_name:
+                    staff = Staff.query.filter_by(staff_name=staff_name).first()
+                    if not staff:
+                        return {"message": "Staff with provided name not found"}, 404
+                    staff_id = staff.staff_id
+                
+                appointment.staff_id = staff_id
+            
+            if datetime_str:
+                appointment.appointment_datetime = datetime.fromisoformat(datetime_str)
+            
+            if 'service_ids' in data:
+                if service_ids:
+                    if not isinstance(service_ids, list):
+                        return {"message": "service_ids must be a list of integers"}, 400
+                    
+                    # Validate services are active
+                    services = Service.query.filter(Service.service_id.in_(service_ids), Service.active_flg == True).all()
+                    
+                    if len(services) != len(set(service_ids)):
+                        return {"message": "Some services were either not found, are inactive, or duplicates were provided"}, 400
+                    appointment.services = services
+                else:
+                    appointment.services = []
+
+            db.session.commit()
+            return {"message": "Appointment updated successfully"}
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to update appointment: {str(e)}"}, 500
+
+################################## Delete Appointment #######################################
+    @auth_required("token")
+    @roles_required("manager")
+    def delete(self, appointment_id):
+        appointment = Appointment.query.get(appointment_id)
+        if not appointment:
+            return {"message": "Appointment not found"}, 404
+            
+        try:
+            db.session.delete(appointment)
+            db.session.commit()
+            return {"message": "Appointment deleted successfully"}
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to delete appointment: {str(e)}"}, 500
+
+################################## Salon Config Resource ####################################
+class SalonConfigResource(Resource):
+################################## Get Salon Config Data ####################################
+    @auth_required("token")
+    @roles_required("manager")
+    def get(self, setting_id=None):
+        if setting_id:
+            config = SalonConfig.query.get(setting_id)
+            if not config:
+                return {"message": "Configuration not found"}, 404
+            return marshal(config, salon_config_fields)
+        
+        configs = SalonConfig.query.all()
+        return marshal(configs, salon_config_fields)
+
+################################## Update Salon Config Data ####################################
+    @auth_required("token")
+    @roles_required("manager")
+    def put(self, setting_id):
+        config = SalonConfig.query.get(setting_id)
+        if not config:
+            return {"message": "Configuration not found"}, 404
+            
+        data = request.get_json()
+        try:
+            config.param_value = data.get('param_value', config.param_value)
+            
+            if 'from_date' in data:
+                config.from_date = datetime.strptime(data['from_date'], '%Y-%m-%d')
+            if 'to_date' in data:
+                config.to_date = datetime.strptime(data['to_date'], '%Y-%m-%d')
+                
+            db.session.commit()
+            return {"message": "Configuration updated successfully"}
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to update configuration: {str(e)}"}, 500
+        
+################################## Staff Appointments Resource ##############################
+class StaffAppointmentResource(Resource):
+    @auth_required("token")
+    @roles_required("staff")
+    def get(self):
+        # Always use the ID of the currently logged-in staff member
+        target_staff_id = current_user.id
+        
+        staff = Staff.query.get(target_staff_id)
+        if not staff:
+            return {"message": "Staff member profile not found for current user"}, 404
+        
+        # Get date from query params (?date=YYYY-MM-DD), default to today
+        date_str = request.args.get('date')
+        if date_str:
+            try:
+                target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return {"message": "Invalid date format. Use YYYY-MM-DD"}, 400
+        else:
+            target_date = date.today()
+
+        # Filter appointments for this staff where the date matches target_date
+        appointments = Appointment.query.filter(
+            Appointment.staff_id == target_staff_id,
+            db.func.date(Appointment.appointment_datetime) == target_date
+        ).all()
+
+        if not appointments:
+            return {"message": f"No appointments found for {staff.staff_name} on {target_date}"}, 404
+
+        result = []
+        for appt in appointments:
+            result.append({
+                "appointment_id": appt.appointment_id,
+                "customer_name": appt.customer.customer_name,
+                "datetime": appt.appointment_datetime.isoformat(),
+                "services": [{"id": s.service_id, "name": s.service_desc} for s in appt.services]
+            })
+        return result
+
+################################## Staff Attendance Resource ################################
+staff_attendance_fields = {
+    'register_id': fields.Integer,
+    'staff_id': fields.Integer,
+    'register_datetime': fields.String,
+}
+
+class StaffAttendanceResource(Resource):
+    @auth_required("token")
+    @roles_required("manager", "staff")
+    def get(self, staff_id=None):
+        # Determine target staff
+        user_roles = [r.name for r in current_user.roles]
+        
+        if "manager" in user_roles:
+            # Managers can see anyone. If no staff_id provided, show self.
+            target_staff_id = staff_id if staff_id else current_user.id
+        elif "staff" in user_roles:
+            # Staff can ONLY see their own attendance
+            target_staff_id = current_user.id
+            # If they try to pass a different ID in the URL, block them
+            if staff_id and int(staff_id) != current_user.id:
+                return {"message": "Access denied. Staff can only view their own attendance record."}, 403
+        else:
+            return {"message": "Unauthorized role"}, 403
+
+        # Get month/year from query params, default to current
+        month_str = request.args.get('month') # Format: MM
+        year_str = request.args.get('year')   # Format: YYYY
+        
+        today = datetime.now()
+        try:
+            month = int(month_str) if month_str else today.month
+            year = int(year_str) if year_str else today.year
+        except ValueError:
+            return {"message": "Invalid month or year format. Use numeric values."}, 400
+
+        records = StaffAttendance.query.filter(
+            StaffAttendance.staff_id == target_staff_id,
+            db.extract('month', StaffAttendance.register_datetime) == month,
+            db.extract('year', StaffAttendance.register_datetime) == year
+        ).all()
+
+        if not records:
+            staff = Staff.query.get(target_staff_id)
+            staff_name = staff.staff_name if staff else "Unknown"
+            return {"message": f"No attendance records found for {staff_name} in {month}/{year}"}, 404
+
+        return marshal(records, staff_attendance_fields)
+
+    @auth_required("token")
+    @roles_required("staff")
+    def post(self):
+        # Staff marking their own attendance for "now"
+        try:
+            # Check if already marked today to prevent duplicates (optional logic)
+            today = date.today()
+            already_marked = StaffAttendance.query.filter(
+                StaffAttendance.staff_id == current_user.id,
+                db.func.date(StaffAttendance.register_datetime) == today
+            ).first()
+
+            if already_marked:
+                return {"message": "Attendance already marked for today"}, 400
+
+            new_attendance = StaffAttendance(
+                staff_id=current_user.id,
+                register_datetime=datetime.now()
+            )
+            db.session.add(new_attendance)
+            db.session.commit()
+            return {"message": "Attendance marked successfully", "time": new_attendance.register_datetime.isoformat()}, 201
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to mark attendance: {str(e)}"}, 500
+
 #############################################################################################
 # Add API resources to the app
 
@@ -654,3 +998,7 @@ api.add_resource(ProductResource, '/product', '/product/<int:product_id>')
 api.add_resource(CustomerResource, '/customer', '/customer/<int:customer_id>')
 api.add_resource(StaffResource, '/staff', '/staff/<int:staff_id>')
 api.add_resource(ServiceResource, '/service', '/service/<int:service_id>')
+api.add_resource(AppointmentResource, '/appointment', '/appointment/<int:appointment_id>')
+api.add_resource(SalonConfigResource, '/salon-config', '/salon-config/<int:setting_id>')
+api.add_resource(StaffAppointmentResource, '/staff-appointments')
+api.add_resource(StaffAttendanceResource, '/staff-attendance', '/staff-attendance/<int:staff_id>')

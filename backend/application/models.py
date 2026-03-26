@@ -71,7 +71,7 @@ class Customer(db.Model):
     customer_contact = db.Column(db.String(20), nullable=False)
     customer_dob = db.Column(db.Date, nullable=False)
     customer_reg_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
-    customer_email = db.Column(db.String(120), nullable=True)
+    customer_email = db.Column(db.String(120), nullable=False, unique=True)
     customer_address = db.Column(db.String(255), nullable=True)
     number_of_visits = db.Column(db.Integer, nullable=False, default=0)
     customer_type = db.Column(db.String(50), nullable=False)
@@ -95,18 +95,24 @@ class Product(db.Model):
     product_low_stock_alert = db.Column(db.Boolean, default=False) #Flag to indicate if the product is low in stock, can be used for triggering alerts for replenishment
 
 
+# Association table for Appointment and Service (Many-to-Many)
+appointment_services = db.Table('appointment_services',
+    db.Column('appointment_id', db.Integer, db.ForeignKey('appointments.appointment_id'), primary_key=True),
+    db.Column('service_id', db.Integer, db.ForeignKey('service_master.service_id'), primary_key=True)
+)
+
+
 class Appointment(db.Model):
     __tablename__ = 'appointments'
     appointment_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer_master.customer_id'), nullable=False)
-    staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service_master.service_id'), nullable=False)
+    staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=True)
     appointment_datetime = db.Column(db.DateTime, nullable=False)
 
     # Relationships to access related data easily
     customer = db.relationship('Customer', backref=db.backref('appointments', lazy=True))
     staff = db.relationship('Staff', backref=db.backref('appointments', lazy=True))
-    service = db.relationship('Service', backref=db.backref('appointments', lazy=True))
+    services = db.relationship('Service', secondary=appointment_services, backref=db.backref('appointments', lazy=True))
 
 
 class Invoice(db.Model):
@@ -115,7 +121,6 @@ class Invoice(db.Model):
     invoice_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     customer_id = db.Column(db.Integer, db.ForeignKey('customer_master.customer_id'), nullable=False)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
-    service_id = db.Column(db.Integer, db.ForeignKey('service_master.service_id'), nullable=False)
     other_charges = db.Column(db.Float, nullable=True)
     rewards_earned = db.Column(db.Integer, nullable=False, default=0)
     rewards_utilized = db.Column(db.Integer, nullable=False, default=0)
@@ -125,7 +130,8 @@ class Invoice(db.Model):
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('invoices', lazy=True))
     staff = db.relationship('Staff', backref=db.backref('invoices', lazy=True))
-    service = db.relationship('Service', backref=db.backref('invoices', lazy=True))
+    # Note: As an invoice is usually for a completed appointment, 
+    # you might want to link to Appointment directly or handle service listing in the view/logic.
 
 
 class InventoryTransaction(db.Model):
@@ -217,7 +223,7 @@ class CustomerReward(db.Model):
 class SalonConfig(db.Model):
     __tablename__ = 'salon_config'
     setting_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    param_name = db.Column(db.String(100), nullable=False)
+    param_name = db.Column(db.String(100), unique=True, nullable=False)
     param_value = db.Column(db.String(255), nullable=False)
     from_date = db.Column(db.DateTime, nullable=False)
     to_date = db.Column(db.DateTime, nullable=True)

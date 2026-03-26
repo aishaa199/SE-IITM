@@ -42,9 +42,10 @@ The application runs on `http://localhost:5000` by default.
 ```bash
 python main.py
 ```
-If you are running this application for the first time, please run the one time data  setup script.
+If you are running this application for the first time, please run the one time data  setup script and configuration table insert script.
 ```bash
 python upload_initial_data.py
+python upload_salon_config.py
 ```
 
 ## 🔐 API Reference
