@@ -140,12 +140,91 @@ paths:
                     type: string
         '400':
           description: Invalid input or user already exists
+        '500':
+          description: Internal server error (Profile creation failed)
+
+  /api/manager:
+    get:
+      summary: Get list of all managers (Owner/Manager only)
+      tags:
+        - Manager
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: List of managers
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MessageResponse'
-        '500':
-          description: Internal server error (Profile creation failed)
+                type: array
+                items:
+                  $ref: '#/components/schemas/Manager'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden (Owner or Manager access only)
+
+  /api/manager/{manager_id}:
+    get:
+      summary: Get details of a specific manager
+      tags:
+        - Manager
+      security:
+        - tokenAuth: []
+      parameters:
+        - name: manager_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Manager details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Manager'
+        '404':
+          description: Manager not found
+    put:
+      summary: Update manager details (Owner or self only)
+      tags:
+        - Manager
+      security:
+        - tokenAuth: []
+      parameters:
+        - name: manager_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Manager'
+      responses:
+        '200':
+          description: Manager updated successfully
+        '404':
+          description: Manager not found
+    delete:
+      summary: Delete a manager (Owner only)
+      tags:
+        - Manager
+      security:
+        - tokenAuth: []
+      parameters:
+        - name: manager_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Manager deleted successfully
+        '404':
+          description: Manager not found
 
   /api/change-password:
     put:
@@ -163,22 +242,16 @@ paths:
       responses:
         '200':
           description: Password changed successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MessageResponse'
         '400':
           description: Validation error or wrong current password
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/MessageResponse'
 
-  /product:
+  /api/product:
     get:
       summary: Get all products
       tags:
         - Product
+      security:
+        - tokenAuth: []
       responses:
         '200':
           description: List of products
@@ -199,17 +272,30 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProductCreate'
+              $ref: '#/components/schemas/ProductPost'
       responses:
         '201':
           description: Product created
-  /product/{product_id}:
+  /api/product/{product_id}:
     parameters:
       - name: product_id
         in: path
         required: true
         schema:
           type: integer
+    get:
+      summary: Get product details
+      tags:
+        - Product
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Product details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
     put:
       summary: Update a product
       tags:
@@ -221,7 +307,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ProductCreate'
+              $ref: '#/components/schemas/ProductPut'
       responses:
         '200':
           description: Product updated
@@ -235,11 +321,13 @@ paths:
         '200':
           description: Product deleted
 
-  /customer:
+  /api/customer:
     get:
       summary: Get all customers
       tags:
         - Customer
+      security:
+        - tokenAuth: []
       responses:
         '200':
           description: List of customers
@@ -264,13 +352,26 @@ paths:
       responses:
         '201':
           description: Customer created
-  /customer/{customer_id}:
+  /api/customer/{customer_id}:
     parameters:
       - name: customer_id
         in: path
         required: true
         schema:
           type: integer
+    get:
+      summary: Get customer details
+      tags:
+        - Customer
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Customer details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Customer'
     put:
       summary: Update a customer
       tags:
@@ -282,7 +383,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomerCreate'
+              $ref: '#/components/schemas/CustomerUpdate'
       responses:
         '200':
           description: Customer updated
@@ -296,11 +397,13 @@ paths:
         '200':
           description: Customer deleted
 
-  /staff:
+  /api/staff:
     get:
       summary: Get all staff
       tags:
         - Staff
+      security:
+        - tokenAuth: []
       responses:
         '200':
           description: List of staff members
@@ -324,14 +427,27 @@ paths:
               $ref: '#/components/schemas/StaffCreate'
       responses:
         '201':
-          description: Staff created
-  /staff/{staff_id}:
+          description: Staff member created
+  /api/staff/{staff_id}:
     parameters:
       - name: staff_id
         in: path
         required: true
         schema:
           type: integer
+    get:
+      summary: Get staff details
+      tags:
+        - Staff
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Staff details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Staff'
     put:
       summary: Update a staff member
       tags:
@@ -343,10 +459,10 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/StaffCreate'
+              $ref: '#/components/schemas/StaffUpdate'
       responses:
         '200':
-          description: Staff updated
+          description: Staff member updated
     delete:
       summary: Delete a staff member
       tags:
@@ -355,16 +471,18 @@ paths:
         - tokenAuth: []
       responses:
         '200':
-          description: Staff deleted
+          description: Staff member deleted
 
-  /service:
+  /api/service:
     get:
-      summary: Get all active services
+      summary: Get all services
       tags:
         - Service
+      security:
+        - tokenAuth: []
       responses:
         '200':
-          description: List of active services
+          description: List of services
           content:
             application/json:
               schema:
@@ -386,13 +504,26 @@ paths:
       responses:
         '201':
           description: Service created
-  /service/{service_id}:
+  /api/service/{service_id}:
     parameters:
       - name: service_id
         in: path
         required: true
         schema:
           type: integer
+    get:
+      summary: Get service details
+      tags:
+        - Service
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Service details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Service'
     put:
       summary: Update a service
       tags:
@@ -404,7 +535,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ServiceCreate'
+              $ref: '#/components/schemas/ServiceUpdate'
       responses:
         '200':
           description: Service updated
@@ -418,9 +549,9 @@ paths:
         '200':
           description: Service deleted
 
-  /appointment:
+  /api/appointment:
     get:
-      summary: Get all appointments (Filterable by date)
+      summary: Get appointments
       tags:
         - Appointment
       security:
@@ -432,7 +563,6 @@ paths:
           schema:
             type: string
             format: date
-            description: Filter appointments by date (YYYY-MM-DD)
       responses:
         '200':
           description: List of appointments
@@ -443,7 +573,7 @@ paths:
                 items:
                   $ref: '#/components/schemas/Appointment'
     post:
-      summary: Create a new appointment
+      summary: Create an appointment
       tags:
         - Appointment
       security:
@@ -457,12 +587,7 @@ paths:
       responses:
         '201':
           description: Appointment created
-        '400':
-          description: Missing required fields or invalid format
-        '404':
-          description: Customer or Staff not found
-
-  /appointment/{appointment_id}:
+  /api/appointment/{appointment_id}:
     parameters:
       - name: appointment_id
         in: path
@@ -470,7 +595,7 @@ paths:
         schema:
           type: integer
     get:
-      summary: Get a specific appointment
+      summary: Get appointment details
       tags:
         - Appointment
       security:
@@ -481,9 +606,32 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Appointment'
-        '404':
-          description: Appointment not found
+                type: object
+                properties:
+                  appointment_id:
+                    type: integer
+                  customer_id:
+                    type: integer
+                  customer_name:
+                    type: string
+                  staff_id:
+                    type: integer
+                  staff_name:
+                    type: string
+                  datetime:
+                    type: string
+                    format: date-time
+                  services:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        name:
+                          type: string
+                        price:
+                          type: number
     put:
       summary: Update an appointment
       tags:
@@ -499,8 +647,6 @@ paths:
       responses:
         '200':
           description: Appointment updated
-        '404':
-          description: Appointment or Staff not found
     delete:
       summary: Delete an appointment
       tags:
@@ -510,67 +656,10 @@ paths:
       responses:
         '200':
           description: Appointment deleted
-        '404':
-          description: Appointment not found
 
-  /salon-config:
+  /api/staff-appointments:
     get:
-      summary: Get all salon configurations
-      tags:
-        - SalonConfig
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: List of configurations
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SalonConfig'
-
-  /salon-config/{setting_id}:
-    parameters:
-      - name: setting_id
-        in: path
-        required: true
-        schema:
-          type: integer
-    get:
-      summary: Get a specific configuration
-      tags:
-        - SalonConfig
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: Configuration detail
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SalonConfig'
-    put:
-      summary: Update a configuration
-      tags:
-        - SalonConfig
-      security:
-        - tokenAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SalonConfigUpdate'
-      responses:
-        '200':
-          description: Configuration updated
-        '404':
-          description: Configuration not found
-
-  /staff-appointments:
-    get:
-      summary: Get today's or specific date appointments for the logged-in staff member
+      summary: Get appointments for the logged-in staff
       tags:
         - Staff
       security:
@@ -582,7 +671,6 @@ paths:
           schema:
             type: string
             format: date
-            description: Date to filter appointments (YYYY-MM-DD). Defaults to today.
       responses:
         '200':
           description: List of staff appointments
@@ -591,9 +679,205 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/StaffAppointment'
-        '404':
-          description: No records found
+                  type: object
+                  properties:
+                    appointment_id:
+                      type: integer
+                    customer_name:
+                      type: string
+                    datetime:
+                      type: string
+                      format: date-time
+                    services:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                          name:
+                            type: string
+
+  /api/staff-attendance:
+    get:
+      summary: Get staff attendance records (Manager for date/Staff for month)
+      tags:
+        - Staff
+      security:
+        - tokenAuth: []
+      parameters:
+        - name: date
+          in: query
+          required: false
+          description: Manager filter by date (YYYY-MM-DD)
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Attendance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffAttendance'
+    post:
+      summary: Mark attendance for current staff member
+      tags:
+        - Staff
+      security:
+        - tokenAuth: []
+      responses:
+        '201':
+          description: Attendance marked successfully
+  /api/staff-attendance/{staff_id}:
+    parameters:
+      - name: staff_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get specific staff attendance (Internal/Legacy)
+      tags:
+        - Staff
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Attendance records
+
+  /api/cleanup-appointments:
+    delete:
+      summary: Cleanup old appointment history (Manager only)
+      tags:
+        - Manager
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Retention cleanup completed
+
+  /api/inventory-transaction:
+    get:
+      summary: Get inventory transactions
+      tags:
+        - Inventory
+      security:
+        - tokenAuth: []
+      parameters:
+        - name: from_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: to_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of inventory transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/InventoryTransaction'
+    post:
+      summary: Record an inventory transaction
+      tags:
+        - Inventory
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryTransactionCreate'
+      responses:
+        '201':
+          description: Transaction recorded
+  /api/inventory-transaction/{txn_id}:
+    get:
+      summary: Get specific transaction details
+      tags:
+        - Inventory
+      security:
+        - tokenAuth: []
+      parameters:
+        - name: txn_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Transaction details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InventoryTransaction'
+
+  /api/salon-config:
+    get:
+      summary: Get all salon configurations
+      tags:
+        - Configuration
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Configuration list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SalonConfig'
+  /api/salon-config/{setting_id}:
+    parameters:
+      - name: setting_id
+        in: path
+        required: true
+        schema:
+          type: integer
+    get:
+      summary: Get specific configuration
+      tags:
+        - Configuration
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: Configuration details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SalonConfig'
+    put:
+      summary: Update salon configuration
+      tags:
+        - Configuration
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                param_value:
+                  type: string
+      responses:
+        '200':
+          description: Configuration updated
 
 components:
   securitySchemes:
@@ -601,182 +885,28 @@ components:
       type: apiKey
       in: header
       name: Authentication-Token
-      description: Token-based authentication required for secured routes.
 
   schemas:
-    Product:
-      type: object
-      properties:
-        product_id: {type: integer}
-        product_name: {type: string}
-        product_price: {type: number}
-        product_min_stock: {type: integer}
-        product_curr_stock: {type: integer}
-        product_low_stock_alert: {type: boolean}
-    ProductCreate:
-      type: object
-      required: [product_name, product_price, product_min_stock, product_curr_stock]
-      properties:
-        product_name: {type: string}
-        product_price: {type: number}
-        product_min_stock: {type: integer}
-        product_curr_stock: {type: integer}
-
-    Customer:
-      type: object
-      properties:
-        cust_id: {type: integer}
-        cust_name: {type: string}
-        cust_ph: {type: string}
-        cust_email: {type: string}
-        cust_reward_points: {type: integer}
-    CustomerCreate:
-      type: object
-      required: [cust_name, cust_ph, cust_email]
-      properties:
-        cust_name: {type: string}
-        cust_ph: {type: string}
-        cust_email: {type: string}
-
-    Staff:
-      type: object
-      properties:
-        staff_id: {type: integer}
-        staff_name: {type: string}
-        staff_ph: {type: string}
-        staff_email: {type: string}
-        staff_salary: {type: number}
-    StaffCreate:
-      type: object
-      required: [staff_name, staff_ph, staff_email, staff_salary]
-      properties:
-        staff_name: {type: string}
-        staff_ph: {type: string}
-        staff_email: {type: string}
-        staff_salary: {type: number}
-
-    Service:
-      type: object
-      properties:
-        service_id: {type: integer}
-        service_desc: {type: string}
-        to_date: {type: string, format: date}
-        active_flg: {type: boolean}
-    ServiceCreate:
-      type: object
-      required: [service_desc, to_date]
-      properties:
-        service_desc: {type: string}
-        to_date: {type: string, format: date}
-
-    ManagerCreate:
+    LoginRequest:
       type: object
       required:
         - username
         - password
       properties:
-        fullname:
-          type: string
-          example: "John Doe"
-        email:
-          type: string
-          format: email
-          example: "john.doe@example.com"
-        phone:
-          type: string
-          example: "1234567890"
-        skills:
-          type: string
-          example: "Hair Styling, Coloring"
-        role:
-          type: string
-          example: "Senior Manager"
-        dob:
-          type: string
-          format: date
-          example: "1990-01-01"
-        doj:
-          type: string
-          format: date
-          example: "2023-10-25"
         username:
           type: string
-          example: "johndoe_mgr"
         password:
           type: string
-          format: password
-          example: "securePassword123"
 
-    Appointment:
+    LoginResponse:
       type: object
       properties:
-        appointment_id: {type: integer}
-        customer_id: {type: integer}
-        customer_name: {type: string}
-        staff_id: {type: integer}
-        staff_name: {type: string}
-        datetime: {type: string, format: date-time}
-        services:
-          type: array
-          items:
-            $ref: '#/components/schemas/SimpleService'
-
-    SimpleService:
-      type: object
-      properties:
-        id: {type: integer}
-        name: {type: string}
-        price: {type: number}
-
-    AppointmentCreate:
-      type: object
-      required: [customer_email, service_ids, appointment_datetime]
-      properties:
-        customer_email: {type: string}
-        staff_name: {type: string}
-        service_ids:
-          type: array
-          items: {type: integer}
-        appointment_datetime: {type: string, format: date-time}
-
-    AppointmentUpdate:
-      type: object
-      properties:
-        staff_name: {type: string}
-        service_ids:
-          type: array
-          items: {type: integer}
-        appointment_datetime: {type: string, format: date-time}
-
-    SalonConfig:
-      type: object
-      properties:
-        setting_id: {type: integer}
-        param_name: {type: string}
-        param_value: {type: string}
-        from_date: {type: string, format: date}
-        to_date: {type: string, format: date}
-
-    SalonConfigUpdate:
-      type: object
-      properties:
-        param_value: {type: string}
-        from_date: {type: string, format: date}
-        to_date: {type: string, format: date}
-
-    StaffAppointment:
-      type: object
-      properties:
-        appointment_id: {type: integer}
-        customer_name: {type: string}
-        datetime: {type: string, format: date-time}
-        services:
-          type: array
-          items:
-            type: object
-            properties:
-              id: {type: integer}
-              name: {type: string}
+        token:
+          type: string
+        username:
+          type: string
+        role:
+          type: string
 
     ChangePassword:
       type: object
@@ -787,41 +917,453 @@ components:
       properties:
         current_password:
           type: string
-          format: password
         new_password:
           type: string
-          format: password
         confirm_password:
           type: string
-          format: password
 
-    MessageResponse:
+    ManagerCreate:
       type: object
-      properties:
-        message:
-          type: string
-
-    LoginRequest:
-      type: object
-      properties:
-        username:
-          type: string
-          example: owner_user
-        password:
-          type: string
-          example: password123
       required:
         - username
         - password
-
-    LoginResponse:
-      type: object
       properties:
-        token:
+        fullname:
           type: string
-          description: Authentication token for subsequent requests.
-        username:
+        email:
+          type: string
+        phone:
+          type: string
+        skills:
           type: string
         role:
           type: string
-          example: owner
+        dob:
+          type: string
+          format: date
+        doj:
+          type: string
+          format: date
+        branch_name:
+          type: string
+        username:
+          type: string
+        password:
+          type: string
+
+    Manager:
+      type: object
+      properties:
+        manager_id:
+          type: integer
+        manager_name:
+          type: string
+        manager_email:
+          type: string
+        manager_contact:
+          type: string
+        manager_skills:
+          type: string
+        manager_role:
+          type: string
+        manager_dob:
+          type: string
+        manager_doj:
+          type: string
+        branch_name:
+          type: string
+
+    Product:
+      type: object
+      properties:
+        product_id:
+          type: integer
+        product_desc:
+          type: string
+        product_category_name:
+          type: string
+        product_price:
+          type: number
+        product_min_qoh:
+          type: integer
+        product_curr_qoh:
+          type: integer
+        product_supplier_name:
+          type: string
+        product_supplier_contact:
+          type: string
+        product_supplier_email:
+          type: string
+        product_low_stock_alert:
+          type: boolean
+
+    ProductPost:
+      type: object
+      required:
+        - product_name
+      properties:
+        product_name:
+          type: string
+        product_category:
+          type: string
+        price:
+          type: number
+        minimum_stock:
+          type: integer
+        stock_quantity:
+          type: integer
+        supplier_name:
+          type: string
+        supplier_contact:
+          type: string
+        supplier_email:
+          type: string
+
+    ProductPut:
+      type: object
+      properties:
+        product_name:
+          type: string
+        product_category:
+          type: string
+        price:
+          type: number
+        minimum_stock:
+          type: integer
+        stock_quantity:
+          type: integer
+        supplier_name:
+          type: string
+        product_supplier_contact:
+          type: string
+        product_supplier_email:
+          type: string
+
+    Customer:
+      type: object
+      properties:
+        customer_id:
+          type: integer
+        customer_name:
+          type: string
+        customer_contact:
+          type: string
+        customer_dob:
+          type: string
+        customer_reg_date:
+          type: string
+        customer_email:
+          type: string
+        customer_address:
+          type: string
+        number_of_visits:
+          type: integer
+        customer_type:
+          type: string
+        customer_preferences:
+          type: string
+        customer_available_rewards:
+          type: integer
+
+    CustomerCreate:
+      type: object
+      required:
+        - customer_name
+        - customer_email
+      properties:
+        customer_name:
+          type: string
+        customer_contact:
+          type: string
+        customer_email:
+          type: string
+        customer_dob:
+          type: string
+          format: date
+        customer_address:
+          type: string
+        customer_type:
+          type: string
+        customer_preferences:
+          type: string
+
+    CustomerUpdate:
+      type: object
+      properties:
+        customer_name:
+          type: string
+        customer_contact:
+          type: string
+        customer_email:
+          type: string
+        customer_dob:
+          type: string
+          format: date
+        customer_address:
+          type: string
+        customer_type:
+          type: string
+        customer_preferences:
+          type: string
+
+    Staff:
+      type: object
+      properties:
+        staff_id:
+          type: integer
+        staff_name:
+          type: string
+        staff_contact:
+          type: string
+        staff_email:
+          type: string
+        staff_skills:
+          type: string
+        staff_role:
+          type: string
+        staff_dob:
+          type: string
+        staff_doj:
+          type: string
+        staff_salary:
+          type: number
+        staff_cumulative_rating:
+          type: number
+        no_of_reviews:
+          type: integer
+
+    StaffCreate:
+      type: object
+      required:
+        - username
+        - staff_name
+      properties:
+        username:
+          type: string
+        staff_name:
+          type: string
+        staff_contact:
+          type: string
+        staff_email:
+          type: string
+        staff_skills:
+          type: string
+        staff_role:
+          type: string
+        staff_dob:
+          type: string
+          format: date
+        staff_doj:
+          type: string
+          format: date
+        staff_salary:
+          type: number
+
+    StaffUpdate:
+      type: object
+      properties:
+        staff_name:
+          type: string
+        staff_contact:
+          type: string
+        staff_email:
+          type: string
+        staff_skills:
+          type: string
+        staff_role:
+          type: string
+        staff_salary:
+          type: number
+        staff_dob:
+          type: string
+          format: date
+        staff_doj:
+          type: string
+          format: date
+
+    Service:
+      type: object
+      properties:
+        service_id:
+          type: integer
+        service_desc:
+          type: string
+        service_category:
+          type: string
+        service_price:
+          type: number
+        service_duration:
+          type: integer
+        service_products:
+          type: string
+        active_flg:
+          type: boolean
+        from_date:
+          type: string
+        to_date:
+          type: string
+
+    ServiceCreate:
+      type: object
+      required:
+        - service_desc
+        - service_price
+      properties:
+        service_desc:
+          type: string
+        service_category:
+          type: string
+        service_price:
+          type: number
+        service_duration:
+          type: integer
+        service_products:
+          type: string
+        from_date:
+          type: string
+          format: date
+        to_date:
+          type: string
+          format: date
+
+    ServiceUpdate:
+      type: object
+      properties:
+        service_desc:
+          type: string
+        service_category:
+          type: string
+        service_price:
+          type: number
+        service_duration:
+          type: integer
+        service_products:
+          type: string
+        from_date:
+          type: string
+          format: date
+        to_date:
+          type: string
+          format: date
+
+    Appointment:
+      type: object
+      properties:
+        appointment_id:
+          type: integer
+        customer_id:
+          type: integer
+        customer_name:
+          type: string
+        staff_id:
+          type: integer
+        staff_name:
+          type: string
+        datetime:
+          type: string
+          format: date-time
+        services:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              name:
+                type: string
+
+    AppointmentCreate:
+      type: object
+      required:
+        - customer_email
+        - service_ids
+        - appointment_datetime
+      properties:
+        customer_email:
+          type: string
+        staff_id:
+          type: integer
+        service_ids:
+          type: array
+          items:
+            type: integer
+        appointment_datetime:
+          type: string
+          format: date-time
+
+    AppointmentUpdate:
+      type: object
+      properties:
+        staff_id:
+          type: integer
+        service_ids:
+          type: array
+          items:
+            type: integer
+        appointment_datetime:
+          type: string
+          format: date-time
+
+    StaffAttendance:
+      type: object
+      properties:
+        register_id:
+          type: integer
+        staff_id:
+          type: integer
+        register_datetime:
+          type: string
+          format: date-time
+
+    InventoryTransaction:
+      type: object
+      properties:
+        txn_id:
+          type: integer
+        product_id:
+          type: integer
+        product_name:
+          type: string
+        staff_id:
+          type: integer
+        recorded_by:
+          type: string
+        service_id:
+          type: integer
+        service_name:
+          type: string
+        txn_type:
+          type: integer
+        quantity:
+          type: integer
+        date_of_txn:
+          type: string
+          format: date-time
+
+    InventoryTransactionCreate:
+      type: object
+      required:
+        - product_id
+        - quantity
+      properties:
+        product_id:
+          type: integer
+        service_id:
+          type: integer
+        quantity:
+          type: integer
+
+    SalonConfig:
+      type: object
+      properties:
+        setting_id:
+          type: integer
+        param_name:
+          type: string
+        param_value:
+          type: string
+        display_name:
+          type: string
+        description:
+          type: string
+

@@ -138,14 +138,17 @@ class InventoryTransaction(db.Model):
     __tablename__ = 'inventory_transactions'
     txn_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     product_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'), nullable=False)
-    staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # Changed back to user.id to support both staff and manager IDs
+    service_id = db.Column(db.Integer, db.ForeignKey('service_master.service_id'), nullable=True) # Optional link to service
     txn_type = db.Column(db.Integer, nullable=False) #0 for ordering, 1 for replenishment, will bw populated based on the role - staff (ordering) or mana7ger (replenishment)
     quantity = db.Column(db.Integer, nullable=False)
     date_of_txn = db.Column(db.DateTime, nullable=False)
 
     # Relationships
     product = db.relationship('Product', backref=db.backref('transactions', lazy=True))
-    staff = db.relationship('Staff', backref=db.backref('inventory_transactions', lazy=True))
+    service = db.relationship('Service', backref=db.backref('inventory_transactions', lazy=True))
+    staff = db.relationship('Staff', primaryjoin="InventoryTransaction.staff_id == Staff.staff_id", foreign_keys=[staff_id], backref=db.backref('inventory_transactions', overlaps="inventory_transactions,manager", lazy=True))
+    manager = db.relationship('Manager', primaryjoin="InventoryTransaction.staff_id == Manager.manager_id", foreign_keys=[staff_id], backref=db.backref('inventory_transactions', overlaps="inventory_transactions,staff", lazy=True), overlaps="inventory_transactions,staff")
 
 
 class StaffAttendance(db.Model):
@@ -184,7 +187,7 @@ class Finance(db.Model):
     net_profit = db.Column(db.Float, nullable=True)
 
 
-class Manager(db.Model, UserMixin):
+class Manager(db.Model):
     __tablename__ = 'manager_master'
     manager_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     manager_name = db.Column(db.String(100), nullable=False)
@@ -194,6 +197,7 @@ class Manager(db.Model, UserMixin):
     manager_role = db.Column(db.String(50), nullable=False, default='Manager')
     manager_dob = db.Column(db.DateTime, nullable=False)
     manager_doj = db.Column(db.DateTime, nullable=False)
+    branch_name = db.Column(db.String(100), nullable=False)
 
     user = db.relationship('User', backref=db.backref('manager_profile', uselist=False))
 

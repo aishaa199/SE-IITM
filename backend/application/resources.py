@@ -1,9 +1,9 @@
 from flask_restful import Resource, Api, reqparse, marshal_with, fields, marshal
-from flask_security import auth_required, roles_required, current_user, hash_password, verify_password
+from flask_security import auth_required, roles_required, roles_accepted, current_user, hash_password, verify_password
 from datetime import datetime, timedelta, date
 from flask import request, jsonify
 from .sec import datastore
-from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, InventoryTransaction, StaffAttendance, CustomerReview, Finance, Manager, Owner, CustomerReward, SalonConfig, db, Role, UserRoles
+from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, InventoryTransaction, StaffAttendance, CustomerReview, Finance, Manager, Owner, CustomerReward, SalonConfig, db, Role, UserRoles, appointment_services
 api = Api(prefix = '/api')
 
 ################################# HELPER FUNCTIONS ########################################
@@ -27,6 +27,42 @@ def update_low_stock_alerts(product_id=None):
         db.session.rollback()
         print(f"Error updating low stock alerts: {str(e)}")
         return False
+
+################################# To cleanup old appointment data based on retention policy. #########################
+def cleanup_appointment_history():
+    """Helper procedure to delete appointments older than retention period defined in SalonConfig."""
+    config = SalonConfig.query.filter_by(param_name='APPT_HISTORY_RETENTION_DAYS').first()
+    
+    if not config:
+        return False, "Retention policy (APPT_HISTORY_RETENTION_DAYS) not found."
+    
+    try:
+        retention_days = int(config.param_value)
+        cutoff_date = datetime.now() - timedelta(days=retention_days)
+        
+        # Find old appointment IDs
+        old_appt_ids = db.session.query(Appointment.appointment_id).filter(
+            Appointment.appointment_datetime < cutoff_date
+        ).all()
+
+        if not old_appt_ids:
+            return True, 0
+
+        ids = [a.appointment_id for a in old_appt_ids]
+
+        # Delete associations first
+        db.session.execute(
+            appointment_services.delete().where(appointment_services.c.appointment_id.in_(ids))
+        )
+
+        # Delete main records
+        deleted_count = Appointment.query.filter(Appointment.appointment_id.in_(ids)).delete(synchronize_session=False)
+        
+        db.session.commit()
+        return True, deleted_count
+    except Exception as e:
+        db.session.rollback()
+        return False, str(e)
 
 ################################# To update service active flags based on to_date comparison. #########################
 def update_service_curr_flag(service_id=None):
@@ -70,6 +106,7 @@ class Owner(Resource):
         manager_role1 = data.get('role')
         manager_dob_str = data.get('dob')
         manager_doj_str = data.get('doj')
+        branch_name = data.get('branch_name')
         username = data.get('username')
         password = data.get('password')
         
@@ -112,7 +149,8 @@ class Owner(Resource):
                 manager_skills=manager_skills or "Not Specified",
                 manager_role=manager_role1 or "Manager",
                 manager_dob=manager_dob or datetime.now().date(),
-                manager_doj=manager_doj or datetime.now().date()
+                manager_doj=manager_doj or datetime.now().date(),
+                branch_name=branch_name
             )
             db.session.add(new_manager)
             db.session.commit() 
@@ -152,6 +190,20 @@ class ChangePassword(Resource):
 
 ################################## Manager Dashboard ##################################
 ################################## Product API ########################################
+
+product_fields = {
+    'product_id': fields.Integer,
+    'product_desc': fields.String,
+    'product_category_name': fields.String,
+    'product_price': fields.Float,
+    'product_min_qoh': fields.Integer,
+    'product_curr_qoh': fields.Integer,
+    'product_supplier_name': fields.String,
+    'product_supplier_contact': fields.String,
+    'product_supplier_email': fields.String,
+    'product_low_stock_alert': fields.Boolean
+}
+
 class ProductResource(Resource):
 
 ################################## Create Product #####################################
@@ -242,20 +294,132 @@ class ProductResource(Resource):
         products = Product.query.all()
         return marshal(products, product_fields)
 
+################################## Inventory Transaction Fields ###########################
+def get_recorded_by_name(txn):
+    """Helper to get name of person who recorded the transaction (Staff or Manager)"""
+    if txn.txn_type == 0 and txn.staff:
+        return txn.staff.staff_name
+    elif txn.txn_type == 1 and txn.manager:
+        return txn.manager.manager_name
+    return "Unknown"
 
-product_fields = {
+inventory_transaction_fields = {
+    'txn_id': fields.Integer,
     'product_id': fields.Integer,
-    'product_desc': fields.String,
-    'product_category_name': fields.String,
-    'product_price': fields.Float,
-    'product_min_qoh': fields.Integer,
-    'product_curr_qoh': fields.Integer,
-    'product_supplier_name': fields.String,
-    'product_supplier_contact': fields.String,
-    'product_supplier_email': fields.String,
-    'product_low_stock_alert': fields.Boolean
+    'product_name': fields.String(attribute='product.product_desc'),
+    'staff_id': fields.Integer,
+    'recorded_by': fields.String(attribute=get_recorded_by_name),
+    'service_id': fields.Integer,
+    'service_name': fields.String(attribute='service.service_desc'),
+    'txn_type': fields.Integer,
+    'quantity': fields.Integer,
+    'date_of_txn': fields.DateTime
 }
 
+################################## Inventory Transaction API ###########################
+class InventoryTransactionResource(Resource):
+################################## Get Inventory Transaction ###########################
+    @auth_required("token")
+    @roles_accepted("manager", "staff")
+    def get(self, txn_id=None):
+        if txn_id:
+            txn = InventoryTransaction.query.get(txn_id)
+            if not txn:
+                return {"message": "Transaction not found"}, 404
+            return marshal(txn, inventory_transaction_fields)
+        
+        # Date filtering logic
+        from_date_str = request.args.get('from_date')
+        to_date_str = request.args.get('to_date')
+        
+        try:
+            if from_date_str and to_date_str:
+                from_date = datetime.strptime(from_date_str, '%Y-%m-%d')
+                # Make to_date inclusive of the entire day
+                to_date = datetime.strptime(to_date_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            else:
+                # Default to this month
+                today = date.today()
+                from_date = datetime(today.year, today.month, 1)
+                to_date = datetime.now()
+        except ValueError:
+            return {"message": "Invalid date format. Use YYYY-MM-DD"}, 400
+
+        query = InventoryTransaction.query.filter(
+            InventoryTransaction.date_of_txn >= from_date,
+            InventoryTransaction.date_of_txn <= to_date
+        )
+        
+        # Managers see all, staff see theirs
+        if not any(role.name == 'manager' for role in current_user.roles):
+            query = query.filter_by(staff_id=current_user.id)
+            
+        transactions = query.order_by(InventoryTransaction.date_of_txn.desc()).all()
+        return marshal(transactions, inventory_transaction_fields)
+
+################################## Create Inventory Transaction ###########################
+    @auth_required("token")
+    @roles_accepted("manager", "staff")
+    def post(self):
+        data = request.get_json()
+        product_id = data.get('product_id')
+        service_id = data.get('service_id')
+        quantity = data.get('quantity')
+        
+        if not product_id or not quantity or quantity <= 0:
+            return {"message": "Invalid product_id or quantity"}, 400
+            
+        product = Product.query.get(product_id)
+        if not product:
+            return {"message": "Product not found"}, 404
+            
+        # Optional: Validate service_id if provided
+        if service_id:
+            service = Service.query.get(service_id)
+            if not service:
+                return {"message": "Service not found"}, 404
+            
+        is_manager = any(role.name == 'manager' for role in current_user.roles)
+        is_staff = any(role.name == 'staff' for role in current_user.roles)
+        
+        # Logic: 
+        # Staff: txn_type = 0 (ordering/taking), reduces qoh
+        # Manager: txn_type = 1 (replenishing), increases qoh
+        
+        if is_manager:
+            txn_type = 1
+            product.product_curr_qoh += quantity
+        elif is_staff:
+            txn_type = 0
+            if product.product_curr_qoh < quantity:
+                return {"message": "Insufficient stock"}, 400
+            product.product_curr_qoh -= quantity
+        else:
+            return {"message": "Unauthorized"}, 403
+            
+        try:
+            new_txn = InventoryTransaction(
+                product_id=product_id,
+                staff_id=current_user.id,
+                service_id=service_id,
+                txn_type=txn_type,
+                quantity=quantity,
+                date_of_txn=datetime.now()
+            )
+            db.session.add(new_txn)
+            db.session.commit()
+            
+            # Check for low stock alerts after update
+            update_low_stock_alerts(product_id)
+            
+            return {"message": "Transaction recorded successfully", "txn_id": new_txn.txn_id}, 201
+            
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Error recording transaction: {str(e)}"}, 500
+
+
+################################## Customer Fields ########################################
 customer_fields = {
     'customer_id': fields.Integer,
     'customer_name': fields.String,
@@ -390,6 +554,86 @@ class CustomerResource(Resource):
         except Exception as e:
             db.session.rollback()
             return {"message": f"Failed to delete customer: {str(e)}"}, 500
+
+################################## Manager Serialization Fields #########################
+manager_fields = {
+    'manager_id': fields.Integer,
+    'manager_name': fields.String,
+    'manager_email': fields.String,
+    'manager_contact': fields.String,
+    'manager_skills': fields.String,
+    'manager_role': fields.String,
+    'manager_dob': fields.String,
+    'manager_doj': fields.String,
+    'branch_name': fields.String
+}
+
+################################## Manager API ############################################
+class ManagerResource(Resource):
+################################## Fetch Manager ############################################
+    @auth_required("token")
+    @roles_accepted("owner", "manager")
+    def get(self, manager_id=None):
+        if manager_id:
+            manager = Manager.query.get(manager_id)
+            if not manager:
+                return {"message": "Manager not found"}, 404
+            return marshal(manager, manager_fields)
+        
+        managers = Manager.query.all()
+        return marshal(managers, manager_fields)
+
+################################## Edit Manager ############################################
+    @auth_required("token")
+    @roles_accepted("owner", "manager")
+    def put(self, manager_id):
+        # Managers can only edit their own profile, Owners can edit any
+        is_owner = any(role.name == 'owner' for role in current_user.roles)
+        if not is_owner and current_user.id != manager_id:
+            return {"message": "Unauthorized to edit this manager profile"}, 403
+
+        data = request.get_json()
+        manager = Manager.query.get(manager_id)
+        if not manager:
+            return {"message": "Manager not found"}, 404
+            
+        try:
+            manager.manager_name = data.get('manager_name', manager.manager_name)
+            manager.manager_email = data.get('manager_email', manager.manager_email)
+            manager.manager_contact = data.get('manager_contact', manager.manager_contact)
+            manager.manager_skills = data.get('manager_skills', manager.manager_skills)
+            manager.manager_role = data.get('manager_role', manager.manager_role)
+            manager.branch_name = data.get('branch_name', manager.branch_name)
+            
+            if 'manager_dob' in data:
+                manager.manager_dob = datetime.strptime(data['manager_dob'], '%Y-%m-%d')
+            if 'manager_doj' in data:
+                manager.manager_doj = datetime.strptime(data['manager_doj'], '%Y-%m-%d')
+            
+            db.session.commit()
+            return {"message": "Manager updated successfully"}
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to update manager: {str(e)}"}, 500
+
+################################## Delete Manager ############################################
+    @auth_required("token")
+    @roles_required("owner")
+    def delete(self, manager_id):
+        manager = Manager.query.get(manager_id)
+        if not manager:
+            return {"message": "Manager not found"}, 404
+            
+        try:
+            user = User.query.get(manager.manager_id)
+            db.session.delete(manager)
+            if user:
+                db.session.delete(user)
+            db.session.commit()
+            return {"message": "Manager and associated user deleted successfully"}
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to delete manager: {str(e)}"}, 500
 
 ################################## Staff Serialization Fields #########################
 staff_fields = {
@@ -670,6 +914,7 @@ class AppointmentResource(Resource):
     @auth_required("token")
     @roles_required("manager")
     def get(self, appointment_id=None):
+        cleanup_appointment_history()
         if appointment_id:
             # Fetch single appointment
             appointment = Appointment.query.get(appointment_id)
@@ -721,7 +966,7 @@ class AppointmentResource(Resource):
     def post(self):
         data = request.get_json()
         customer_email = data.get('customer_email')
-        staff_name = data.get('staff_name')
+        staff_id = data.get('staff_id')
         service_ids = data.get('service_ids') # List of service IDs
         datetime_str = data.get('appointment_datetime')
 
@@ -738,11 +983,9 @@ class AppointmentResource(Resource):
         if not customer: return {"message": "Customer not found"}, 404
 
         # Validate staff if provided
-        staff_id = None
-        if staff_name:
-            staff = Staff.query.filter_by(staff_name=staff_name).first()
-            if not staff: return {"message": "Staff with provided name not found"}, 404
-            staff_id = staff.staff_id
+        if staff_id:
+            staff = Staff.query.get(staff_id)
+            if not staff: return {"message": "Staff with provided ID not found"}, 404
 
         # Parse and validate services (must be active)
         if not isinstance(service_ids, list):
@@ -779,19 +1022,17 @@ class AppointmentResource(Resource):
             return {"message": "Appointment not found"}, 404
 
         data = request.get_json()
-        staff_name = data.get('staff_name')
+        staff_id = data.get('staff_id')
         service_ids = data.get('service_ids') # List of service IDs
         datetime_str = data.get('appointment_datetime')
 
         try:
-            # Handle staff_name updates (including setting to null/None)
-            if 'staff_name' in data:
-                staff_id = None
-                if staff_name:
-                    staff = Staff.query.filter_by(staff_name=staff_name).first()
+            # Handle staff_id updates (including setting to null/None)
+            if 'staff_id' in data:
+                if staff_id:
+                    staff = Staff.query.get(staff_id)
                     if not staff:
-                        return {"message": "Staff with provided name not found"}, 404
-                    staff_id = staff.staff_id
+                        return {"message": "Staff with provided ID not found"}, 404
                 
                 appointment.staff_id = staff_id
             
@@ -874,9 +1115,11 @@ class SalonConfigResource(Resource):
         
 ################################## Staff Appointments Resource ##############################
 class StaffAppointmentResource(Resource):
+################################## Get Staff Appointments (in Staff dashboard) ##############
     @auth_required("token")
     @roles_required("staff")
     def get(self):
+        cleanup_appointment_history() # Cleanup old appointments before fetching staff-specific data
         # Always use the ID of the currently logged-in staff member
         target_staff_id = current_user.id
         
@@ -884,24 +1127,22 @@ class StaffAppointmentResource(Resource):
         if not staff:
             return {"message": "Staff member profile not found for current user"}, 404
         
-        # Get date from query params (?date=YYYY-MM-DD), default to today
-        date_str = request.args.get('date')
-        if date_str:
-            try:
-                target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            except ValueError:
-                return {"message": "Invalid date format. Use YYYY-MM-DD"}, 400
-        else:
+        # Get 'mode' from query params. Options: 'today' (default) or 'all'
+        mode = request.args.get('mode', 'today')
+        
+        query = Appointment.query.filter(Appointment.staff_id == target_staff_id)
+
+        if mode == 'today':
             target_date = date.today()
-
-        # Filter appointments for this staff where the date matches target_date
-        appointments = Appointment.query.filter(
-            Appointment.staff_id == target_staff_id,
-            db.func.date(Appointment.appointment_datetime) == target_date
-        ).all()
-
-        if not appointments:
-            return {"message": f"No appointments found for {staff.staff_name} on {target_date}"}, 404
+            appointments = query.filter(db.func.date(Appointment.appointment_datetime) == target_date).all()
+            if not appointments:
+                return {"message": f"No appointments found for {staff.staff_name} today ({target_date})"}, 404
+        elif mode == 'all':
+            appointments = query.all()
+            if not appointments:
+                return {"message": f"No appointments found for {staff.staff_name}"}, 404
+        else:
+            return {"message": "Invalid mode. Use 'today' or 'all'."}, 400
 
         result = []
         for appt in appointments:
@@ -921,45 +1162,61 @@ staff_attendance_fields = {
 }
 
 class StaffAttendanceResource(Resource):
+################################## Get Staff Attendance  ##############################
     @auth_required("token")
-    @roles_required("manager", "staff")
     def get(self, staff_id=None):
-        # Determine target staff
-        user_roles = [r.name for r in current_user.roles]
+        # Determine target user role
+        user_roles = [r.name for r in current_user.roles] if current_user else []
         
+        # Determine if we should treat this as a Manager request or a Staff request
+        # If user is a manager, they get date-based access to all staff
         if "manager" in user_roles:
-            # Managers can see anyone. If no staff_id provided, show self.
-            target_staff_id = staff_id if staff_id else current_user.id
+            date_str = request.args.get('date') # Format: YYYY-MM-DD
+            
+            if date_str:
+                # 1. Manager selecting a particular date
+                try:
+                    target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+                except ValueError:
+                    return {"message": "Invalid date format. Use YYYY-MM-DD."}, 400
+            else:
+                # 2. Manager default: Today
+                target_date = date.today()
+
+            start_of_day = datetime.combine(target_date, datetime.min.time())
+            end_of_day = datetime.combine(target_date, datetime.max.time())
+            
+            records = StaffAttendance.query.filter(
+                StaffAttendance.register_datetime >= start_of_day,
+                StaffAttendance.register_datetime <= end_of_day
+            ).all()
+
+            if not records:
+                return {"message": f"No attendance records found for {target_date}"}, 404
+
+        # If user is a staff (and NOT a manager, or we specifically want staff behavior)
         elif "staff" in user_roles:
-            # Staff can ONLY see their own attendance
+            # 3. Particular staff (current_user.id) fetching for current month
             target_staff_id = current_user.id
-            # If they try to pass a different ID in the URL, block them
-            if staff_id and int(staff_id) != current_user.id:
-                return {"message": "Access denied. Staff can only view their own attendance record."}, 403
+            today = date.today()
+            
+            records = StaffAttendance.query.filter(
+                StaffAttendance.staff_id == target_staff_id,
+                db.extract('month', StaffAttendance.register_datetime) == today.month,
+                db.extract('year', StaffAttendance.register_datetime) == today.year
+            ).all()
+
+            if not records:
+                return {"message": f"No attendance records found for current month for you"}, 404
         else:
             return {"message": "Unauthorized role"}, 403
 
-        # Get month/year from query params, default to current
-        month_str = request.args.get('month') # Format: MM
-        year_str = request.args.get('year')   # Format: YYYY
-        
-        today = datetime.now()
-        try:
-            month = int(month_str) if month_str else today.month
-            year = int(year_str) if year_str else today.year
-        except ValueError:
-            return {"message": "Invalid month or year format. Use numeric values."}, 400
-
-        records = StaffAttendance.query.filter(
-            StaffAttendance.staff_id == target_staff_id,
-            db.extract('month', StaffAttendance.register_datetime) == month,
-            db.extract('year', StaffAttendance.register_datetime) == year
-        ).all()
+        return marshal(records, staff_attendance_fields)
 
         if not records:
-            staff = Staff.query.get(target_staff_id)
-            staff_name = staff.staff_name if staff else "Unknown"
-            return {"message": f"No attendance records found for {staff_name} in {month}/{year}"}, 404
+                return {"message": f"No attendance records found for current month"}, 404
+        else:
+            return {"message": "Unauthorized role"}, 403
 
         return marshal(records, staff_attendance_fields)
 
@@ -989,10 +1246,26 @@ class StaffAttendanceResource(Resource):
             db.session.rollback()
             return {"message": f"Failed to mark attendance: {str(e)}"}, 500
 
+################################## Maintenance: Cleanup History ##############################
+class AppointmentHistoryCleanup(Resource):
+    @auth_required("token")
+    @roles_required("manager")
+    def delete(self):
+        success, result = cleanup_appointment_history()
+        
+        if success:
+            if isinstance(result, int):
+                return {"message": f"Successfully deleted {result} appointments based on retention policy."}, 200
+            else:
+                return {"message": "Retention cleanup completed."}, 200
+        else:
+            return {"message": f"Cleanup failed: {result}"}, 500
+
 #############################################################################################
 # Add API resources to the app
 
 api.add_resource(Owner, '/create-manager') #post
+api.add_resource(ManagerResource, '/manager', '/manager/<int:manager_id>')
 api.add_resource(ChangePassword, '/change-password')
 api.add_resource(ProductResource, '/product', '/product/<int:product_id>')
 api.add_resource(CustomerResource, '/customer', '/customer/<int:customer_id>')
@@ -1002,3 +1275,5 @@ api.add_resource(AppointmentResource, '/appointment', '/appointment/<int:appoint
 api.add_resource(SalonConfigResource, '/salon-config', '/salon-config/<int:setting_id>')
 api.add_resource(StaffAppointmentResource, '/staff-appointments')
 api.add_resource(StaffAttendanceResource, '/staff-attendance', '/staff-attendance/<int:staff_id>')
+api.add_resource(AppointmentHistoryCleanup, '/cleanup-appointments')
+api.add_resource(InventoryTransactionResource, '/inventory-transaction', '/inventory-transaction/<int:txn_id>')
