@@ -126,6 +126,7 @@ class Invoice(db.Model):
     rewards_utilized = db.Column(db.Integer, nullable=False, default=0)
     invoice_amount = db.Column(db.Float, nullable=False)
     total_charges = db.Column(db.Float, nullable=False)
+    status = db.Column(db.Integer, nullable=False, default=0) # 0: Pending, 1: Invoiced, 2: Sent
 
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('invoices', lazy=True))

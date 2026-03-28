@@ -647,7 +647,10 @@ staff_fields = {
     'staff_doj': fields.String,
     'staff_salary': fields.Float,
     'staff_cumulative_rating': fields.Float,
-    'no_of_reviews': fields.Integer
+    'no_of_reviews': fields.Integer,
+    'is_present_today': fields.Boolean,
+    'appointments_today': fields.Integer,
+    'active': fields.Boolean(attribute='user.active')
 }
 
 ################################## Staff API ############################################
@@ -656,14 +659,51 @@ class StaffResource(Resource):
 ################################## Fetch Staff ############################################
     @auth_required("token")
     def get(self, staff_id=None):
+        today = date.today()
+        
         if staff_id:
             staff = Staff.query.get(staff_id)
             if not staff:
                 return {"message": "Staff member not found"}, 404
-            return marshal(staff, staff_fields)
+            
+            # Check attendance for today
+            attendance = StaffAttendance.query.filter(
+                StaffAttendance.staff_id == staff_id,
+                db.func.date(StaffAttendance.register_datetime) == today
+            ).first()
+
+            # Count appointments for today
+            appointment_count = Appointment.query.filter(
+                Appointment.staff_id == staff_id,
+                db.func.date(Appointment.appointment_datetime) == today
+            ).count()
+            
+            staff_data = marshal(staff, staff_fields)
+            staff_data['is_present_today'] = attendance is not None
+            staff_data['appointments_today'] = appointment_count
+            staff_data['active'] = staff.user.active
+            return staff_data
         
         staff_members = Staff.query.all()
-        return marshal(staff_members, staff_fields)
+        results = []
+        for staff in staff_members:
+            attendance = StaffAttendance.query.filter(
+                StaffAttendance.staff_id == staff.staff_id,
+                db.func.date(StaffAttendance.register_datetime) == today
+            ).first()
+
+            appointment_count = Appointment.query.filter(
+                Appointment.staff_id == staff.staff_id,
+                db.func.date(Appointment.appointment_datetime) == today
+            ).count()
+            
+            staff_data = marshal(staff, staff_fields)
+            staff_data['is_present_today'] = attendance is not None
+            staff_data['appointments_today'] = appointment_count
+            staff_data['active'] = staff.user.active
+            results.append(staff_data)
+            
+        return results
 
 ################################## Create Staff ############################################
     @auth_required("token")
@@ -685,7 +725,7 @@ class StaffResource(Resource):
             db.session.add(staff_role_obj)
             db.session.commit()
             
-        new_user = User(username=username, password=hash_password(password))
+        new_user = User(username=username, password=hash_password(password), active=data.get('active', True))
         new_user.roles.append(staff_role_obj)
         
         try:
@@ -733,6 +773,9 @@ class StaffResource(Resource):
             staff.staff_role = data.get('staff_role', staff.staff_role)
             staff.staff_salary = data.get('staff_salary', staff.staff_salary)
             
+            if 'active' in data:
+                staff.user.active = data['active']
+                
             if 'staff_dob' in data:
                 staff.staff_dob = datetime.strptime(data['staff_dob'], '%Y-%m-%d').date()
             if 'staff_doj' in data:
@@ -1261,6 +1304,161 @@ class AppointmentHistoryCleanup(Resource):
         else:
             return {"message": f"Cleanup failed: {result}"}, 500
 
+################################## Salon Daily Appointment Count Resource ##############################
+class SalonDailyAppointmentCountResource(Resource):
+    @auth_required("token")
+    @roles_required("manager")
+    def get(self):
+        # Fetch daily counts of appointments from the Appointment table
+        try:
+            results = db.session.query(
+                db.func.date(Appointment.appointment_datetime).label('date'),
+                db.func.count(Appointment.appointment_id).label('count')
+            ).group_by(
+                db.func.date(Appointment.appointment_datetime)
+            ).order_by(
+                'date'
+            ).all()
+
+            # Format the results into a list of dictionaries
+            daily_counts = [
+                {"date": str(row.date), "count": row.count}
+                for row in results
+            ]
+            return daily_counts, 200
+        except Exception as e:
+            return {"message": f"Error fetching appointment counts: {str(e)}"}, 500
+
+################################## Invoice API ############################################
+
+invoice_fields = {
+    'invoice_number': fields.Integer,
+    'invoice_date': fields.String,
+    'customer_id': fields.Integer,
+    'customer_name': fields.String(attribute='customer.customer_name'),
+    'staff_id': fields.Integer,
+    'staff_name': fields.String(attribute='staff.staff_name'),
+    'other_charges': fields.Float,
+    'rewards_earned': fields.Integer,
+    'rewards_utilized': fields.Integer,
+    'invoice_amount': fields.Float,
+    'total_charges': fields.Float,
+    'status': fields.Integer
+}
+
+class InvoiceResource(Resource):
+################################## Get Invoice Data ###################################
+    @auth_required("token")
+    @roles_accepted("manager", "staff")
+    def get(self, appointment_id=None):
+        """
+        Fetch data for an invoice based on appointment_id.
+        If no appointment_id is provided, return all existing invoices.
+        """
+        if appointment_id:
+            appointment = Appointment.query.get(appointment_id)
+            if not appointment:
+                return {"message": "Appointment not found"}, 404
+            
+            # Check if an invoice already exists for this appointment
+            # (Note: Current model doesn't have appointment_id in Invoice, 
+            # but we can look up by customer and staff on the same day if needed,
+            # or simply return the data required to *create* an invoice)
+            
+            service_total = sum(s.service_price for s in appointment.services if s.active_flg)
+            
+            return {
+                "customer_id": appointment.customer_id,
+                "customer_name": appointment.customer.customer_name,
+                "staff_id": appointment.staff_id,
+                "staff_name": appointment.staff.staff_name if appointment.staff else "Not Assigned",
+                "appointment_date": str(appointment.appointment_datetime.date()),
+                "services": [{"id": s.service_id, "name": s.service_desc, "price": s.service_price} 
+                             for s in appointment.services if s.active_flg],
+                "service_total": service_total
+            }
+        
+        invoices = Invoice.query.all()
+        return marshal(invoices, invoice_fields)
+
+################################## Create Invoice #####################################
+    @auth_required("token")
+    @roles_accepted("manager", "staff")
+    def post(self):
+        """
+        Create a new invoice record.
+        """
+        data = request.get_json()
+        
+        customer_id = data.get('customer_id')
+        staff_id = data.get('staff_id')
+        invoice_amount = data.get('invoice_amount')
+        other_charges = data.get('other_charges', 0.0)
+        rewards_earned = data.get('rewards_earned', 0)
+        rewards_utilized = data.get('rewards_utilized', 0)
+        status = data.get('status', 0) # 0: Pending, 1: Invoiced, 2: Sent
+        
+        if not (customer_id and staff_id and invoice_amount):
+            return {"message": "Missing required fields: customer_id, staff_id, invoice_amount"}, 400
+            
+        total_charges = float(invoice_amount) + float(other_charges)
+        
+        try:
+            new_invoice = Invoice(
+                customer_id=customer_id,
+                staff_id=staff_id,
+                invoice_date=date.today(),
+                invoice_amount=invoice_amount,
+                other_charges=other_charges,
+                rewards_earned=rewards_earned,
+                rewards_utilized=rewards_utilized,
+                total_charges=total_charges,
+                status=status
+            )
+            db.session.add(new_invoice)
+            db.session.commit()
+            
+            return {"message": "Invoice created successfully", "invoice_number": new_invoice.invoice_number}, 201
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to create invoice: {str(e)}"}, 500
+
+################################## Today's Appointments API ################################
+
+class TodaysAppointmentsResource(Resource):
+    @auth_required("token")
+    @roles_accepted("manager", "staff")
+    def get(self):
+        """
+        Fetch details of all appointments scheduled for today.
+        """
+        today = date.today()
+        try:
+            # Fetch appointments where the date matches today
+            appointments = Appointment.query.filter(
+                db.func.date(Appointment.appointment_datetime) == today
+            ).order_by(Appointment.appointment_datetime.asc()).all()
+
+            if not appointments:
+                return {"message": f"No appointments found for today ({today})"}, 200
+
+            result = []
+            for appt in appointments:
+                result.append({
+                    "appointment_id": appt.appointment_id,
+                    "customer_id": appt.customer_id,
+                    "customer_name": appt.customer.customer_name,
+                    "staff_id": appt.staff_id,
+                    "staff_name": appt.staff.staff_name if appt.staff else "Not Assigned",
+                    "datetime": appt.appointment_datetime.isoformat(),
+                    "status": "Assigned" if appt.staff_id else "Unassigned",
+                    "services": [{"id": s.service_id, "name": s.service_desc, "price": s.service_price} 
+                                 for s in appt.services]
+                })
+            return result, 200
+        except Exception as e:
+            return {"message": f"Error fetching today's appointments: {str(e)}"}, 500
+
 #############################################################################################
 # Add API resources to the app
 
@@ -1276,4 +1474,7 @@ api.add_resource(SalonConfigResource, '/salon-config', '/salon-config/<int:setti
 api.add_resource(StaffAppointmentResource, '/staff-appointments')
 api.add_resource(StaffAttendanceResource, '/staff-attendance', '/staff-attendance/<int:staff_id>')
 api.add_resource(AppointmentHistoryCleanup, '/cleanup-appointments')
+api.add_resource(SalonDailyAppointmentCountResource, '/daily-appointment-count')
 api.add_resource(InventoryTransactionResource, '/inventory-transaction', '/inventory-transaction/<int:txn_id>')
+api.add_resource(InvoiceResource, '/invoice', '/invoice/<int:appointment_id>')
+api.add_resource(TodaysAppointmentsResource, '/todays-appointments')

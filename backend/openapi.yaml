@@ -748,6 +748,93 @@ paths:
         '200':
           description: Attendance records
 
+  /api/daily-appointment-count:
+    get:
+      summary: Get daily appointment counts for manager
+      tags:
+        - Manager
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: List of daily counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DailyAppointmentCount'
+
+  /api/invoice:
+    get:
+      summary: Get all invoices
+      tags:
+        - Invoice
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invoice'
+    post:
+      summary: Create a new invoice
+      tags:
+        - Invoice
+      security:
+        - tokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreate'
+      responses:
+        '201':
+          description: Invoice created successfully
+
+  /api/invoice/{appointment_id}:
+    get:
+      summary: Get invoice billing data based on an appointment
+      tags:
+        - Invoice
+      security:
+        - tokenAuth: []
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Invoice data preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoicePreview'
+
+  /api/todays-appointments:
+    get:
+      summary: Get all appointments for today
+      tags:
+        - Manager
+      security:
+        - tokenAuth: []
+      responses:
+        '200':
+          description: List of today's appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TodaysAppointment'
+
   /api/cleanup-appointments:
     delete:
       summary: Cleanup old appointment history (Manager only)
@@ -1131,6 +1218,14 @@ components:
           type: number
         no_of_reviews:
           type: integer
+        is_engaged:
+          type: boolean
+        is_present_today:
+          type: boolean
+        appointments_today:
+          type: integer
+        active:
+          type: boolean
 
     StaffCreate:
       type: object
@@ -1158,6 +1253,8 @@ components:
           format: date
         staff_salary:
           type: number
+        active:
+          type: boolean
 
     StaffUpdate:
       type: object
@@ -1180,6 +1277,8 @@ components:
         staff_doj:
           type: string
           format: date
+        active:
+          type: boolean
 
     Service:
       type: object
@@ -1365,5 +1464,92 @@ components:
         display_name:
           type: string
         description:
+          type: string
+
+    Invoice:
+      type: object
+      properties:
+        invoice_id:
+          type: integer
+        appointment_id:
+          type: integer
+        total_amount:
+          type: number
+        invoice_date:
+          type: string
+          format: date-time
+        payment_method:
+          type: string
+        status:
+          type: integer
+          description: "0=Pending, 1=Invoiced, 2=Sent"
+
+    InvoiceCreate:
+      type: object
+      required:
+        - appointment_id
+        - total_amount
+        - payment_method
+        - status
+      properties:
+        appointment_id:
+          type: integer
+        total_amount:
+          type: number
+        payment_method:
+          type: string
+        status:
+          type: integer
+
+    InvoicePreview:
+      type: object
+      properties:
+        appointment_id:
+          type: integer
+        customer_name:
+          type: string
+        service_name:
+          type: string
+        staff_name:
+          type: string
+        raw_price:
+          type: number
+        total_price:
+          type: number
+        discount:
+          type: number
+        status:
+          type: integer
+
+    DailyAppointmentCount:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        count:
+          type: integer
+
+    TodaysAppointment:
+      type: object
+      properties:
+        appointment_id:
+          type: integer
+        customer_id:
+          type: integer
+        customer_name:
+          type: string
+        staff_id:
+          type: integer
+        staff_name:
+          type: string
+        service_id:
+          type: integer
+        service_name:
+          type: string
+        appointment_datetime:
+          type: string
+          format: date-time
+        status:
           type: string
 
