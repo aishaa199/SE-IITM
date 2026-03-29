@@ -1068,8 +1068,12 @@ class AppointmentResource(Resource):
         staff_id = data.get('staff_id')
         service_ids = data.get('service_ids') # List of service IDs
         datetime_str = data.get('appointment_datetime')
+        status = data.get('status')
 
         try:
+            if 'status' in data:
+                appointment.status = status
+            
             # Handle staff_id updates (including setting to null/None)
             if 'staff_id' in data:
                 if staff_id:
@@ -1329,8 +1333,489 @@ class SalonDailyAppointmentCountResource(Resource):
         except Exception as e:
             return {"message": f"Error fetching appointment counts: {str(e)}"}, 500
 
-################################## Invoice API ############################################
+################################## Customer Appointment APIs ##############################
+class CustomerUpcomingAppointmentsResource(Resource):
+    @auth_required("token")
+    @roles_required("customer")
+    def get(self):
+        # Always use the ID of the currently logged-in customer
+        target_customer_id = current_user.id
+        
+        customer = Customer.query.get(target_customer_id)
+        if not customer:
+            return {"message": "Customer profile not found"}, 404
+        
+        # 0: Booked
+        booked_appointments = Appointment.query.filter_by(customer_id=target_customer_id, status=0).all()
 
+        result = []
+        for appt in booked_appointments:
+            staff_name = appt.staff.staff_name if appt.staff else "Not Assigned"
+            appt_time = appt.appointment_datetime.isoformat()
+            for service in appt.services:
+                result.append({
+                    "appointment_id": appt.appointment_id,
+                    "service_name": service.service_desc,
+                    "staff_name": staff_name,
+                    "datetime": appt_time,
+                    "price": service.service_price,
+                    "status": appt.status
+                })
+
+        return result, 200
+
+##################################Customer Book Appointment API (for Customers to book appointments by themselves) ##############################
+    @auth_required("token")
+    @roles_required("customer")
+    def post(self):
+        target_customer_id = current_user.id
+        data = request.get_json()
+        
+        staff_id = data.get('staff_id') # Optional
+        service_ids = data.get('service_ids') # List of service IDs
+        datetime_str = data.get('appointment_datetime')
+
+        if not (service_ids and datetime_str):
+            return {"message": "Missing required fields: appointment_datetime, service_ids"}, 400
+
+        try:
+            appt_datetime = datetime.fromisoformat(datetime_str)
+        except ValueError:
+            return {"message": "Invalid datetime format. Use ISO format YYYY-MM-DDTHH:MM:SS"}, 400
+
+        # Validate customer
+        customer = Customer.query.get(target_customer_id)
+        if not customer:
+            return {"message": "Customer profile not found"}, 404
+
+        # Validate staff if provided
+        if staff_id:
+            staff = Staff.query.get(staff_id)
+            if not staff:
+                return {"message": "Staff with provided ID not found"}, 404
+
+        # Parse and validate services (must be active)
+        if not isinstance(service_ids, list):
+            return {"message": "service_ids must be a list of integers"}, 400
+            
+        services = Service.query.filter(Service.service_id.in_(service_ids), Service.active_flg == True).all()
+        
+        if len(services) != len(set(service_ids)):
+            return {"message": "Some services were either not found, are inactive, or duplicates were provided"}, 400
+
+        try:
+            new_appt = Appointment(
+                customer_id=target_customer_id,
+                staff_id=staff_id,
+                appointment_datetime=appt_datetime,
+                status=0 # Booked
+            )
+            # Add services to the many-to-many relationship
+            new_appt.services.extend(services)
+            
+            db.session.add(new_appt)
+            db.session.commit()
+            
+            # Since rewards depend on available_rewards, we should refresh/sync them
+            invalidate_expired_points(target_customer_id)
+            
+            return {"message": "Appointment booked successfully", "appointment_id": new_appt.appointment_id}, 201
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to book appointment: {str(e)}"}, 500
+
+class CustomerHistoryAppointmentsResource(Resource):
+    @auth_required("token")
+    @roles_required("customer")
+    def get(self):
+        # Always use the ID of the currently logged-in customer
+        target_customer_id = current_user.id
+        
+        customer = Customer.query.get(target_customer_id)
+        if not customer:
+            return {"message": "Customer profile not found"}, 404
+        
+        # 1: Completed, 2: No-show, 3: Cancelled, 4: Rescheduled, 5: Invoiced (anything not 0)
+        history_appointments = Appointment.query.filter(Appointment.customer_id == target_customer_id, Appointment.status != 0).all()
+
+        result = []
+        status_map = {
+            1: "Completed",
+            2: "No-show",
+            3: "Cancelled",
+            4: "Rescheduled",
+            5: "Invoiced"
+        }
+        for appt in history_appointments:
+            staff_name = appt.staff.staff_name if appt.staff else "Not Assigned"
+            appt_time = appt.appointment_datetime.isoformat()
+            
+            # Fetch rating from CustomerReview if an invoice exists
+            rating = None
+            invoice = Invoice.query.filter_by(customer_id=target_customer_id, staff_id=appt.staff_id, invoice_date=appt.appointment_datetime.date()).first()
+            if invoice:
+                review = CustomerReview.query.filter_by(invoice_number=invoice.invoice_number).first()
+                if review:
+                    rating = review.rating
+
+            for service in appt.services:
+                result.append({
+                    "appointment_id": appt.appointment_id,
+                    "service_name": service.service_desc,
+                    "staff_name": staff_name,
+                    "datetime": appt_time,
+                    "price": service.service_price,
+                    "status": status_map.get(appt.status, f"Unknown ({appt.status})"),
+                    "rating": rating
+                })
+
+        return result, 200
+
+class CustomerSummaryResource(Resource):
+    @auth_required("token")
+    @roles_required("customer")
+    def get(self):
+        target_customer_id = current_user.id
+        customer = Customer.query.get(target_customer_id)
+        if not customer:
+            return {"message": "Customer profile not found"}, 404
+        
+        upcoming_count = Appointment.query.filter_by(customer_id=target_customer_id, status=0).count()
+        past_count = Appointment.query.filter(Appointment.customer_id == target_customer_id, Appointment.status != 0).count()
+        
+        return {
+            "customer_type": customer.customer_type,
+            "upcoming_appointments_count": upcoming_count,
+            "past_appointments_count": past_count,
+            "available_rewards": customer.customer_available_rewards
+        }, 200
+
+###############################Customer Review API (for Customers to submit reviews for completed appointments) ##############################
+###################################### Fetch pending reviews (appointments completed but not yet reviewed) ######################################
+class CustomerReviewResource(Resource):
+    @auth_required("token")
+    @roles_required("customer")
+    def get(self):
+        target_customer_id = current_user.id
+        # Fetch appointment_ids for current customer where feedback_given is False and appointment is completed/invoiced
+        pending_feedback = Appointment.query.filter(
+            Appointment.customer_id == target_customer_id,
+            Appointment.feedback_given == False,
+            Appointment.status.in_([1, 5]) # 1: Completed, 5: Invoiced
+        ).all()
+        
+        result = []
+        for appt in pending_feedback:
+            result.append({
+                "appointment_id": appt.appointment_id,
+                "datetime": appt.appointment_datetime.isoformat(),
+                "staff_name": appt.staff.staff_name if appt.staff else "Unknown",
+                "services": [s.service_desc for s in appt.services]
+            })
+        return result, 200
+
+class CustomerReviewedAppointments(Resource):
+    @auth_required("token")
+    @roles_required("customer")
+    def get(self):
+        target_customer_id = current_user.id
+        # Fetch appointments for current customer where feedback_given is True
+        reviewed_appointments = Appointment.query.filter(
+            Appointment.customer_id == target_customer_id,
+            Appointment.feedback_given == True
+        ).all()
+        
+        result = []
+        for appt in reviewed_appointments:
+            # Look for corresponding review in customer_review table using appointment_id
+            review = CustomerReview.query.filter_by(
+                customer_id=target_customer_id,
+                apppointment_id=appt.appointment_id
+            ).first()
+            
+            result.append({
+                "appointment_id": appt.appointment_id,
+                "datetime": appt.appointment_datetime.isoformat(),
+                "staff_name": appt.staff.staff_name if appt.staff else "Unknown",
+                "services": [s.service_desc for s in appt.services],
+                "rating": review.rating if review else None,
+                "review": review.review if review else "No review text"
+            })
+        return result, 200
+
+##################################### Saving Customer Reviews ######################################
+    @auth_required("token")
+    @roles_required("customer")
+    def post(self):
+        target_customer_id = current_user.id
+        data = request.get_json()
+        
+        appointment_id = data.get('appointment_id')
+        rating = data.get('rating')
+        review_text = data.get('review')
+
+        if not appointment_id or rating is None:
+            return {"message": "Missing required fields: appointment_id, rating"}, 400
+
+        appointment = Appointment.query.get(appointment_id)
+        if not appointment or appointment.customer_id != target_customer_id:
+            return {"message": "Appointment not found or unauthorized"}, 404
+
+        if appointment.feedback_given:
+            return {"message": "Feedback already provided for this appointment"}, 400
+
+        try:
+            # Find the MOST RECENT invoice for this customer and staff to link to the review
+            # This is more robust than strict date matching
+            invoice = Invoice.query.filter(
+                Invoice.customer_id == target_customer_id,
+                Invoice.staff_id == appointment.staff_id
+            ).order_by(Invoice.invoice_date.desc()).first()
+
+            invoice_num = invoice.invoice_number if invoice else None
+
+            # Create CustomerReview
+            new_review = CustomerReview(
+                customer_id=target_customer_id,
+                staff_id=appointment.staff_id,
+                apppointment_id=appointment.appointment_id,
+                invoice_number=invoice_num,
+                service_ids=",".join([str(s.service_id) for s in appointment.services]),
+                rating=rating,
+                review=review_text
+            )
+            db.session.add(new_review)
+            
+            # Update Appointment feedback_given flag
+            appointment.feedback_given = True
+            
+            # Update Staff and Service ratings
+            update_staff_rating(appointment.staff_id, rating)
+            for service in appointment.services:
+                update_service_rating(service.service_id, rating)
+            
+            db.session.commit()
+            return {"message": "Feedback submitted successfully"}, 201
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to submit feedback: {str(e)}"}, 500
+
+################################## Helper functions for Reward calculations ############################################
+################################## Update Staff Ratings ############################################
+def update_staff_rating(staff_id, new_rating):
+    """
+    Update staff_cumulative_rating and no_of_reviews in Staff master table.
+    Formula: ((current_rating * current_reviews) + new_rating) / (current_reviews + 1)
+    """
+    staff = Staff.query.get(staff_id)
+    if staff:
+        current_rating = staff.staff_cumulative_rating or 0.0
+        current_reviews = staff.no_of_reviews or 0
+        
+        updated_rating = ((current_rating * current_reviews) + new_rating) / (current_reviews + 1)
+        
+        staff.staff_cumulative_rating = round(updated_rating, 2)
+        staff.no_of_reviews = current_reviews + 1
+        db.session.add(staff)
+
+################################## Update Service Ratings ############################################
+def update_service_rating(service_id, new_rating):
+    """
+    Update service_rating and no_of_reviews in Service master table.
+    Formula: ((current_rating * current_reviews) + new_rating) / (current_reviews + 1)
+    """
+    service = Service.query.get(service_id)
+    if service:
+        current_rating = service.service_rating or 0.0
+        current_reviews = service.no_of_reviews or 0
+        
+        updated_rating = ((current_rating * current_reviews) + new_rating) / (current_reviews + 1)
+        
+        service.service_rating = round(updated_rating, 2)
+        service.no_of_reviews = current_reviews + 1
+        db.session.add(service)
+
+################################### Invalidate Expired Points ############################################
+def invalidate_expired_points(customer_id):
+    """
+    1. Update valid_flg for all entries of the customer based on expiry_date.
+    2. Calculate and return the sum of credit_points for valid, non-utilized entries.
+    """
+    today = datetime.now()
+    rewards = CustomerReward.query.filter_by(customer_id=customer_id, valid_flg=True, utilized_flg=False).all()
+    for reward in rewards:
+        if reward.expiry_date < today:
+            reward.valid_flg = False
+    
+    db.session.commit()
+
+    # Calculate total sum of remaining valid, non-utilized points
+    valid_points_sum = db.session.query(db.func.sum(CustomerReward.credit_points))\
+        .filter(
+            CustomerReward.customer_id == customer_id, 
+            CustomerReward.valid_flg == True, 
+            CustomerReward.utilized_flg == False
+        ).scalar() or 0
+    
+    # Update customer_available_rewards column in customer_master table
+    customer = Customer.query.get(customer_id)
+    if customer:
+        customer.customer_available_rewards = int(valid_points_sum)
+        db.session.commit()
+    
+    return
+
+###################################Update Customer Rewards based on Expiry and Calculate Available Rewards ##############################
+def update_customer_rewards(customer_id, reward_points_utilized=0):
+    """
+    1. Update valid_flg for all entries of the customer based on expiry_date.
+    2. Handle point utilization by marking entries as utilized (utilized_flg=True) 
+       or decrementing credit_points in FIFO order (by expiry_date).
+    3. Update customer_available_rewards with the sum of credit_points for valid, non-utilized entries.
+    """
+    # Step 1: Invalidate expired points
+    invalidate_expired_points(customer_id)
+
+    # Step 2: Handle Utilization (FIFO based on expiry_date)
+    if reward_points_utilized > 0:
+        valid_rewards = CustomerReward.query.filter_by(
+            customer_id=customer_id, 
+            valid_flg=True, 
+            utilized_flg=False
+        ).order_by(CustomerReward.expiry_date.asc()).all()
+
+        remaining_to_utilize = reward_points_utilized
+        for reward in valid_rewards:
+            if remaining_to_utilize <= 0:
+                break
+            
+            if remaining_to_utilize >= reward.credit_points:
+                # Fully utilize this entry
+                remaining_to_utilize -= reward.credit_points
+                reward.utilized_flg = True
+            else:
+                # Partially utilize this entry
+                reward.credit_points -= remaining_to_utilize
+                remaining_to_utilize = 0
+        
+        db.session.commit()
+    
+    # Step 3: Calculate total sum of remaining valid, non-utilized points
+    valid_points_sum = db.session.query(db.func.sum(CustomerReward.credit_points))\
+        .filter(
+            CustomerReward.customer_id == customer_id, 
+            CustomerReward.valid_flg == True, 
+            CustomerReward.utilized_flg == False
+        ).scalar() or 0
+    
+    customer = Customer.query.get(customer_id)
+    if customer:
+        customer.customer_available_rewards = int(valid_points_sum)
+        db.session.commit()
+    
+    return int(valid_points_sum)
+
+#############################Calculate Reward Value for Invoice based on Available Points and Salon Configurations ##############################
+def calculate_reward_value(invoice_amount, current_reward_points):
+    """
+    Calculate the reward value to be utilized based on available points and salon configuration.
+    """
+    # Get parameters from SalonConfig
+    points_for_redemption = SalonConfig.query.filter_by(param_name='POINTS_FOR_REDUMPTION').first()
+    redemption_value_per_point = SalonConfig.query.filter_by(param_name='REDUMPTION_VALUE_PER_POINT').first()
+    
+    if not points_for_redemption or not redemption_value_per_point:
+        return 0.0, current_reward_points, invoice_amount
+        
+    threshold = int(points_for_redemption.param_value)
+    value_per_point = float(redemption_value_per_point.param_value)
+    
+    reward_points_utilized = 0.0
+    rem_reward_points = current_reward_points
+    payable_invoice_amount = float(invoice_amount)
+    
+    if current_reward_points >= threshold:
+        potential_reward_value = current_reward_points * value_per_point
+        if potential_reward_value >= invoice_amount:
+            # If reward value exceeds invoice amount, cap it at invoice_amount
+            reward_utilized_value = float(invoice_amount)
+            # Calculate points equivalent to the utilized value, round to nearest integer
+            reward_points_utilized = round(reward_utilized_value / value_per_point)
+            
+            # Formula for remaining: ensure it doesn't dip below 0
+            rem_reward_points = max(0, current_reward_points - reward_points_utilized)
+            payable_invoice_amount = 0.0
+
+        else:
+            reward_points_utilized = float(current_reward_points)
+            rem_reward_points = 0
+            payable_invoice_amount = float(invoice_amount) - potential_reward_value
+            
+    return reward_points_utilized, rem_reward_points, payable_invoice_amount
+
+
+###########################Calculate Earned Reward Points for Invoice based on Invoice Amount and Salon Configurations, and Create CustomerReward Entry with Expiry Date ##############################
+def earned_reward_points(invoice_amount, customer_id):
+    """
+    Calculate earned reward points based on invoice amount and salon configuration.
+    Also creates an entry in the CustomerReward table with an expiry date.
+    """
+    points_per_currency = SalonConfig.query.filter_by(param_name='POINTS_PER_CURRENCY').first()
+    reward_expiry_days_cfg = SalonConfig.query.filter_by(param_name='REWARD_EXPIRY_DAYS').first()
+    
+    if not points_per_currency:
+        return 0
+        
+    conversion_rate = float(points_per_currency.param_value)
+    earned_points = int(float(invoice_amount) * conversion_rate)
+    
+    if earned_points > 0:
+        expiry_days = int(reward_expiry_days_cfg.param_value) if reward_expiry_days_cfg else 30
+        expiry_date = datetime.now() + timedelta(days=expiry_days)
+        
+        new_reward = CustomerReward(
+            customer_id=customer_id,
+            credit_points=earned_points,
+            expiry_date=expiry_date,
+            valid_flg=True
+        )
+        db.session.add(new_reward)
+        
+    return earned_points
+
+################################Calculate Bonus Reward Points for Customer's First Visit based on Salon Configuration, and Create CustomerReward Entry with Expiry Date ##############################
+def first_time_rewards(customer_id):
+    """
+    Calculate bonus reward points for a customer's first visit.
+    Checks salon_config for 'FIRST_VISIT_BONUS_POINTS'.
+    Also creates an entry in the CustomerReward table with an expiry date.
+    """
+    customer = Customer.query.get(customer_id)
+    if not customer:
+        return 0
+        
+    # Check if it's the customer's first visit (0 recorded visits)
+    if customer.number_of_visits == 0:
+        bonus_config = SalonConfig.query.filter_by(param_name='FIRST_VISIT_BONUS_POINTS').first()
+        reward_expiry_days_cfg = SalonConfig.query.filter_by(param_name='REWARD_EXPIRY_DAYS').first()
+        
+        if bonus_config:
+            bonus_points = int(bonus_config.param_value)
+            if bonus_points > 0:
+                expiry_days = int(reward_expiry_days_cfg.param_value) if reward_expiry_days_cfg else 30
+                expiry_date = datetime.now() + timedelta(days=expiry_days)
+                
+                new_reward = CustomerReward(
+                    customer_id=customer_id,
+                    credit_points=bonus_points,
+                    expiry_date=expiry_date,
+                    valid_flg=True
+                )
+                db.session.add(new_reward)
+            return bonus_points
+            
+    return 0
+################################## Invoice API ############################################
 invoice_fields = {
     'invoice_number': fields.Integer,
     'invoice_date': fields.String,
@@ -1338,11 +1823,14 @@ invoice_fields = {
     'customer_name': fields.String(attribute='customer.customer_name'),
     'staff_id': fields.Integer,
     'staff_name': fields.String(attribute='staff.staff_name'),
+    'service_ids': fields.String,
+    'service_descs': fields.String,
     'other_charges': fields.Float,
     'rewards_earned': fields.Integer,
     'rewards_utilized': fields.Integer,
+    'current_reward_points': fields.Integer,
     'invoice_amount': fields.Float,
-    'total_charges': fields.Float,
+    'total_charges': fields.Float(attribute='total_invoice_amount'),
     'status': fields.Integer
 }
 
@@ -1355,36 +1843,100 @@ class InvoiceResource(Resource):
         Fetch data for an invoice based on appointment_id.
         If no appointment_id is provided, return all existing invoices.
         """
+        # Determine customer_id to update rewards if appointment_id is provided
         if appointment_id:
             appointment = Appointment.query.get(appointment_id)
-            if not appointment:
+            if appointment:
+                invalidate_expired_points(appointment.customer_id)
+            else:
                 return {"message": "Appointment not found"}, 404
+        
+        if appointment_id:
+            # Re-fetch or continue with appointment object
+            appointment = Appointment.query.get(appointment_id)
             
             # Check if an invoice already exists for this appointment
-            # (Note: Current model doesn't have appointment_id in Invoice, 
-            # but we can look up by customer and staff on the same day if needed,
-            # or simply return the data required to *create* an invoice)
-            
+            existing_invoice = Invoice.query.filter(
+                Invoice.customer_id == appointment.customer_id,
+                Invoice.staff_id == appointment.staff_id,
+                Invoice.invoice_date == appointment.appointment_datetime.date()
+            ).first()
+
+            if existing_invoice:
+                # Resolve service descriptions for the existing invoice
+                res = marshal(existing_invoice, invoice_fields)
+                if existing_invoice.service_ids:
+                    try:
+                        clean_sids = str(existing_invoice.service_ids).strip()
+                        s_ids = [int(sid.strip()) for sid in clean_sids.split(",") if sid.strip()]
+                        services = Service.query.filter(Service.service_id.in_(s_ids)).all()
+                        s_map = {s.service_id: s.service_desc for s in services}
+                        res["service_descs"] = ", ".join([s_map.get(sid, "Unknown") for sid in s_ids])
+                    except Exception:
+                        res["service_descs"] = ""
+                else:
+                    res["service_descs"] = ""
+                return res, 200
+
+            # For manager/staff, return the data required to *create* an invoice
             service_total = sum(s.service_price for s in appointment.services if s.active_flg)
             
             return {
                 "customer_id": appointment.customer_id,
                 "customer_name": appointment.customer.customer_name,
+                "current_available_rewards": appointment.customer.customer_available_rewards,
                 "staff_id": appointment.staff_id,
                 "staff_name": appointment.staff.staff_name if appointment.staff else "Not Assigned",
+                "service_ids": ",".join([str(s.service_id) for s in appointment.services if s.active_flg]),
+                "service_descs": ",".join([s.service_desc for s in appointment.services if s.active_flg]),
                 "appointment_date": str(appointment.appointment_datetime.date()),
                 "services": [{"id": s.service_id, "name": s.service_desc, "price": s.service_price} 
                              for s in appointment.services if s.active_flg],
                 "service_total": service_total
-            }
+            }, 200
         
         invoices = Invoice.query.all()
-        return marshal(invoices, invoice_fields)
+        result = []
+        for inv in invoices:
+            # Manually construct data to ensure fields are populated correctly
+            inv_data = {
+                "invoice_number": inv.invoice_number,
+                "invoice_date": str(inv.invoice_date),
+                "customer_id": inv.customer_id,
+                "customer_name": inv.customer.customer_name if inv.customer else "Unknown",
+                "staff_id": inv.staff_id,
+                "staff_name": inv.staff.staff_name if inv.staff else "Unknown",
+                "service_ids": inv.service_ids,
+                "other_charges": inv.other_charges,
+                "rewards_earned": inv.rewards_earned,
+                "rewards_utilized": inv.rewards_utilized,
+                "current_reward_points": inv.current_reward_points,
+                "invoice_amount": inv.invoice_amount,
+                "total_charges": inv.total_invoice_amount,
+                "status": inv.status
+            }
+            
+            # Fetch service descriptions for comma separated service_ids
+            if inv.service_ids:
+                try:
+                    clean_sids = str(inv.service_ids).strip()
+                    s_ids = [int(sid.strip()) for sid in clean_sids.split(",") if sid.strip()]
+                    services = Service.query.filter(Service.service_id.in_(s_ids)).all()
+                    s_map = {s.service_id: s.service_desc for s in services}
+                    inv_data["service_descs"] = ", ".join([s_map.get(sid, "Unknown") for sid in s_ids])
+                except Exception:
+                    inv_data["service_descs"] = ""
+            else:
+                inv_data["service_descs"] = ""
+                
+            result.append(inv_data)
+            
+        return result, 200
 
 ################################## Create Invoice #####################################
     @auth_required("token")
     @roles_accepted("manager", "staff")
-    def post(self):
+    def post(self, appointment_id=None):
         """
         Create a new invoice record.
         """
@@ -1392,30 +1944,96 @@ class InvoiceResource(Resource):
         
         customer_id = data.get('customer_id')
         staff_id = data.get('staff_id')
+        service_ids = data.get('service_ids')
         invoice_amount = data.get('invoice_amount')
         other_charges = data.get('other_charges', 0.0)
-        rewards_earned = data.get('rewards_earned', 0)
-        rewards_utilized = data.get('rewards_utilized', 0)
-        status = data.get('status', 0) # 0: Pending, 1: Invoiced, 2: Sent
+        # Always set status to 0 (Pending) when creating a new invoice
+        status = 0 
         
-        if not (customer_id and staff_id and invoice_amount):
-            return {"message": "Missing required fields: customer_id, staff_id, invoice_amount"}, 400
+        # If appointment_id is provided in URL, use it; otherwise check body
+        target_appointment_id = appointment_id or data.get('appointment_id')
+        
+        if not (customer_id and staff_id and service_ids and invoice_amount):
+            return {"message": "Missing required fields: customer_id, staff_id, service_ids, invoice_amount"}, 400
             
-        total_charges = float(invoice_amount) + float(other_charges)
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return {"message": "Customer not found"}, 404
+        
+        # Step 1: Update valid_flg and refresh customer available rewards based on expiration before calculating utilization
+        invalidate_expired_points(customer_id)
+        # Refresh current points after cleanup
+        current_reward_points = customer.customer_available_rewards
+        
+        total_invoice_amount = float(invoice_amount) + float(other_charges)
+        
+        # Calculate rewards utilization
+        rewards_utilized_points, rem_reward_points, payable_invoice_amount = calculate_reward_value(total_invoice_amount, current_reward_points)
+        
+        # Now permanently utilize the points in the CustomerReward table (FIFO)
+        if rewards_utilized_points > 0:
+            update_customer_rewards(customer_id, reward_points_utilized=int(rewards_utilized_points))
+            # Refresh rem_reward_points after actual database utilization
+            rem_reward_points = customer.customer_available_rewards
+
+        # Step 2: Calculate rewards earned from transaction (this adds to CustomerReward)
+        reward_points_earned = earned_reward_points(payable_invoice_amount, customer_id)
+        
+        # Step 3: Calculate first time bonus if applicable (this also adds to CustomerReward)
+        bonus_points = first_time_rewards(customer_id)
+        total_rewards_earned = reward_points_earned + bonus_points
         
         try:
+            # Increment customer visits
+            customer.number_of_visits += 1
+            
+            # Handle potential list or single string for service_ids
+            formatted_service_ids = service_ids
+            if isinstance(service_ids, list):
+                formatted_service_ids = ",".join(map(str, service_ids))
+            
+            # Final point calculation for sync
+            # Note: total_rewards_earned are already added to CustomerReward table via helper functions
+            # But the 'customer' object hasn't been refreshed to include these new earnings yet
+            # because the session hasn't been committed, or we need to update the balance manually.
+            invoice_current_reward_points = int(customer.customer_available_rewards) + total_rewards_earned
+
             new_invoice = Invoice(
                 customer_id=customer_id,
                 staff_id=staff_id,
+                service_ids=str(formatted_service_ids),
                 invoice_date=date.today(),
                 invoice_amount=invoice_amount,
                 other_charges=other_charges,
-                rewards_earned=rewards_earned,
-                rewards_utilized=rewards_utilized,
-                total_charges=total_charges,
+                rewards_earned=total_rewards_earned,
+                rewards_utilized=int(rewards_utilized_points),
+                current_reward_points=current_reward_points,
+                total_invoice_amount=total_invoice_amount,
+                payable_invoice_amount=payable_invoice_amount,
                 status=status
             )
             db.session.add(new_invoice)
+            
+            # Sync Customer available rewards to match the Invoice's calculated current_reward_points
+            customer.customer_available_rewards = invoice_current_reward_points
+            
+            # Update appointment status if target_appointment_id is provided
+            if target_appointment_id:
+                appointment = Appointment.query.get(target_appointment_id)
+                if appointment:
+                    appointment.status = 5 # Mark as Invoiced
+            
+            # Logic for utilizing points:
+            # Although the prompt doesn't explicitly ask for it, 
+            # we should probably mark some CustomerReward entries as invalid/partially used 
+            # if rewards_utilized_points > 0. However, the requirement focuses on credit_points and expiry.
+            # For now, we follow the "Sync customer_available_rewards with sum of valid credit_points" logic.
+            # But wait, if we utilize points, we need to deduct them from the valid records.
+            # This requires a "utilized_points" field or similar in CustomerReward, 
+            # or decreasing credit_points (which might break auditing).
+            # Given the strict requirement: "take sum of credit_points of all entries for that customer with valid_flg=True. Update this sum to customer_available_rewards",
+            # the system seems to use a simpler sync model.
+            
             db.session.commit()
             
             return {"message": "Invoice created successfully", "invoice_number": new_invoice.invoice_number}, 201
@@ -1475,6 +2093,11 @@ api.add_resource(StaffAppointmentResource, '/staff-appointments')
 api.add_resource(StaffAttendanceResource, '/staff-attendance', '/staff-attendance/<int:staff_id>')
 api.add_resource(AppointmentHistoryCleanup, '/cleanup-appointments')
 api.add_resource(SalonDailyAppointmentCountResource, '/daily-appointment-count')
+api.add_resource(CustomerUpcomingAppointmentsResource, '/customer-upcoming-appointments')
+api.add_resource(CustomerHistoryAppointmentsResource, '/customer-history-appointments')
+api.add_resource(CustomerSummaryResource, '/customer-summary')
+api.add_resource(CustomerReviewResource, '/customer-review')
+api.add_resource(CustomerReviewedAppointments, '/customer-reviewed-appointments')
 api.add_resource(InventoryTransactionResource, '/inventory-transaction', '/inventory-transaction/<int:txn_id>')
 api.add_resource(InvoiceResource, '/invoice', '/invoice/<int:appointment_id>')
 api.add_resource(TodaysAppointmentsResource, '/todays-appointments')

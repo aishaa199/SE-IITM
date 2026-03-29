@@ -113,6 +113,9 @@ class Appointment(db.Model):
     customer = db.relationship('Customer', backref=db.backref('appointments', lazy=True))
     staff = db.relationship('Staff', backref=db.backref('appointments', lazy=True))
     services = db.relationship('Service', secondary=appointment_services, backref=db.backref('appointments', lazy=True))
+    status = db.Column(db.Integer, nullable=False, default=0) # 0: Booked, 1: Completed, 2: No-show, 3: Cancelled, 4: Rescheduled, 5.Invoiced
+    feedback_given = db.Column(db.Boolean, default=False) # Flag to track if feedback is given for the appointment, can be used to prompt customers for reviews after appointment completion
+
 
 
 class Invoice(db.Model):
@@ -121,11 +124,14 @@ class Invoice(db.Model):
     invoice_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     customer_id = db.Column(db.Integer, db.ForeignKey('customer_master.customer_id'), nullable=False)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
+    service_ids = db.Column(db.String(255), nullable=False)
     other_charges = db.Column(db.Float, nullable=True)
     rewards_earned = db.Column(db.Integer, nullable=False, default=0)
     rewards_utilized = db.Column(db.Integer, nullable=False, default=0)
+    current_reward_points = db.Column(db.Integer, nullable=False, default=0)
     invoice_amount = db.Column(db.Float, nullable=False)
-    total_charges = db.Column(db.Float, nullable=False)
+    total_invoice_amount = db.Column(db.Float, nullable=False)
+    payable_invoice_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.Integer, nullable=False, default=0) # 0: Pending, 1: Invoiced, 2: Sent
 
     # Relationships
@@ -167,7 +173,9 @@ class CustomerReview(db.Model):
     review_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer_master.customer_id'), nullable=False)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
-    invoice_number = db.Column(db.Integer, db.ForeignKey('invoices.invoice_number'), nullable=False)
+    service_ids = db.Column(db.String(255), nullable=False)
+    apppointment_id = db.Column(db.Integer, db.ForeignKey('appointments.appointment_id'), nullable=False)
+    invoice_number = db.Column(db.Integer, db.ForeignKey('invoices.invoice_number'), nullable=True) # made nullable
     rating = db.Column(db.Integer, nullable=False) # rating 1-5 given by customer for the service experience
     review = db.Column(db.String(255), nullable=True)
 
@@ -220,6 +228,7 @@ class CustomerReward(db.Model):
     credit_points = db.Column(db.Integer, nullable=False)
     expiry_date = db.Column(db.DateTime, nullable=False) # to be calculated after adding the time duration from the salon_config table
     valid_flg = db.Column(db.Boolean, default=True) # to check if the reward points are still valid based on the expiry date
+    utilized_flg = db.Column(db.Boolean, default=False) # to check if the reward points are already utilized
 
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('reward_profile', uselist=False))
