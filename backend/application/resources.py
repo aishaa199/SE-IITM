@@ -3,7 +3,7 @@ from flask_security import auth_required, roles_required, roles_accepted, curren
 from datetime import datetime, timedelta, date
 from flask import request, jsonify
 from .sec import datastore
-from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, InventoryTransaction, StaffAttendance, CustomerReview, Finance, Manager, Owner, CustomerReward, SalonConfig, db, Role, UserRoles, appointment_services
+from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, InventoryTransaction, StaffAttendance, CustomerReview, Finance, Manager, Owner, CustomerReward, SalonConfig, db, Role, UserRoles, appointment_services, Order
 api = Api(prefix = '/api')
 
 ################################# HELPER FUNCTIONS ########################################
@@ -419,6 +419,160 @@ class InventoryTransactionResource(Resource):
             return {"message": f"Error recording transaction: {str(e)}"}, 500
 
 
+################################## Order Fields ########################################
+order_fields = {
+    'order_id': fields.Integer,
+    'product_id': fields.Integer,
+    'product_name': fields.String(attribute='product.product_desc'),
+    'product_quantity': fields.Integer(attribute='product.product_curr_qoh'),
+    'order_quantity': fields.Integer,
+    'order_cost': fields.Float,
+    'order_date': fields.DateTime,
+    'order_replenishment_date': fields.DateTime,
+    'reason_for_order': fields.String,
+    'supplier_name': fields.String(attribute='product.product_supplier_name'),
+    'supplier_email': fields.String(attribute='product.product_supplier_email'),
+    'status': fields.Integer
+}
+
+################################## Order API ########################################
+##################################Create Orders########################################
+class OrderResource(Resource):
+    @auth_required("token")
+    @roles_required("manager")
+    def post(self, order_id=None):
+        """
+        Create a replenishment order for a product.
+        Managers use this to request stock from suppliers.
+        """
+        data = request.get_json()
+        product_id = data.get('product_id')
+        order_quantity = data.get('order_quantity')
+        reason_for_order = data.get('reason_for_order')
+
+        if not product_id or not order_quantity:
+            return {"message": "Missing product_id or order_quantity"}, 400
+
+        product = Product.query.get(product_id)
+        if not product:
+            return {"message": "Product not found"}, 404
+
+        try:
+            # Create the order record
+            new_order = Order(
+                product_id=product_id,
+                order_quantity=order_quantity,
+                order_cost=order_quantity * product.product_price,
+                reason_for_order=reason_for_order,
+                supplier_name=product.product_supplier_name,
+                supplier_email=product.product_supplier_email,
+                status=0 # 0 for Pending
+            )
+            
+            
+            db.session.add(new_order)
+            db.session.commit()
+
+            return {
+                "message": "Replenishment order created successfully", 
+                "order": marshal(new_order, order_fields),
+            }, 201
+            
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to create order: {str(e)}"}, 500
+
+##################################Get Orders########################################
+    @auth_required("token")
+    @roles_required("manager")
+    def get(self, order_id=None):
+        if order_id:
+            order = Order.query.get(order_id)
+            if not order:
+                return {"message": "Order not found"}, 404
+            return marshal(order, order_fields), 200
+        
+        orders = Order.query.all()
+        return marshal(orders, order_fields), 200
+
+##################################Edit Orders########################################
+    @auth_required("token")
+    @roles_required("manager")
+    def put(self, order_id):
+        """
+        Update order status (e.g., from Pending (0) to Processed (1), Cancelled (2)).
+        """
+        order = Order.query.get(order_id)
+        if not order:
+            return {"message": "Order not found"}, 404
+
+        data = request.get_json()
+        new_status = data.get('status')
+        new_quantity = data.get('order_quantity')
+        new_cost = data.get('order_cost')
+        new_replenishment_date_str = data.get('order_replenishment_date')
+        reason = data.get('reason_for_order')
+
+        if new_status is not None:
+            order.status = new_status
+            # If status flips to Processed (1) and no date was provided, default to now
+            if new_status == 1 and not order.order_replenishment_date and not new_replenishment_date_str:
+                order.order_replenishment_date = datetime.now()
+            # If status flips to Cancelled (2), clear the replenishment date
+            elif new_status == 2:
+                order.order_replenishment_date = None
+        
+        if new_replenishment_date_str:
+            try:
+                order.order_replenishment_date = datetime.strptime(new_replenishment_date_str, '%Y-%m-%d %H:%M:%S')
+            except ValueError:
+                try:
+                    order.order_replenishment_date = datetime.strptime(new_replenishment_date_str, '%Y-%m-%d')
+                except ValueError:
+                    return {"message": "Invalid date format. Use YYYY-MM-DD or YYYY-MM-DD HH:MM:SS"}, 400
+
+        if new_quantity is not None and new_status == 1:
+            # replenishing the qoh in the inventory_master table if the order is processed (status = 1).
+            product = Product.query.get(order.product_id)
+            if product:
+                product.product_curr_qoh += new_quantity
+                update_low_stock_alerts(order.product_id)
+                order.order_quantity = new_quantity
+                order.order_cost = new_quantity * product.product_price
+        #allowing the manager to update the cost in case it differs from the initially calculated cost based on price changes or negotiations with the supplier.
+        if new_cost is not None:
+            order.order_cost = new_cost
+        
+        if reason:
+            order.reason_for_order = reason
+
+        try:
+            db.session.commit()
+            return {"message": "Order updated successfully", "order": marshal(order, order_fields)}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to update order: {str(e)}"}, 500
+
+##################################Delete Orders########################################
+    @auth_required("token")
+    @roles_required("manager")
+    def delete(self, order_id):
+        """
+        Delete an order record by order_id.
+        Only managers can delete order records.
+        """
+        order = Order.query.get(order_id)
+        if not order:
+            return {"message": "Order not found"}, 404
+
+        try:
+            db.session.delete(order)
+            db.session.commit()
+            return {"message": "Order deleted successfully"}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to delete order: {str(e)}"}, 500
+
 ################################## Customer Fields ########################################
 customer_fields = {
     'customer_id': fields.Integer,
@@ -431,7 +585,8 @@ customer_fields = {
     'number_of_visits': fields.Integer,
     'customer_type': fields.String,
     'customer_preferences': fields.String,
-    'customer_available_rewards': fields.Integer
+    'customer_available_rewards': fields.Integer,
+    'total_spend': fields.Float
 }
 
 ################################## Customer API ########################################
@@ -491,7 +646,7 @@ class CustomerResource(Resource):
                 customer_reg_date=datetime.now().date(),
                 customer_email=username, # Same as username
                 customer_address=data.get('customer_address'),
-                customer_type=data.get('customer_type', 'Regular'),
+                customer_type='Regular',
                 customer_preferences=data.get('customer_preferences')
             )
             db.session.add(new_customer)
@@ -515,7 +670,6 @@ class CustomerResource(Resource):
             customer.customer_contact = data.get('customer_contact', customer.customer_contact)
             customer.customer_email = data.get('customer_email', customer.customer_email)
             customer.customer_address = data.get('customer_address', customer.customer_address)
-            customer.customer_type = data.get('customer_type', customer.customer_type)
             customer.customer_preferences = data.get('customer_preferences', customer.customer_preferences)
             
             if 'customer_dob' in data:
@@ -936,9 +1090,14 @@ class ServiceResource(Resource):
         if not service:
             return {"message": "Service not found"}, 404
             
-        # Check if service is used in any appointments or invoices
-        has_appointments = Appointment.query.filter_by(service_id=service_id).first()
-        has_invoices = Invoice.query.filter_by(service_id=service_id).first()
+        # 1. Correct check for Many-to-Many appointments
+        # The 'appointment_services' table handles linking services to appointments
+        has_appointments = db.session.query(appointment_services).filter_by(service_id=service_id).first()
+        
+        # 2. Correct check for Invoices (stored as string like '1,2,3')
+        # Search for the service_id within the comma-separated string
+        search_pattern = f"%{service_id}%"
+        has_invoices = Invoice.query.filter(Invoice.service_ids.like(search_pattern)).first()
         
         if has_appointments or has_invoices:
             return {"message": "Cannot delete service with existing appointments or invoices. Consider deactivating it instead."}, 400
@@ -1476,6 +1635,10 @@ class CustomerSummaryResource(Resource):
     @roles_required("customer")
     def get(self):
         target_customer_id = current_user.id
+        
+        # Check and allot birthday bonus points if applicable
+        birthday_bonus_rewards(target_customer_id)
+        
         customer = Customer.query.get(target_customer_id)
         if not customer:
             return {"message": "Customer profile not found"}, 404
@@ -1635,6 +1798,25 @@ def update_service_rating(service_id, new_rating):
         service.no_of_reviews = current_reviews + 1
         db.session.add(service)
 
+################################### Check and Update VIP Status ############################################
+def check_vip_status(customer_id, valid_points_sum):
+    """
+    Update customer_type based on VIP_POINTS_FOR_REDUMPTION threshold.
+    """
+    customer = Customer.query.get(customer_id)
+    if not customer:
+        return
+        
+    vip_config = SalonConfig.query.filter_by(param_name='VIP_POINTS_FOR_REDUMPTION').first()
+    if vip_config:
+        threshold = int(vip_config.param_value)
+        if valid_points_sum > threshold:
+            customer.customer_type = 'VIP'
+        else:
+            customer.customer_type = 'Regular'
+    
+    db.session.commit()
+
 ################################### Invalidate Expired Points ############################################
 def invalidate_expired_points(customer_id):
     """
@@ -1661,7 +1843,9 @@ def invalidate_expired_points(customer_id):
     customer = Customer.query.get(customer_id)
     if customer:
         customer.customer_available_rewards = int(valid_points_sum)
-        db.session.commit()
+        
+        # Check for VIP status
+        check_vip_status(customer_id, valid_points_sum)
     
     return
 
@@ -1721,13 +1905,12 @@ def calculate_reward_value(invoice_amount, current_reward_points):
     Calculate the reward value to be utilized based on available points and salon configuration.
     """
     # Get parameters from SalonConfig
-    points_for_redemption = SalonConfig.query.filter_by(param_name='POINTS_FOR_REDUMPTION').first()
     redemption_value_per_point = SalonConfig.query.filter_by(param_name='REDUMPTION_VALUE_PER_POINT').first()
     
-    if not points_for_redemption or not redemption_value_per_point:
+    if not redemption_value_per_point:
         return 0.0, current_reward_points, invoice_amount
         
-    threshold = int(points_for_redemption.param_value)
+    threshold = 0
     value_per_point = float(redemption_value_per_point.param_value)
     
     reward_points_utilized = 0.0
@@ -1815,6 +1998,207 @@ def first_time_rewards(customer_id):
             return bonus_points
             
     return 0
+
+########################### Birthday Bonus Rewards ############################################
+def birthday_bonus_rewards(customer_id):
+    """
+    Calculate and allot birthday bonus points for a customer.
+    Checks salon_config for 'BIRTHDAY_BONUS_POINTS'.
+    Also creates an entry in the CustomerReward table with an expiry date.
+    """
+    customer = Customer.query.get(customer_id)
+    if not customer:
+        return 0
+    
+    # Check if a birthday reward already exists for this year's birthday
+    # We look for a reward whose (expiry_date - expiry_days) is within the 15-day window before this year's birthday
+    
+    # Calculate this year's birthday
+    now = datetime.now()
+    try:
+        this_year_birthday = datetime(now.year, customer.customer_dob.month, customer.customer_dob.day)
+    except ValueError: # Handle Feb 29 for non-leap years
+        this_year_birthday = datetime(now.year, 3, 1)
+    
+    # Target date is 15 days before birthday
+    reward_trigger_date = this_year_birthday - timedelta(days=15)
+    
+    # If today is within the [trigger_date, birthday] window
+    if reward_trigger_date.date() <= now.date() <= this_year_birthday.date():
+        # Check if already awarded for this year's cycle
+        # Since we don't have a 'created_at', we check if any reward exists 
+        # where (expiry_date - expiry_days) falls in this year's window
+        
+        bonus_config = SalonConfig.query.filter_by(param_name='BIRTHDAY_BONUS_POINTS').first()
+        reward_expiry_days_cfg = SalonConfig.query.filter_by(param_name='REWARD_EXPIRY_DAYS').first()
+        expiry_days = int(reward_expiry_days_cfg.param_value) if reward_expiry_days_cfg else 30
+        
+        # Look for rewards created between trigger_date and today for this customer
+        # This is roughly: trigger_date <= (expiry_date - expiry_days) <= today
+        already_awarded = CustomerReward.query.filter(
+            CustomerReward.customer_id == customer_id,
+            db.func.date(CustomerReward.expiry_date) >= (reward_trigger_date + timedelta(days=expiry_days)).date(),
+            db.func.date(CustomerReward.expiry_date) <= (this_year_birthday + timedelta(days=expiry_days)).date(),
+            CustomerReward.credit_points == int(bonus_config.param_value) if bonus_config else 0
+        ).first()
+
+        if already_awarded:
+            return 0
+        
+        if bonus_config:
+            bonus_points = int(bonus_config.param_value)
+            if bonus_points > 0:
+                expiry_days = int(reward_expiry_days_cfg.param_value) if reward_expiry_days_cfg else 30
+                expiry_date = datetime.now() + timedelta(days=expiry_days)
+                
+                new_reward = CustomerReward(
+                    customer_id=customer_id,
+                    credit_points=bonus_points,
+                    expiry_date=expiry_date,
+                    valid_flg=True
+                )
+                db.session.add(new_reward)
+                
+                # Update available rewards on customer object
+                customer.customer_available_rewards += bonus_points
+                
+                # Check and update VIP status after birthday points are added
+                check_vip_status(customer_id, customer.customer_available_rewards)
+                
+                db.session.commit()
+                return bonus_points
+                
+    return 0
+
+################################## Finance API ############################################
+finance_fields = {
+    'reporting_month': fields.DateTime,
+    'product_cost': fields.Float,
+    'total_revenue': fields.Float,
+    'staff_salary': fields.Float,
+    'overheads': fields.Float,
+    'other': fields.Float,
+    'net_profit': fields.Float
+}
+
+###############################Create entry for a month with calculated product_cost, total_revenue, staff_salary, and net_profit. Manager can update overheads and other expenses later. ##############################
+class FinanceResource(Resource):
+    @auth_required("token")
+    @roles_required("manager")
+    def post(self):
+        """
+        Create composite financial report for a specific month.
+        Expects 'last_date' of the month (YYYY-MM-DD).
+        """
+        data = request.get_json()
+        last_date_str = data.get('last_date')
+        if not last_date_str:
+            return {"message": "last_date is required (YYYY-MM-DD)"}, 400
+        
+        try:
+            last_date = datetime.strptime(last_date_str, '%Y-%m-%d').date()
+            # Month start is the first day of that month
+            month_start = last_date.replace(day=1)
+            # Create a datetime object for comparison (model uses DateTime for reporting_month)
+            reporting_month = datetime.combine(month_start, datetime.min.time())
+            
+            # 1. Sum up order_cost for all processed orders specifically in that month
+            # Filtered by order_replenishment_date
+            product_cost = db.session.query(db.func.sum(Order.order_cost)).filter(
+                Order.status == 1, # Processed orders
+                Order.order_replenishment_date >= datetime.combine(month_start, datetime.min.time()),
+                Order.order_replenishment_date <= datetime.combine(last_date, datetime.max.time())
+            ).scalar() or 0.0
+            
+            total_revenue = db.session.query(db.func.sum(Invoice.total_invoice_amount)).filter(
+                Invoice.invoice_date >= month_start,
+                Invoice.invoice_date <= last_date
+            ).scalar() or 0.0
+            
+            # Sum up staff salaries
+            staff_salary_sum = db.session.query(db.func.sum(Staff.staff_salary)).scalar() or 0.0
+            
+            # Check if record exists
+            finance = Finance.query.get(reporting_month)
+            if not finance:
+                finance = Finance(reporting_month=reporting_month)
+            
+            finance.product_cost = float(product_cost)
+            finance.total_revenue = float(total_revenue)
+            finance.staff_salary = float(staff_salary_sum)
+            # Defaults for new records
+            if finance.overheads is None: finance.overheads = 0.0
+            if finance.other is None: finance.other = 0.0
+            
+            # Calculate net profit
+            raw_profit = finance.total_revenue - (finance.product_cost + finance.staff_salary + finance.overheads + finance.other)
+            finance.net_profit = max(0, raw_profit)
+            
+            db.session.add(finance)
+            db.session.commit()
+            
+            return marshal(finance, finance_fields), 201
+            
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Error generating finance report: {str(e)}"}, 500
+
+################################## Edit overheads and other expenses for a month, and recalculate net profit ##############################
+    @auth_required("token")
+    @roles_required("manager")
+    def put(self):
+        """
+        Update overheads and other expenses for a month.
+        Expects 'last_date' or 'reporting_month' to identify the row.
+        """
+        data = request.get_json()
+        date_str = data.get('last_date') # identify by month
+        if not date_str:
+            return {"message": "last_date is required to identify the month"}, 400
+            
+        try:
+            target_date = datetime.strptime(date_str, '%Y-%m-%d').date().replace(day=1)
+            reporting_month = datetime.combine(target_date, datetime.min.time())
+            
+            finance = Finance.query.get(reporting_month)
+            if not finance:
+                return {"message": "Finance record for this month not yet generated. Use POST first."}, 404
+            
+            if 'overheads' in data:
+                finance.overheads = float(data['overheads'])
+            if 'other' in data:
+                finance.other = float(data['other'])
+                
+            # Recalculate net profit
+            raw_profit = finance.total_revenue - (finance.product_cost + finance.staff_salary + finance.overheads + finance.other)
+            finance.net_profit = max(0, raw_profit)
+            
+            db.session.commit()
+            return marshal(finance, finance_fields), 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Error updating finance: {str(e)}"}, 500
+
+############################# Fetch all finance records, ordered by reporting_month descending (latest first) ##############################
+    @auth_required("token")
+    @roles_required("manager")
+    def get(self):
+        """Fetch all finance records or a specific month's record"""
+        last_date_str = request.args.get('last_date')
+        if last_date_str:
+            try:
+                target_date = datetime.strptime(last_date_str, '%Y-%m-%d').date().replace(day=1)
+                reporting_month = datetime.combine(target_date, datetime.min.time())
+                finance = Finance.query.get(reporting_month)
+                if not finance:
+                    return {"message": "Finance record for this month not found"}, 404
+                return marshal(finance, finance_fields), 200
+            except Exception as e:
+                return {"message": f"Invalid date format: {str(e)}"}, 400
+
+        finances = Finance.query.order_by(Finance.reporting_month.desc()).all()
+        return marshal(finances, finance_fields), 200
+
 ################################## Invoice API ############################################
 invoice_fields = {
     'invoice_number': fields.Integer,
@@ -1856,11 +2240,7 @@ class InvoiceResource(Resource):
             appointment = Appointment.query.get(appointment_id)
             
             # Check if an invoice already exists for this appointment
-            existing_invoice = Invoice.query.filter(
-                Invoice.customer_id == appointment.customer_id,
-                Invoice.staff_id == appointment.staff_id,
-                Invoice.invoice_date == appointment.appointment_datetime.date()
-            ).first()
+            existing_invoice = Invoice.query.filter_by(appointment_id=appointment_id).first()
 
             if existing_invoice:
                 # Resolve service descriptions for the existing invoice
@@ -1964,12 +2344,21 @@ class InvoiceResource(Resource):
         invalidate_expired_points(customer_id)
         # Refresh current points after cleanup
         current_reward_points = customer.customer_available_rewards
+
+        #Calculate Invoice amount if the customer is VIP customer and apply discount mentioned in salon config's VIP_DISCOUNT_PERCENTAGE parameter
+        if customer.customer_type == "VIP":
+            vip_discount_cfg = SalonConfig.query.filter_by(param_name='VIP_DISCOUNT_PERCENTAGE').first()
+            if vip_discount_cfg:
+                discount_percentage = float(vip_discount_cfg.param_value)
+                discount_amount = invoice_amount * (discount_percentage / 100)
+                invoice_amount -= discount_amount
         
         total_invoice_amount = float(invoice_amount) + float(other_charges)
         
         # Calculate rewards utilization
         rewards_utilized_points, rem_reward_points, payable_invoice_amount = calculate_reward_value(total_invoice_amount, current_reward_points)
         
+
         # Now permanently utilize the points in the CustomerReward table (FIFO)
         if rewards_utilized_points > 0:
             update_customer_rewards(customer_id, reward_points_utilized=int(rewards_utilized_points))
@@ -1997,10 +2386,11 @@ class InvoiceResource(Resource):
             # But the 'customer' object hasn't been refreshed to include these new earnings yet
             # because the session hasn't been committed, or we need to update the balance manually.
             invoice_current_reward_points = int(customer.customer_available_rewards) + total_rewards_earned
-
+            check_vip_status(customer_id, invoice_current_reward_points)  #check and update change in VIP status
             new_invoice = Invoice(
                 customer_id=customer_id,
                 staff_id=staff_id,
+                appointment_id=target_appointment_id,
                 service_ids=str(formatted_service_ids),
                 invoice_date=date.today(),
                 invoice_amount=invoice_amount,
@@ -2016,23 +2406,15 @@ class InvoiceResource(Resource):
             
             # Sync Customer available rewards to match the Invoice's calculated current_reward_points
             customer.customer_available_rewards = invoice_current_reward_points
+
+            # Update customer total spend
+            customer.total_spend += total_invoice_amount
             
             # Update appointment status if target_appointment_id is provided
             if target_appointment_id:
                 appointment = Appointment.query.get(target_appointment_id)
                 if appointment:
                     appointment.status = 5 # Mark as Invoiced
-            
-            # Logic for utilizing points:
-            # Although the prompt doesn't explicitly ask for it, 
-            # we should probably mark some CustomerReward entries as invalid/partially used 
-            # if rewards_utilized_points > 0. However, the requirement focuses on credit_points and expiry.
-            # For now, we follow the "Sync customer_available_rewards with sum of valid credit_points" logic.
-            # But wait, if we utilize points, we need to deduct them from the valid records.
-            # This requires a "utilized_points" field or similar in CustomerReward, 
-            # or decreasing credit_points (which might break auditing).
-            # Given the strict requirement: "take sum of credit_points of all entries for that customer with valid_flg=True. Update this sum to customer_available_rewards",
-            # the system seems to use a simpler sync model.
             
             db.session.commit()
             
@@ -2099,5 +2481,7 @@ api.add_resource(CustomerSummaryResource, '/customer-summary')
 api.add_resource(CustomerReviewResource, '/customer-review')
 api.add_resource(CustomerReviewedAppointments, '/customer-reviewed-appointments')
 api.add_resource(InventoryTransactionResource, '/inventory-transaction', '/inventory-transaction/<int:txn_id>')
+api.add_resource(OrderResource, '/order', '/order/<int:order_id>')
 api.add_resource(InvoiceResource, '/invoice', '/invoice/<int:appointment_id>')
+api.add_resource(FinanceResource, '/finance')
 api.add_resource(TodaysAppointmentsResource, '/todays-appointments')

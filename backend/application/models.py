@@ -77,6 +77,7 @@ class Customer(db.Model):
     customer_type = db.Column(db.String(50), nullable=False)
     customer_preferences = db.Column(db.String(255), nullable=True)
     customer_available_rewards = db.Column(db.Integer, nullable=False, default=0) #Available reward points. This will be calculated and updated at the time of customer or manager booking appointments.
+    total_spend = db.Column(db.Float, nullable=False, default=0.0)
 
     user = db.relationship('User', backref=db.backref('customer_profile', uselist=False))
 
@@ -133,10 +134,12 @@ class Invoice(db.Model):
     total_invoice_amount = db.Column(db.Float, nullable=False)
     payable_invoice_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.Integer, nullable=False, default=0) # 0: Pending, 1: Invoiced, 2: Sent
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.appointment_id'), nullable=True)
 
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('invoices', lazy=True))
     staff = db.relationship('Staff', backref=db.backref('invoices', lazy=True))
+    appointment = db.relationship('Appointment', backref=db.backref('invoice', uselist=False))
     # Note: As an invoice is usually for a completed appointment, 
     # you might want to link to Appointment directly or handle service listing in the view/logic.
 
@@ -241,3 +244,19 @@ class SalonConfig(db.Model):
     param_value = db.Column(db.String(255), nullable=False)
     from_date = db.Column(db.DateTime, nullable=False)
     to_date = db.Column(db.DateTime, nullable=True)
+
+class Order(db.Model):
+    __tablename__ = 'orders'
+    order_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'), nullable=False)
+    order_quantity = db.Column(db.Integer, nullable=False)
+    order_cost = db.Column(db.Float, nullable=False, default=0.0)
+    order_date = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+    order_replenishment_date = db.Column(db.DateTime, nullable=True)
+    reason_for_order = db.Column(db.String(255), nullable=True)
+    supplier_name = db.Column(db.Text, nullable=False)
+    supplier_email = db.Column(db.String(120), nullable=False)
+    status = db.Column(db.Integer, default=0) # 0 for Pending, 1 for Processed, 2 for Cancelled
+
+    # Relationship
+    product = db.relationship('Product', backref=db.backref('orders', lazy=True))
