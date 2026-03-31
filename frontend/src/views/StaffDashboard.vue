@@ -102,11 +102,11 @@
                 <h3 class="card-title">📅 Today's Schedule</h3>
               </div>
               <div class="card-body">
-                <div v-if="staffData.todayAppointments.length === 0" class="empty-state">
+                <div v-if="fetchedTodayAppointments.length === 0" class="empty-state">
                   <div class="empty-state-icon">📅</div>
                   <div class="empty-state-text">No appointments today</div>
                 </div>
-                <div v-for="appt in staffData.todayAppointments" :key="appt.id" class="booking-item">
+                <div v-for="appt in fetchedTodayAppointments" :key="appt.id" class="booking-item">
                   <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
                     <div class="booking-time">{{ appt.time }}</div>
                     <div>
@@ -129,30 +129,47 @@
             <div class="card">
               <div class="card-header" style="display: flex; justify-content: space-between; align-items: center">
                 <h3 class="card-title">📅 Attendance - {{ currentMonth }}</h3>
-                <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px" @click="showMarkAttendanceModal = true">Mark Attendance</button>
+                <button class="btn btn-primary" style="padding: 6px 12px; font-size: 12px" @click="handleMarkTodayAttendance()">Mark Attendance (Today)</button>
               </div>
               <div class="card-body">
-                <div class="attendance-stats" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px">
-                  <div style="text-align: center; padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-                    <div style="font-size: 24px; font-weight: 600; color: var(--success)">{{ attendanceStats.present }}</div>
-                    <div class="text-muted" style="font-size: 12px">Present</div>
-                  </div>
-                  <div style="text-align: center; padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-                    <div style="font-size: 24px; font-weight: 600; color: var(--warning)">{{ attendanceStats.absent }}</div>
-                    <div class="text-muted" style="font-size: 12px">Absent</div>
-                  </div>
-                  <div style="text-align: center; padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-                    <div style="font-size: 24px; font-weight: 600; color: var(--info)">{{ attendanceStats.late }}</div>
-                    <div class="text-muted" style="font-size: 12px">Late</div>
-                  </div>
+                <!-- Loading state -->
+                <div v-if="attendanceLoading" style="text-align: center; padding: 24px; color: var(--text-muted)">
+                  ⏳ Loading attendance data...
                 </div>
-                <div class="attendance-list">
-                  <div v-for="record in staffData.monthlyAttendance" :key="record.date" class="attendance-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border)">
-                    <div>
-                      <div style="font-weight: 600; font-size: 13px">{{ formatDate(record.date) }}</div>
-                      <div class="text-muted" style="font-size: 11px">{{ getDayName(record.date) }}</div>
+                
+                <!-- Success message -->
+                <div v-if="attendanceSuccess" class="success-message">{{ attendanceSuccess }}</div>
+                
+                <!-- Error message -->
+                <div v-if="attendanceError" class="error-message">{{ attendanceError }}</div>
+                
+                <!-- Attendance data -->
+                <div v-if="!attendanceLoading && !attendanceSuccess && !attendanceError">
+                  <div class="attendance-stats" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px">
+                    <div style="text-align: center; padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
+                      <div style="font-size: 24px; font-weight: 600; color: var(--success)">{{ attendanceStats.present }}</div>
+                      <div class="text-muted" style="font-size: 12px">Present</div>
                     </div>
-                    <span :class="['badge', getAttendanceBadgeClass(record.status)]">{{ record.status }}</span>
+                    <div style="text-align: center; padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
+                      <div style="font-size: 24px; font-weight: 600; color: var(--warning)">{{ attendanceStats.absent }}</div>
+                      <div class="text-muted" style="font-size: 12px">Absent</div>
+                    </div>
+                    <div style="text-align: center; padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
+                      <div style="font-size: 24px; font-weight: 600; color: var(--info)">{{ attendanceStats.late }}</div>
+                      <div class="text-muted" style="font-size: 12px">Late</div>
+                    </div>
+                  </div>
+                  <div class="attendance-list">
+                    <div v-if="fetchedAttendance.length === 0" style="text-align: center; padding: 20px; color: var(--text-muted)">
+                      No attendance records for this month
+                    </div>
+                    <div v-for="record in fetchedAttendance" :key="record.id" class="attendance-item" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border)">
+                      <div>
+                        <div style="font-weight: 600; font-size: 13px">{{ formatDate(record.date) }}</div>
+                        <div class="text-muted" style="font-size: 11px">{{ getDayName(record.date) }}</div>
+                      </div>
+                      <span :class="['badge', getAttendanceBadgeClass(record.status)]">{{ record.status }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -211,10 +228,37 @@
         <div v-if="currentView === 'appointments'" class="fade-in">
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">All My Appointments</h3>
+              <h3 class="card-title">My Appointments</h3>
             </div>
             <div class="card-body">
-              <div style="margin-bottom: 16px">
+              <!-- Appointment Mode Tabs -->
+              <div style="display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 12px">
+                <button 
+                  @click="appointmentMode = 'today'; fetchAppointmentsByMode('today')"
+                  :style="{ background: appointmentMode === 'today' ? 'var(--gold)' : 'transparent', color: appointmentMode === 'today' ? 'white' : 'var(--text)', borderBottom: 'none', padding: '8px 16px', borderRadius: 'var(--radius)', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '500' }"
+                >
+                  📅 Today
+                </button>
+                <button 
+                  @click="appointmentMode = 'all'; fetchAppointmentsByMode('all')"
+                  :style="{ background: appointmentMode === 'all' ? 'var(--gold)' : 'transparent', color: appointmentMode === 'all' ? 'white' : 'var(--text)', borderBottom: 'none', padding: '8px 16px', borderRadius: 'var(--radius)', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '500' }"
+                >
+                  📆 All Appointments
+                </button>
+              </div>
+
+              <!-- Error message -->
+              <div v-if="appointmentError" style="padding: 12px; background: var(--error-bg); border: 1px solid var(--error); color: var(--error); border-radius: var(--radius); margin-bottom: 16px">
+                ❌ {{ appointmentError }}
+              </div>
+
+              <!-- Loading state -->
+              <div v-if="appointmentLoading" style="text-align: center; padding: 24px; color: var(--text-muted)">
+                ⏳ Loading appointments...
+              </div>
+
+              <!-- Filter input -->
+              <div v-else style="margin-bottom: 16px">
                 <input 
                   v-model="appointmentCustomerFilter"
                   type="text" 
@@ -223,7 +267,15 @@
                   style="width: 100%; max-width: 300px"
                 />
               </div>
-              <div class="table-wrap">
+              
+              <!-- Empty state -->
+              <div v-if="!appointmentLoading && filteredAppointments.length === 0" class="empty-state">
+                <div class="empty-state-icon">📅</div>
+                <div class="empty-state-text">No appointments found</div>
+              </div>
+
+              <!-- Appointments table -->
+              <div v-if="!appointmentLoading && filteredAppointments.length > 0" class="table-wrap">
                 <table>
                   <thead>
                     <tr>
@@ -240,7 +292,7 @@
                     <tr v-for="appt in filteredAppointments" :key="appt.id" @click="handleViewAppointmentDetails(appt)" style="cursor: pointer; transition: background-color 0.2s" @mouseover="$event.target.closest('tr').style.backgroundColor = 'var(--light-bg)'" @mouseout="$event.target.closest('tr').style.backgroundColor = 'transparent'">
                       <td>{{ appt.customerName }}</td>
                       <td>{{ appt.service }}</td>
-                      <td>{{ appt.date ? appt.date : 'Today' }} {{ appt.time }}</td>
+                      <td>{{ appt.date }} {{ appt.time }}</td>
                       <td>{{ appt.duration }} min</td>
                       <td>₹{{ appt.amount }}</td>
                       <td>
@@ -288,10 +340,9 @@
                     required
                   >
                     <option value="">Select a category</option>
-                    <option value="Hair Care">Hair Care</option>
-                    <option value="Skin Care">Skin Care</option>
-                    <option value="Nails">Nails</option>
-                    <option value="Wellness">Wellness</option>
+                    <option v-for="category in availableCategories" :key="category" :value="category">
+                      {{ category }}
+                    </option>
                   </select>
                 </div>
 
@@ -385,6 +436,20 @@
                   </div>
                 </div>
 
+                <div class="form-group">
+                  <label for="quantity">Quantity Required *</label>
+                  <input 
+                    id="quantity"
+                    v-model.number="orderForm.quantity" 
+                    type="number" 
+                    min="1" 
+                    max="1000"
+                    class="form-input"
+                    required
+                    placeholder="Enter quantity to order"
+                  />
+                </div>
+
                 <div v-if="orderError" class="error-message">{{ orderError }}</div>
                 <div v-if="orderSuccess" class="success-message">{{ orderSuccess }}</div>
 
@@ -398,40 +463,72 @@
           <!-- Orders History -->
           <div class="card" style="margin-top: 24px" v-if="orderTab === 'new-orders'">
             <div class="card-header">
-              <h3 class="card-title">My Orders</h3>
+              <h3 class="card-title">My Order History</h3>
             </div>
             <div class="card-body">
-              <div v-if="staffData.orders.length === 0" class="empty-state">
+              <!-- Date range filter -->
+              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end">
+                <div>
+                  <label style="font-size: 12px; color: var(--text-muted)">From Date</label>
+                  <input 
+                    v-model="transactionDateFrom"
+                    type="date" 
+                    class="form-input"
+                    style="width: 150px"
+                  />
+                </div>
+                <div>
+                  <label style="font-size: 12px; color: var(--text-muted)">To Date</label>
+                  <input 
+                    v-model="transactionDateTo"
+                    type="date" 
+                    class="form-input"
+                    style="width: 150px"
+                  />
+                </div>
+                <button 
+                  @click="fetchStaffInventoryTransactions" 
+                  class="btn btn-primary"
+                  style="padding: 8px 16px; font-size: 12px"
+                >
+                  Filter
+                </button>
+                <button 
+                  @click="transactionDateFrom = ''; transactionDateTo = ''; fetchStaffInventoryTransactions()"
+                  class="btn btn-outline"
+                  style="padding: 8px 16px; font-size: 12px; border-color: var(--border)"
+                >
+                  Reset
+                </button>
+              </div>
+
+              <div v-if="inventoryTransactions.length === 0" class="empty-state">
                 <div class="empty-state-icon">📦</div>
                 <div class="empty-state-text">No orders placed yet</div>
               </div>
               <div class="table-wrap" v-else>
-                <div style="margin-bottom: 16px">
-                  <input 
-                    v-model="orderProductFilter"
-                    type="text" 
-                    placeholder="🔍 Filter by product name or service..." 
-                    class="form-input"
-                    style="width: 100%; max-width: 300px"
-                  />
-                </div>
                 <table>
                   <thead>
                     <tr>
                       <th>Product</th>
+                      <th>Quantity</th>
                       <th>Service</th>
-                      <th>Status</th>
+                      <th>Order Type</th>
                       <th>Date</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="order in filteredOrders" :key="order.id">
-                      <td>{{ getProductName(order.productId) }}</td>
-                      <td>{{ getServiceName(order.serviceId) }}</td>
+                    <tr v-for="txn in inventoryTransactions" :key="txn.txn_id">
+                      <td><strong>{{ txn.product_name }}</strong></td>
+                      <td>{{ txn.quantity }}</td>
+                      <td>{{ txn.service_name || "N/A" }}</td>
                       <td>
-                        <span :class="['badge', getOrderStatusBadgeClass(order.status)]">{{ order.status }}</span>
+                        <span :class="['badge', txn.txn_type === 0 ? 'badge-info' : 'badge-success']" 
+                              style="font-size: 11px; padding: 4px 8px">
+                          {{ txn.txn_type === 0 ? 'Internal Order' : 'Replenishment' }}
+                        </span>
                       </td>
-                      <td>{{ order.date }}</td>
+                      <td>{{ new Date(txn.date_of_txn).toLocaleDateString() }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -536,53 +633,7 @@
     </div>
   </div>
 
-  <!-- Mark Attendance Modal -->
-  <div v-if="showMarkAttendanceModal" class="modal-overlay" @click="showMarkAttendanceModal = false">
-    <div class="modal-content" @click.stop>
-      <div class="modal-header">
-        <h3 class="modal-title">📅 Mark Attendance</h3>
-        <button class="modal-close" @click="showMarkAttendanceModal = false">✕</button>
-      </div>
-      <div class="modal-body">
-        <form @submit.prevent="handleMarkAttendance">
-          <div class="form-group">
-            <label for="attendance-date">Date *</label>
-            <input 
-              id="attendance-date"
-              v-model="attendanceForm.date" 
-              type="date" 
-              class="form-input"
-              required
-            />
-          </div>
-          <div class="form-group">
-            <label for="attendance-status">Status *</label>
-            <select 
-              id="attendance-status"
-              v-model="attendanceForm.status" 
-              class="form-input"
-              required
-            >
-              <option value="">Select Status</option>
-              <option value="present">Present</option>
-              <option value="absent">Absent</option>
-              <option value="late">Late</option>
-            </select>
-          </div>
-          <div v-if="attendanceError" class="error-message">{{ attendanceError }}</div>
-          <div v-if="attendanceSuccess" class="success-message">{{ attendanceSuccess }}</div>
-          <div style="display: flex; gap: 12px; margin-top: 20px">
-            <button type="button" class="btn btn-outline" @click="showMarkAttendanceModal = false" style="flex: 1">
-              Cancel
-            </button>
-            <button type="submit" class="btn btn-primary" style="flex: 1">
-              Mark Attendance
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
+
   <div v-if="showChangePasswordModal" class="modal-overlay" @click="showChangePasswordModal = false">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
@@ -738,7 +789,6 @@ const sidebarOpen = ref(false);
 const showChangePasswordModal = ref(false);
 const showProfileMenu = ref(false);
 const showProfileEditModal = ref(false);
-const showMarkAttendanceModal = ref(false);
 const showAppointmentDetailsModal = ref(false);
 const selectedAppointment = ref(null);
 const showProductDropdown = ref(false);
@@ -747,10 +797,6 @@ const passwordForm = ref({
   currentPassword: "",
   newPassword: "",
   confirmPassword: ""
-});
-const attendanceForm = ref({
-  date: "",
-  status: ""
 });
 const orderForm = ref({
   productId: "",
@@ -770,13 +816,29 @@ const profileForm = ref({
 });
 const passwordError = ref("");
 const passwordSuccess = ref("");
-const attendanceError = ref("");
-const attendanceSuccess = ref("");
 const orderError = ref("");
 const orderSuccess = ref("");
+const products = ref([]);
+const services = ref([]);
+const inventoryTransactions = ref([]);
+const transactionDateFrom = ref("");
+const transactionDateTo = ref("");
 
 // Order Tab
 const orderTab = ref("new-orders");
+
+// Appointment mode and data
+const appointmentMode = ref("today"); // 'today' or 'all'
+const fetchedTodayAppointments = ref([]);
+const fetchedAllAppointments = ref([]);
+const appointmentLoading = ref(false);
+const appointmentError = ref("");
+
+// Attendance data
+const attendanceLoading = ref(false);
+const attendanceError = ref("");
+const attendanceSuccess = ref("");
+const fetchedAttendance = ref([]);
 
 // Filter states
 const appointmentCustomerFilter = ref("");
@@ -803,10 +865,234 @@ const getDayName = (dateString) => {
   return days[date.getDay()];
 };
 
+// Fetch appointments from API
+const fetchAppointmentsByMode = async (mode = "today") => {
+  appointmentLoading.value = true;
+  appointmentError.value = "";
+
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      appointmentError.value = "Not authenticated. Please login again.";
+      return;
+    }
+
+    let appointmentsList = [];
+
+    if (mode === "today") {
+      // Fetch only today's appointments
+      const today = new Date().toISOString().split('T')[0];
+      const url = `${API_BASE_URL}/api/staff-appointments?date=${today}`;
+      
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        }
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        
+        // If it's a 404 for "No appointments found", treat as empty list
+        if (response.status === 404 && data.message && data.message.includes("No appointments found")) {
+          fetchedTodayAppointments.value = [];
+          appointmentError.value = ""; // Clear error
+          appointmentLoading.value = false;
+          return;
+        }
+        
+        appointmentError.value = data.message || `Failed to fetch today appointments`;
+        fetchedTodayAppointments.value = [];
+        appointmentLoading.value = false;
+        return;
+      }
+
+      const data = await response.json();
+      appointmentsList = data;
+    } else {
+      // Fetch all future appointments - fetch next 5 days
+      const allAppointments = [];
+      const baseDate = new Date();
+      
+      // Fetch appointments for next 5 days
+      for (let i = 0; i < 5; i++) {
+        const fetchDate = new Date(baseDate);
+        fetchDate.setDate(fetchDate.getDate() + i);
+        const dateStr = fetchDate.toISOString().split('T')[0];
+        
+        const url = `${API_BASE_URL}/api/staff-appointments?date=${dateStr}`;
+        
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+              "Authentication-Token": token
+            }
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.length > 0) {
+              allAppointments.push(...data);
+            }
+          } else if (response.status === 404) {
+            // No appointments on this date, continue to next day
+          }
+        } catch (error) {
+          // Handle fetch error silently, continue to next date
+        }
+      }
+      
+      appointmentsList = allAppointments;
+    }
+
+    // Transform API response into UI format
+    const formattedAppointments = appointmentsList.map(appt => {
+      const dateTime = new Date(appt.datetime);
+      const date = dateTime.toISOString().split('T')[0];
+      const time = dateTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+      
+      return {
+        id: appt.appointment_id,
+        customerName: appt.customer_name,
+        service: appt.services && appt.services.length > 0 
+          ? appt.services.map(s => s.name).join(", ")
+          : "N/A",
+        date: date,
+        time: time,
+        duration: 60, // Default, if not in API response
+        status: "confirmed", // Default status if not in API response
+        amount: 0 // Default, if not in API response
+      };
+    });
+
+    if (mode === "today") {
+      fetchedTodayAppointments.value = formattedAppointments;
+      // Update mock data for backward compatibility
+      staffData.todayAppointments = formattedAppointments;
+    } else if (mode === "all") {
+      fetchedAllAppointments.value = formattedAppointments;
+      // Update mock data for backward compatibility
+      staffData.upcomingAppointments = formattedAppointments;
+    }
+  } catch (error) {
+    console.error("Error fetching appointments:", error);
+    appointmentError.value = "Error fetching appointments. Please try again.";
+  } finally {
+    appointmentLoading.value = false;
+  }
+};
+
+// Fetch attendance data for current month
+const fetchAttendance = async () => {
+  attendanceLoading.value = true;
+  attendanceError.value = "";
+
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      console.warn("No auth token found - skipping attendance fetch");
+      attendanceLoading.value = false;
+      attendanceError.value = "Authentication token not found. Please login again.";
+      return;
+    }
+
+    // Get current month and year
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+
+    console.log("Fetching attendance for", month, year);
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/staff-attendance?month=${month}&year=${year}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        }
+      }
+    );
+
+    console.log("Attendance response status:", response.status);
+
+    if (response.status === 403) {
+      // Authorization denied - likely missing staff role
+      console.error("Access denied to attendance records - check user role assignment");
+      attendanceError.value = "You don't have permission to view attendance records. Contact your manager.";
+      fetchedAttendance.value = [];
+      return;
+    }
+
+    if (response.status === 404) {
+      // No records found for this month - show empty state
+      console.log("No attendance records for this month");
+      fetchedAttendance.value = [];
+      staffData.monthlyAttendance = [];
+      return;
+    }
+
+    if (!response.ok) {
+      const data = await response.json();
+      console.error("Attendance fetch error:", response.status, data);
+      attendanceError.value = data.message || "Failed to fetch attendance";
+      fetchedAttendance.value = [];
+      return;
+    }
+
+    const data = await response.json();
+    console.log("Attendance data received:", data);
+    console.log("Data is array?", Array.isArray(data));
+    console.log("Data length:", data ? data.length : 0);
+    
+    // Handle both array and object responses
+    let attendanceRecords = [];
+    if (Array.isArray(data)) {
+      attendanceRecords = data;
+    } else if (data && typeof data === 'object') {
+      // If response is an object with a message, it's an error-like response
+      if (data.message) {
+        console.log("API returned message:", data.message);
+        fetchedAttendance.value = [];
+        staffData.monthlyAttendance = [];
+        attendanceLoading.value = false;
+        return;
+      }
+      // Otherwise try to extract records from the object
+      attendanceRecords = Object.values(data).filter(item => item && typeof item === 'object');
+    }
+    
+    // Transform API response into UI format
+    const formattedAttendance = attendanceRecords.map(record => ({
+      id: record.register_id,
+      date: new Date(record.register_datetime).toISOString().split('T')[0],
+      status: "present" // Marking a record means the staff was present
+    }));
+
+    console.log("Formatted attendance:", formattedAttendance);
+    fetchedAttendance.value = formattedAttendance;
+    staffData.monthlyAttendance = formattedAttendance;
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+    attendanceError.value = "Network error while fetching attendance. Please try again.";
+    fetchedAttendance.value = [];
+  } finally {
+    attendanceLoading.value = false;
+  }
+};
+
 // Calculate attendance stats
 const attendanceStats = computed(() => {
   const stats = { present: 0, absent: 0, late: 0 };
-  staffData.monthlyAttendance.forEach(record => {
+  const records = fetchedAttendance.value.length > 0 ? fetchedAttendance.value : staffData.monthlyAttendance;
+  records.forEach(record => {
     if (record.status === 'present') stats.present++;
     else if (record.status === 'absent') stats.absent++;
     else if (record.status === 'late') stats.late++;
@@ -816,20 +1102,14 @@ const attendanceStats = computed(() => {
 
 // Filtered appointments & orders
 const filteredAppointments = computed(() => {
-  const threeMonthsAgo = new Date();
-  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-  const threeMonthsAgoStr = threeMonthsAgo.toISOString().split('T')[0];
+  // Use fetched appointments based on current mode
+  const appointments = appointmentMode.value === "today" 
+    ? fetchedTodayAppointments.value 
+    : fetchedAllAppointments.value;
   
-  // Combine today and upcoming appointments
-  const allAppointments = [...(staffData.todayAppointments || []), ...(staffData.upcomingAppointments || [])];
-  const filteredByDate = allAppointments.filter(appt => {
-    const apptDate = appt.date ? appt.date : new Date().toISOString().split('T')[0];
-    return apptDate >= threeMonthsAgoStr;
-  });
-  
-  if (!appointmentCustomerFilter.value.trim()) return filteredByDate;
+  if (!appointmentCustomerFilter.value.trim()) return appointments;
   const searchTerm = appointmentCustomerFilter.value.toLowerCase();
-  return filteredByDate.filter(appt =>
+  return appointments.filter(appt =>
     appt.customerName.toLowerCase().includes(searchTerm) ||
     appt.service.toLowerCase().includes(searchTerm)
   );
@@ -845,9 +1125,15 @@ const filteredOrders = computed(() => {
   });
 });
 
+const availableCategories = computed(() => {
+  // Get unique categories from fetched products
+  const categories = [...new Set(products.value.map(p => p.category))];
+  return categories.filter(cat => cat && cat !== "Other");
+});
+
 const filteredProductsByCategory = computed(() => {
   if (!orderForm.value.selectedCategory) return [];
-  let filtered = staffData.products.filter(product => {
+  let filtered = products.value.filter(product => {
     const category = getCategoryForProduct(product.id);
     return category === orderForm.value.selectedCategory;
   });
@@ -863,16 +1149,19 @@ const filteredProductsByCategory = computed(() => {
 });
 
 const filteredServices = computed(() => {
-  let services = staffData.services || [];
+  let svcs = services.value || [];
   
   if (orderForm.value.serviceSearch.trim()) {
-    services = services.filter(service =>
+    svcs = svcs.filter(service =>
       service.name.toLowerCase().includes(orderForm.value.serviceSearch.toLowerCase())
     );
   }
   
-  return services;
+  return svcs;
 });
+
+// Get real staff data from appStore based on current user
+const appStore = useAppStore();
 
 // Mock data
 const staffData = {
@@ -1029,7 +1318,6 @@ const getOrderStatusBadgeClass = (status) => {
 };
 
 // Get ratings received by current staff member
-const appStore = useAppStore();
 const currentStaffId = 1; // Amara Osei - would come from authenticated user in production
 
 const staffRatings = computed(() => {
@@ -1056,23 +1344,18 @@ const staffRatings = computed(() => {
 });
 
 const getProductName = (productId) => {
-  const product = staffData.products.find(p => p.id === productId);
+  const product = products.value.find(p => p.id === productId);
   return product ? product.name : "Unknown";
 };
 
 const getServiceName = (serviceId) => {
-  const service = staffData.services.find(s => s.id === serviceId);
+  const service = services.value.find(s => s.id === serviceId);
   return service ? service.name : "Unknown";
 };
 
 const getCategoryForProduct = (productId) => {
-  const categoriesMap = {
-    1: "Hair Care",
-    2: "Nails",
-    3: "Hair Care",
-    4: "Skin Care"
-  };
-  return categoriesMap[productId] || "Other";
+  const product = products.value.find(p => p.id === productId);
+  return product ? product.category : "Other";
 };
 
 const handleViewAppointmentDetails = (appt) => {
@@ -1191,52 +1474,183 @@ const handleChangePassword = async () => {
   }
 };
 
-const handleMarkAttendance = () => {
+const handleMarkTodayAttendance = async () => {
   attendanceError.value = "";
   attendanceSuccess.value = "";
-
-  if (!attendanceForm.value.date) {
-    attendanceError.value = "Date is required";
-    return;
-  }
-
-  if (!attendanceForm.value.status) {
-    attendanceError.value = "Status is required";
-    return;
-  }
-
-  // Check if attendance already exists for this date
-  const existingIndex = staffData.monthlyAttendance.findIndex(
-    (record) => record.date === attendanceForm.value.date
-  );
-
-  if (existingIndex !== -1) {
-    // Update existing attendance
-    staffData.monthlyAttendance[existingIndex].status = attendanceForm.value.status;
-  } else {
-    // Add new attendance record
-    staffData.monthlyAttendance.push({
-      date: attendanceForm.value.date,
-      status: attendanceForm.value.status,
-    });
-  }
-
-  // Sort by date
-  staffData.monthlyAttendance.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  attendanceSuccess.value = `Attendance marked as ${attendanceForm.value.status}!`;
   
-  setTimeout(() => {
-    attendanceForm.value = {
-      date: "",
-      status: ""
-    };
-    attendanceSuccess.value = "";
-    showMarkAttendanceModal.value = false;
-  }, 1500);
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      attendanceError.value = "Not authenticated. Please login again.";
+      return;
+    }
+
+    console.log("Marking attendance...");
+    
+    // Call backend API to mark attendance
+    const response = await fetch(`${API_BASE_URL}/api/staff-attendance`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    console.log("Mark attendance response status:", response.status);
+    
+    const data = await response.json();
+    console.log("Mark attendance response:", data);
+
+    if (response.ok) {
+      // 201 Created - successfully marked
+      attendanceSuccess.value = "✅ Attendance marked as present for today!";
+      
+      // Refresh attendance data from backend
+      await fetchAttendance();
+      
+      setTimeout(() => {
+        attendanceSuccess.value = "";
+      }, 2000);
+    } else if (response.status === 400) {
+      // 400 - likely already marked or other validation error
+      // Check if it's the "already marked" error specifically
+      const message = data.message || "";
+      console.log("400 error message:", message);
+      
+      if (message.toLowerCase().includes("already marked")) {
+        // Attendance already marked - show as informational message
+        attendanceSuccess.value = "ℹ️ Attendance already marked for today!";
+        
+        // Still refresh data in case
+        await fetchAttendance();
+        
+        setTimeout(() => {
+          attendanceSuccess.value = "";
+        }, 2000);
+      } else {
+        // Some other 400 error
+        attendanceError.value = message || "Invalid request. Please try again.";
+      }
+    } else if (response.status === 403) {
+      attendanceError.value = "You don't have permission to mark attendance. Contact your manager.";
+    } else {
+      attendanceError.value = data.message || "Failed to mark attendance. Please try again.";
+      console.error("Backend error:", response.status, data);
+    }
+  } catch (error) {
+    console.error("Error marking attendance:", error);
+    attendanceError.value = `Connection error: ${error.message}`;
+  }
 };
 
-const handleOrderProduct = () => {
+// Fetch products from backend
+const fetchProducts = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    const response = await fetch(`${API_BASE_URL}/api/product`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      // Map backend fields to frontend format
+      products.value = data.map(p => ({
+        id: p.product_id,
+        name: p.product_desc,
+        category: p.product_category_name,
+        price: p.product_price,
+        currentStock: p.product_curr_qoh,
+        minStock: p.product_min_qoh,
+        supplier: p.product_supplier_name
+      }));
+      console.log("Products fetched:", products.value);
+    } else {
+      console.error("Failed to fetch products:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching products:", error);
+  }
+};
+
+// Fetch services from backend
+const fetchServices = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    const response = await fetch(`${API_BASE_URL}/api/service`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      // Map backend fields to frontend format and filter only active services
+      services.value = data
+        .filter(s => s.active_flg === true) // Only active services
+        .map(s => ({
+          id: s.service_id,
+          name: s.service_desc,
+          category: s.service_category,
+          price: s.service_price,
+          duration: s.service_duration
+        }));
+      console.log("Services fetched:", services.value);
+    } else {
+      console.error("Failed to fetch services:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching services:", error);
+  }
+};
+
+// Fetch inventory transactions (orders) for staff
+const fetchStaffInventoryTransactions = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    let url = `${API_BASE_URL}/api/inventory-transaction`;
+    
+    // Add date range if provided
+    if (transactionDateFrom.value && transactionDateTo.value) {
+      url += `?from_date=${transactionDateFrom.value}&to_date=${transactionDateTo.value}`;
+    }
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      inventoryTransactions.value = data;
+      console.log("Inventory transactions fetched:", data);
+    } else {
+      console.error("Failed to fetch inventory transactions:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching inventory transactions:", error);
+  }
+};
+
+const handleOrderProduct = async () => {
   orderError.value = "";
   orderSuccess.value = "";
 
@@ -1250,32 +1664,64 @@ const handleOrderProduct = () => {
     return;
   }
 
-  // Create new order
-  const newOrder = {
-    id: Math.max(...staffData.orders.map(o => o.id || 0), 0) + 1,
-    productId: parseInt(orderForm.value.productId),
-    quantity: orderForm.value.quantity,
-    serviceId: parseInt(orderForm.value.serviceId),
-    status: "pending",
-    date: new Date().toISOString().split('T')[0],
-    staffId: 1,  // Would come from authenticated user in production
-    staffName: staffData.name
-  };
+  if (!orderForm.value.quantity || orderForm.value.quantity <= 0) {
+    orderError.value = "Quantity must be greater than 0";
+    return;
+  }
 
-  staffData.orders.push(newOrder);
-  orderSuccess.value = `Order placed successfully for ${getProductName(newOrder.productId)}!`;
-  
-  setTimeout(() => {
-    orderForm.value = {
-      productId: "",
-      quantity: 1,
-      serviceId: "",
-      selectedCategory: "",
-      productSearch: ""
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      orderError.value = "Authentication required. Please login again.";
+      return;
+    }
+
+    const payload = {
+      product_id: parseInt(orderForm.value.productId),
+      service_id: parseInt(orderForm.value.serviceId),
+      quantity: parseInt(orderForm.value.quantity)
     };
-    orderSuccess.value = "";
-    showProductDropdown.value = false;
-  }, 1500);
+
+    console.log("Placing order with payload:", payload);
+
+    const response = await fetch(`${API_BASE_URL}/api/inventory-transaction`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      orderSuccess.value = `Order placed successfully for ${getProductName(parseInt(orderForm.value.productId))}!`;
+      console.log("Order created:", result);
+      
+      // Fetch updated orders history
+      setTimeout(() => {
+        orderForm.value = {
+          productId: "",
+          quantity: 1,
+          serviceId: "",
+          selectedCategory: "",
+          productSearch: "",
+          serviceSearch: ""
+        };
+        orderSuccess.value = "";
+        showProductDropdown.value = false;
+        showServiceDropdown.value = false;
+      }, 1500);
+    } else {
+      orderError.value = result.message || "Failed to place order";
+      console.error("Error placing order:", response.status, result);
+    }
+  } catch (error) {
+    orderError.value = "Unable to connect to server. Please try again.";
+    console.error("Network error:", error);
+  }
 };
 
 
@@ -1329,6 +1775,19 @@ const handleClickOutside = (e) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  
+  // Fetch today's appointments on mount
+  fetchAppointmentsByMode("today");
+  
+  // Fetch attendance data on mount
+  fetchAttendance();
+  
+  // Fetch products and services for ordering
+  fetchProducts();
+  fetchServices();
+  
+  // Fetch inventory transactions (order history)
+  fetchStaffInventoryTransactions();
 });
 
 onUnmounted(() => {

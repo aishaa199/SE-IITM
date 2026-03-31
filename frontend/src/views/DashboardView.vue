@@ -60,7 +60,7 @@
         </div>
         <div
           :class="['nav-item', { active: currentView === 'rewards' }]"
-          @click="currentView = 'rewards'; sidebarOpen = false"
+          @click="currentView = 'rewards'; fetchRewardsSettings(); sidebarOpen = false"
         >
           <span class="nav-icon">🎁</span> Rewards
         </div>
@@ -79,12 +79,6 @@
           <span class="nav-icon">📮</span> Orders ({{ pendingOrders.length }})
         </div>
         <div
-          :class="['nav-item', { active: currentView === 'invoices' }]"
-          @click="currentView = 'invoices'"
-        >
-          <span class="nav-icon">📋</span> Invoices
-        </div>
-        <div
           :class="['nav-item', { active: currentView === 'finance' }]"
           @click="handleFinanceAccess"
         >
@@ -95,6 +89,14 @@
           @click="handleReportsAccess"
         >
           <span class="nav-icon">📄</span> Download Reports
+        </div>
+
+        <div class="nav-section">Settings</div>
+        <div
+          :class="['nav-item', { active: currentView === 'settings' }]"
+          @click="currentView = 'settings'; fetchSalonConfig()"
+        >
+          <span class="nav-icon">⚙️</span> Salon Settings
         </div>
       </nav>
       <div class="sidebar-footer">
@@ -205,15 +207,20 @@
                 </div>
                 <div v-for="appt in todayAppointments" :key="appt.id" class="booking-item">
                   <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
-                    <div class="booking-time">{{ getTimeFromDate(appt.date) }}</div>
+                    <div class="booking-time">{{ getTimeFromDate(appt.datetime) }}</div>
                     <div>
                       <div style="font-weight: 600">{{ getCustomerName(appt.customerId) }}</div>
                       <div class="text-muted">{{ getServiceName(appt.serviceId) }}</div>
                     </div>
                   </div>
                   <div style="display: flex; align-items: center; justify-content: space-between">
-                    <div class="text-muted" style="font-size: 12px">Staff: {{ getStaffName(appt.staffId) || "Unassigned" }}</div>
-                    <span :class="['badge', apptStatusBadge(appt.status)]">{{ appt.status }}</span>
+                    <div style="display: flex; align-items: center; gap: 12px; flex: 1">
+                      <div class="text-muted" style="font-size: 12px">Staff: {{ getStaffName(appt.staffId) || "Unassigned" }}</div>
+                      <span :class="['badge', apptStatusBadge(appt.status)]">{{ appt.status }}</span>
+                    </div>
+                    <button class="btn btn-sm btn-primary" @click="handleCreateInvoiceFromAppointment(appt)" style="padding: 4px 8px; font-size: 11px">
+                      📄 Invoice
+                    </button>
                   </div>
                   <div style="height: 1px; background: var(--border); margin: 8px 0"></div>
                 </div>
@@ -238,6 +245,47 @@
                   </div>
                   <div class="alert-time">{{ alert.time }}</div>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Daywise Appointment Count -->
+          <div class="card" style="margin-top: 24px">
+            <div class="card-header">
+              <h3 class="card-title">📊 Salon Appointments - Daywise</h3>
+            </div>
+            <div class="card-body">
+              <div v-if="dailyCountLoading" style="text-align: center; padding: 20px; color: var(--text-muted)">
+                ⏳ Loading appointment data...
+              </div>
+              <div v-else-if="dailyCountError" class="error-message" style="margin-bottom: 16px">
+                {{ dailyCountError }}
+              </div>
+              <div v-else-if="dailyAppointmentCounts.length === 0" class="empty-state">
+                <div class="empty-state-icon">📊</div>
+                <div class="empty-state-text">No appointment data available</div>
+              </div>
+              <div v-else style="overflow-x: auto">
+                <table style="width: 100%; border-collapse: collapse">
+                  <thead>
+                    <tr style="background: var(--light-bg); border-bottom: 2px solid var(--border)">
+                      <th style="padding: 12px; text-align: left; font-weight: 600">Date</th>
+                      <th style="padding: 12px; text-align: center; font-weight: 600">Appointments</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="dayCount in dailyAppointmentCounts" :key="dayCount.date" style="border-bottom: 1px solid var(--border); cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.closest('tr').style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.closest('tr').style.backgroundColor = 'transparent'">
+                      <td style="padding: 12px; text-align: left">
+                        {{ new Date(dayCount.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' }) }}
+                      </td>
+                      <td style="padding: 12px; text-align: center">
+                        <span style="display: inline-block; background: var(--gold); color: white; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 14px">
+                          {{ dayCount.count }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -391,7 +439,7 @@
                 <div v-if="bookingError" class="error-message">{{ bookingError }}</div>
                 <div v-if="bookingSuccess" class="success-message">{{ bookingSuccess }}</div>
 
-                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
+                <button type="submit" class="btn btn-primary" style="margin-top: 16px; width: 100%">
                   Create Appointment ({{ bookingForm.serviceIds.length }} service{{ bookingForm.serviceIds.length !== 1 ? 's' : '' }})
                 </button>
               </form>
@@ -418,8 +466,11 @@
 
           <!-- Appointments List -->
           <div class="card">
-            <div class="card-header">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center">
               <h3 class="card-title">📅 {{ selectedDate ? 'Appointments - ' + formatDateShort(selectedDate) : "All Appointments" }}</h3>
+              <button v-if="selectedDate" @click="selectedDate = null" class="btn btn-sm btn-outline" style="padding: 6px 12px">
+                View All
+              </button>
             </div>
             <div class="card-body">
               <div style="margin-bottom: 16px">
@@ -437,7 +488,7 @@
               </div>
               <div v-for="appt in filteredBookings" :key="appt.id" class="booking-item">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
-                  <div class="booking-time">{{ getTimeFromDate(appt.date) }}</div>
+                  <div class="booking-time">{{ getTimeFromDate(appt.datetime) }}</div>
                   <div>
                     <div style="font-weight: 600">{{ getCustomerName(appt.customerId) }}</div>
                     <div class="text-muted">{{ getServiceName(appt.serviceId) }}</div>
@@ -468,10 +519,10 @@
           <!-- Add Service Form -->
           <div class="card" style="margin-bottom: 20px">
             <div class="card-header">
-              <h3 class="card-title">➕ Add New Service</h3>
+              <h3 class="card-title">{{ isEditingService ? '✎ Edit Service' : '➕ Add New Service' }}</h3>
             </div>
             <div class="card-body">
-              <form @submit.prevent="handleAddService" style="max-width: 800px">
+              <form @submit.prevent="handleServiceSubmit" style="max-width: 800px">
                 <div class="grid-2">
                   <div class="form-group">
                     <label for="service-name">Service Name *</label>
@@ -537,7 +588,25 @@
                     />
                   </div>
 
+                  <div class="form-group">
+                    <label for="service-from-date">From Date</label>
+                    <input 
+                      id="service-from-date"
+                      v-model="serviceForm.fromDate"
+                      type="date"
+                      class="form-input"
+                    />
+                  </div>
 
+                  <div class="form-group">
+                    <label for="service-to-date">To Date</label>
+                    <input 
+                      id="service-to-date"
+                      v-model="serviceForm.toDate"
+                      type="date"
+                      class="form-input"
+                    />
+                  </div>
                 </div>
 
                 <div v-if="serviceError" class="error-message">{{ serviceError }}</div>
@@ -594,6 +663,9 @@
                       <th>Category</th>
                       <th>Price</th>
                       <th>Duration (min)</th>
+                      <th>From Date</th>
+                      <th>To Date</th>
+                      <th>Status</th>
                       <th>Products Required</th>
                       <th>Rating</th>
                       <th>Actions</th>
@@ -605,6 +677,12 @@
                       <td>{{ getCategoryName(service.categoryId) }}</td>
                       <td>₹{{ service.price }}</td>
                       <td>{{ service.duration }}</td>
+                      <td style="font-size: 12px">{{ service.fromDate || '-' }}</td>
+                      <td style="font-size: 12px">{{ service.toDate || '-' }}</td>
+                      <td>
+                        <span v-if="getServiceStatus(service) === 'Active'" style="background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600">✓ Active</span>
+                        <span v-else style="background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600">✗ Inactive</span>
+                      </td>
                       <td class="text-muted" style="font-size: 12px">{{ service.productsRequired || "None" }}</td>
                       <td>{{ service.rating ? service.rating + ' ⭐' : 'No rating' }}</td>
                       <td>
@@ -756,10 +834,9 @@
                       <th>Phone</th>
                       <th>Customer Type</th>
                       <th>Total Spent</th>
-                      <th>Points Balance</th>
+                      <th>Available Rewards</th>
                       <th>Preferences</th>
                       <th>No. of Visits</th>
-                      <th>Invoices</th>
                       <th>Address</th>
                       <th>Registered</th>
                       <th>Actions</th>
@@ -772,10 +849,9 @@
                       <td>{{ customer.phone }}</td>
                       <td><span class="badge" :style="{ background: customer.customerType === 'VIP' ? '#FFD700' : '#95a5a6', color: customer.customerType === 'VIP' ? '#000' : '#fff', padding: '4px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }">{{ customer.customerType || 'Normal' }}</span></td>
                       <td style="text-align: center; font-weight: 600; color: var(--success)">₹{{ customer.totalSpent || 0 }}</td>
-                      <td style="text-align: center; font-weight: 600; color: var(--primary)">{{ Math.round(customer.pointsBalance || 0) }}</td>
+                      <td style="text-align: center; font-weight: 600; color: var(--gold)">🎁 {{ customer.pointsBalance || 0 }}</td>
                       <td style="font-size: 12px; color: #666">{{ customer.preferences || '-' }}</td>
                       <td style="text-align: center; font-weight: 600">{{ customer.noOfVisits || 0 }}</td>
-                      <td style="text-align: center"><span class="badge" style="background: var(--gold); color: white">{{ customer.invoices || 0 }}</span></td>
                       <td class="text-muted">{{ customer.address || "N/A" }}</td>
                       <td>{{ customer.registrationDate }}</td>
                       <td>
@@ -792,6 +868,136 @@
                   </tbody>
                 </table>
               </div>
+            </div>
+          </div>
+
+          <!-- Edit Customer Modal -->
+          <div v-if="isEditingCustomer" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000" @click.self="cancelEditCustomer">
+            <div style="background: white; border-radius: 12px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3)">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px">
+                <h2 style="margin: 0; font-size: 24px; font-weight: 600">✎ Edit Customer</h2>
+                <button @click="cancelEditCustomer" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999">✕</button>
+              </div>
+
+              <!-- Customer Info Display -->
+              <div style="background: var(--light-bg); padding: 16px; border-radius: 8px; margin-bottom: 24px">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                  <div>
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">REGISTRATION DATE</div>
+                    <div style="font-weight: 600">{{ editingCustomerData?.registrationDate || 'N/A' }}</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">DATE OF BIRTH</div>
+                    <div style="font-weight: 600">{{ editingCustomerData?.dob || 'N/A' }}</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">TOTAL VISITS</div>
+                    <div style="font-weight: 600">{{ editingCustomerData?.noOfVisits || 0 }}</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">POINTS BALANCE</div>
+                    <div style="font-weight: 600; color: var(--primary)">{{ Math.round(editingCustomerData?.pointsBalance || 0) }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Edit Form -->
+              <form @submit.prevent="handleUpdateCustomer" style="margin-bottom: 20px">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label for="edit-customer-name">Name *</label>
+                    <input 
+                      id="edit-customer-name"
+                      v-model="customerForm.name"
+                      type="text"
+                      placeholder="e.g., Sofia Mensah"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="edit-customer-email">Email *</label>
+                    <input 
+                      id="edit-customer-email"
+                      v-model="customerForm.email"
+                      type="email"
+                      placeholder="e.g., sofia@email.com"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="edit-customer-phone">Phone *</label>
+                    <input 
+                      id="edit-customer-phone"
+                      v-model="customerForm.phone"
+                      type="tel"
+                      placeholder="e.g., 030-111-2222"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="edit-customer-dob">Date of Birth *</label>
+                    <input 
+                      id="edit-customer-dob"
+                      v-model="customerForm.dob"
+                      type="date"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="edit-customer-type">Customer Type</label>
+                    <select 
+                      id="edit-customer-type"
+                      v-model="customerForm.customerType"
+                      class="form-input"
+                    >
+                      <option value="Normal">Normal</option>
+                      <option value="VIP">VIP</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="edit-customer-address">Address</label>
+                    <input 
+                      id="edit-customer-address"
+                      v-model="customerForm.address"
+                      type="text"
+                      placeholder="e.g., 14 Cantonments Rd"
+                      class="form-input"
+                    />
+                  </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="edit-customer-preferences">Preferences</label>
+                    <textarea 
+                      id="edit-customer-preferences"
+                      v-model="customerForm.preferences"
+                      placeholder="e.g., Relaxing massage, No harsh chemicals, etc."
+                      class="form-input"
+                      style="resize: vertical; min-height: 60px"
+                    ></textarea>
+                  </div>
+                </div>
+
+                <div v-if="customerError" class="error-message">{{ customerError }}</div>
+                <div v-if="customerSuccess" class="success-message">{{ customerSuccess }}</div>
+
+                <div style="display: flex; gap: 12px; margin-top: 20px">
+                  <button type="submit" class="btn btn-primary">
+                    Update Customer
+                  </button>
+                  <button type="button" class="btn btn-outline" @click="cancelEditCustomer">
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
@@ -856,10 +1062,10 @@
           <!-- Add Staff Form -->
           <div class="card" style="margin-bottom: 20px">
             <div class="card-header">
-              <h3 class="card-title">➕ Add New Staff</h3>
+              <h3 class="card-title">{{ isEditingStaff ? '✎ Edit Staff' : '➕ Add New Staff' }}</h3>
             </div>
             <div class="card-body">
-              <form @submit.prevent="handleAddStaff" style="max-width: 800px">
+              <form @submit.prevent="isEditingStaff ? handleUpdateStaff() : handleAddStaff()" style="max-width: 800px">
                 <div class="grid-2">
                   <div class="form-group">
                     <label for="staff-name">Name *</label>
@@ -972,9 +1178,158 @@
                 <div v-if="staffError" class="error-message">{{ staffError }}</div>
                 <div v-if="staffSuccess" class="success-message">{{ staffSuccess }}</div>
 
-                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
-                  Add Staff
-                </button>
+                <div style="display: flex; gap: 12px; margin-top: 16px">
+                  <button type="submit" class="btn btn-primary">
+                    {{ isEditingStaff ? 'Update Staff' : 'Add Staff' }}
+                  </button>
+                  <button v-if="isEditingStaff" type="button" class="btn btn-outline" @click="cancelEditStaff">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- Edit Staff Modal -->
+          <div v-if="isEditingStaff" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000" @click.self="cancelEditStaff">
+            <div style="background: white; border-radius: 12px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3)">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px">
+                <h2 style="margin: 0; font-size: 24px; font-weight: 600">✎ Edit Staff</h2>
+                <button @click="cancelEditStaff" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999">✕</button>
+              </div>
+
+              <!-- Staff Info Display -->
+              <div style="background: var(--light-bg); padding: 16px; border-radius: 8px; margin-bottom: 24px">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                  <div>
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">DATE OF JOINING</div>
+                    <div style="font-weight: 600">{{ editingStaffData?.doj || 'N/A' }}</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">DATE OF BIRTH</div>
+                    <div style="font-weight: 600">{{ editingStaffData?.dob || 'N/A' }}</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">RATING</div>
+                    <div style="font-weight: 600; color: var(--gold)">⭐ {{ editingStaffData?.rating || 'N/A' }}</div>
+                  </div>
+                  <div>
+                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">REVIEWS</div>
+                    <div style="font-weight: 600">{{ editingStaffData?.reviews || 0 }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Edit Form -->
+              <form @submit.prevent="handleUpdateStaff" style="margin-bottom: 20px">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label for="edit-staff-name">Name *</label>
+                    <input 
+                      id="edit-staff-name"
+                      v-model="staffForm.name"
+                      type="text"
+                      placeholder="e.g., Amara Osei"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="edit-staff-role">Role *</label>
+                    <input 
+                      id="edit-staff-role"
+                      v-model="staffForm.role"
+                      type="text"
+                      placeholder="e.g., Senior Stylist"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="edit-staff-email">Email *</label>
+                    <input 
+                      id="edit-staff-email"
+                      v-model="staffForm.email"
+                      type="email"
+                      placeholder="e.g., amara@glowsuite.com"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="edit-staff-phone">Phone *</label>
+                    <input 
+                      id="edit-staff-phone"
+                      v-model="staffForm.phone"
+                      type="tel"
+                      placeholder="e.g., 050-111-2222"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group" style="grid-column: 1 / -1">
+                    <label for="edit-staff-skills">Skills *</label>
+                    <input 
+                      id="edit-staff-skills"
+                      v-model="staffForm.skills"
+                      type="text"
+                      placeholder="e.g., Hair Cutting, Styling, Coloring"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="edit-staff-dob">Date of Birth *</label>
+                    <input
+                      id="edit-staff-dob"
+                      v-model="staffForm.dob"
+                      type="date"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="edit-staff-doj">Date of Joining *</label>
+                    <input 
+                      id="edit-staff-doj"
+                      v-model="staffForm.doj"
+                      type="date"
+                      class="form-input"
+                      required
+                    />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="edit-staff-salary">Salary (₹) *</label>
+                    <input 
+                      id="edit-staff-salary"
+                      v-model.number="staffForm.salary"
+                      type="number"
+                      placeholder="e.g., 2000"
+                      class="form-input"
+                      required
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                <div v-if="staffError" class="error-message">{{ staffError }}</div>
+                <div v-if="staffSuccess" class="success-message">{{ staffSuccess }}</div>
+
+                <div style="display: flex; gap: 12px; margin-top: 20px">
+                  <button type="submit" class="btn btn-primary">
+                    Update Staff
+                  </button>
+                  <button type="button" class="btn btn-outline" @click="cancelEditStaff">
+                    Cancel
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -1155,12 +1510,11 @@
                   </div>
                 </div>
 
-                <div v-if="inventoryError" class="error-message">{{ inventoryError }}</div>
-                <div v-if="inventorySuccess" class="success-message">{{ inventorySuccess }}</div>
-
-                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
-                  Add Product
-                </button>
+                <div style="display: flex; gap: 12px; margin-top: 16px">
+                  <button type="submit" class="btn btn-primary" style="flex: 1">
+                    Add Product
+                  </button>
+                </div>
               </form>
             </div>
           </div>
@@ -1345,112 +1699,74 @@
 
         <!-- ORDERS VIEW -->
         <div v-if="currentView === 'orders'" class="fade-in">
-          <!-- Order Tabs -->
-          <div style="display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 12px">
-            <button 
-              @click="orderTab = 'pending-orders'"
-              :style="{ background: orderTab === 'pending-orders' ? 'var(--gold)' : 'transparent', color: orderTab === 'pending-orders' ? 'white' : 'var(--text)', borderBottom: 'none', padding: '8px 16px', borderRadius: 'var(--radius)', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '500' }"
-            >
-              📋 Pending Invoices
-            </button>
-            <button 
-              @click="orderTab = 'replenishment'"
-              :style="{ background: orderTab === 'replenishment' ? 'var(--gold)' : 'transparent', color: orderTab === 'replenishment' ? 'white' : 'var(--text)', borderBottom: 'none', padding: '8px 16px', borderRadius: 'var(--radius)', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '500' }"
-            >
-              🔄 Replenishment Requests
-            </button>
-          </div>
-
-          <!-- PENDING INVOICES TAB -->
-          <div v-if="orderTab === 'pending-orders'" class="card">
-            <div class="card-header">
-              <h3 class="card-title">📋 Pending Invoices</h3>
-            </div>
-            <div class="card-body">
-              <!-- Completed Appointments Awaiting Invoice -->
-              <div style="margin-bottom: 16px">
-                <input 
-                  v-model="completedAppointmentFilter"
-                  type="text" 
-                  placeholder="🔍 Filter by customer name/email, staff, or service..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
-              </div>
-              <div v-if="filteredCompletedAppointments.length === 0" class="empty-state">
-                <div class="empty-state-icon">✨</div>
-                <div class="empty-state-text">{{ completedAppointmentFilter.trim() ? 'No appointments match the filter' : 'No completed appointments awaiting invoices' }}</div>
-              </div>
-              <div v-else class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Appointment ID</th>
-                      <th>Customer</th>
-                      <th>Staff</th>
-                      <th>Service</th>
-                      <th>Date</th>
-                      <th>Invoice Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="appt in filteredCompletedAppointments" :key="appt.id">
-                      <td>#{{ appt.id }}</td>
-                      <td>{{ getCustomerName(appt.customerId) }}</td>
-                      <td>{{ getStaffName(appt.staffId) || "Unassigned" }}</td>
-                      <td>{{ getServiceName(appt.serviceId) }}</td>
-                      <td>{{ appt.date }}</td>
-                      <td><strong>{{ appt.invoiceStatus }}</strong></td>
-                      <td>
-                        <button class="btn btn-sm btn-primary" @click="handleCreateInvoiceFromAppointment(appt)">
-                          📄 Create Invoice
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <!-- REPLENISHMENT REQUESTS TAB -->
-          <div v-if="orderTab === 'replenishment'" class="card">
+          <!-- REPLENISHMENT REQUESTS SECTION -->
+          <div class="card">
             <div class="card-header">
               <h3 class="card-title">🔄 Inventory Replenishment</h3>
             </div>
             <div class="card-body">
-              <!-- Incoming Staff Requests -->
+              <!-- Staff Replenishments -->
               <div style="margin-bottom: 24px">
-                <h4 style="margin-bottom: 16px; font-weight: 600">📥 Incoming Staff Replenishment Requests</h4>
-                <div v-if="managerReplenishmentRequests.length === 0" class="empty-state">
-                  <div class="empty-state-icon">📥</div>
-                  <div class="empty-state-text">No incoming staff requests</div>
+                <h4 style="margin-bottom: 16px; font-weight: 600">📥 Staff Replenishments</h4>
+                <!-- Date range filter -->
+                <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                  <div>
+                    <label style="font-size: 12px; color: var(--text-muted)">From Date</label>
+                    <input 
+                      v-model="managerTransactionDateFrom"
+                      type="date" 
+                      class="form-input"
+                      style="width: 150px"
+                    />
+                  </div>
+                  <div>
+                    <label style="font-size: 12px; color: var(--text-muted)">To Date</label>
+                    <input 
+                      v-model="managerTransactionDateTo"
+                      type="date" 
+                      class="form-input"
+                      style="width: 150px"
+                    />
+                  </div>
+                  <button 
+                    @click="fetchManagerInventoryTransactions" 
+                    class="btn btn-primary"
+                    style="padding: 8px 16px; font-size: 12px"
+                  >
+                    Filter
+                  </button>
+                  <button 
+                    @click="managerTransactionDateFrom = ''; managerTransactionDateTo = ''; fetchManagerInventoryTransactions()"
+                    class="btn btn-outline"
+                    style="padding: 8px 16px; font-size: 12px; border-color: var(--border)"
+                  >
+                    Reset
+                  </button>
+                </div>
+
+                <!-- Transaction Table -->
+                <div v-if="staffOrderRequests.length === 0" class="empty-state">
+                  <div class="empty-state-icon">📊</div>
+                  <div class="empty-state-text">No staff orders found</div>
                 </div>
                 <div v-else class="table-wrap">
                   <table>
                     <thead>
                       <tr>
-                        <th>From Staff</th>
                         <th>Product</th>
                         <th>Quantity</th>
-                        <th>Reason</th>
+                        <th>Staff Name</th>
+                        <th>Service</th>
                         <th>Date</th>
-                        <th>Action</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="req in managerReplenishmentRequests" :key="req.id">
-                        <td>{{ req.staffName }}</td>
-                        <td>{{ getProductNameForOrder(req.productId) }}</td>
-                        <td>{{ req.quantity }}</td>
-                        <td>{{ req.reason }}</td>
-                        <td>{{ req.date }}</td>
-                        <td style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
-                          <button @click="handleAcceptReplenishment(req)" class="btn btn-sm" style="background: var(--success); color: white; padding: 4px 8px; font-size: 12px; border: none; cursor: pointer; border-radius: var(--radius); white-space: nowrap;">✓ Accept</button>
-                          <button @click="handleApproveReplenishment(req)" class="btn btn-sm" style="background: #2196F3; color: white; padding: 4px 8px; font-size: 12px; border: none; cursor: pointer; border-radius: var(--radius); white-space: nowrap; font-weight: 500;">✓ Approve</button>
-                          <button @click="handleRejectReplenishment(req)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border: 1px solid #e74c3c; border-radius: var(--radius); white-space: nowrap; background: none; cursor: pointer;">✕ Reject</button>
-                        </td>
+                      <tr v-for="txn in staffOrderRequests" :key="txn.txn_id">
+                        <td><strong>{{ txn.product_name }}</strong></td>
+                        <td>{{ txn.quantity }}</td>
+                        <td>{{ getStaffName(txn.staff_id) || "Unknown" }}</td>
+                        <td>{{ txn.service_name || "N/A" }}</td>
+                        <td>{{ new Date(txn.date_of_txn).toLocaleDateString() }}</td>
                       </tr>
                     </tbody>
                   </table>
@@ -1462,7 +1778,7 @@
                 <h4 style="margin-bottom: 16px; font-weight: 600">➕ Add Stock Replenishment</h4>
                 <div class="form-group">
                   <label for="replen-product">Product Name *</label>
-                  <select v-model="replenishmentForm.productId" id="replen-product" class="form-input" required>
+                  <select v-model="replenishmentForm.productId" @change="handleReplenishmentProductSelect" id="replen-product" class="form-input" required>
                     <option value="">Select a product</option>
                     <option v-for="product in data.products" :key="product.id" :value="product.id">
                       {{ product.name }} (Current Stock: {{ product.currentStock }})
@@ -1478,19 +1794,61 @@
                   <textarea v-model="replenishmentForm.reason" id="replen-reason" class="form-input" placeholder="e.g., Low stock alert, High demand period..." required rows="2"></textarea>
                 </div>
                 <div class="form-group">
-                  <label for="replen-supplier">Supplier (Optional)</label>
-                  <input v-model="replenishmentForm.supplier" id="replen-supplier" type="text" class="form-input" placeholder="Supplier name" />
+                  <label for="replen-supplier">Supplier</label>
+                  <input v-model="replenishmentForm.supplier" id="replen-supplier" type="text" class="form-input" placeholder="Auto-filled from product info" disabled style="background: var(--light-bg); color: #666; cursor: not-allowed" />
+                  <small class="text-muted" style="font-size: 11px; margin-top: 4px">Auto-filled from product supplier information</small>
                 </div>
                 <div v-if="replenishmentError" class="error-message" style="margin-bottom: 12px">{{ replenishmentError }}</div>
                 <button type="submit" class="btn btn-primary" style="width: 100%">+ Add to Order List</button>
               </form>
 
-              <!-- Pending Orders List -->
-              <div>
-                <h4 style="margin-bottom: 16px; font-weight: 600">📋 Items Pending Order ({{ pendingReplenishmentList.length }})</h4>
-                <div v-if="pendingReplenishmentList.length === 0" class="empty-state">
-                  <div class="empty-state-icon">🔄</div>
-                  <div class="empty-state-text">No items pending order</div>
+              <!-- Grouped Supplier Orders for Replenishment -->
+              <div style="margin-top: 24px; padding-top: 24px; border-top: 2px solid var(--border)">
+                <h4 style="margin-bottom: 16px; font-weight: 600">📦 Manager Replenishment Orders (Grouped by Supplier)</h4>
+                <div v-if="groupedSupplierOrders.length === 0" class="empty-state">
+                  <div class="empty-state-icon">📦</div>
+                  <div class="empty-state-text">No manager replenishment orders</div>
+                </div>
+                <div v-else style="display: flex; flex-direction: column; gap: 20px">
+                  <div v-for="(group, index) in groupedSupplierOrders" :key="index" style="border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; background: var(--light-bg)">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
+                      <h5 style="margin: 0; font-weight: 600">🏢 {{ group.supplier }}</h5>
+                      <button @click="handlePlaceOrderToWholesale(group)" class="btn btn-primary" style="padding: 8px 16px; font-size: 12px">
+                        📤 Place Order to Wholesale
+                      </button>
+                    </div>
+                    <div class="table-wrap">
+                      <table style="font-size: 13px">
+                        <thead>
+                          <tr>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Cost (₹)</th>
+                            <th>Date</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="item in group.items" :key="item.txn_id">
+                            <td><strong>{{ getProductName(item.product_id) }}</strong></td>
+                            <td>{{ item.quantity }}</td>
+                            <td><strong>₹{{ (item.quantity * (data.products.find(p => p.id === item.product_id)?.price || 0)).toFixed(2) }}</strong></td>
+                            <td><small>{{ formatDate(item.date_of_txn) }}</small></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- WHOLESALE SUPPLIER ORDERS SECTION -->
+              <div style="margin-top: 32px; padding-top: 32px; border-top: 2px solid var(--border)">
+                <h4 style="margin-bottom: 24px; font-weight: 600">🛒 Wholesale Orders Placed</h4>
+
+                <!-- Orders Table -->
+                <div v-if="managerOrders.length === 0" class="empty-state">
+                  <div class="empty-state-icon">📮</div>
+                  <div class="empty-state-text">No wholesale orders placed yet</div>
                 </div>
                 <div v-else class="table-wrap">
                   <table>
@@ -1498,192 +1856,113 @@
                       <tr>
                         <th>Product</th>
                         <th>Quantity</th>
-                        <th>Current Stock</th>
-                        <th>Reason</th>
+                        <th>Cost (₹)</th>
                         <th>Supplier</th>
-                        <th>Source</th>
-                        <th>Added Date</th>
-                        <th>Action</th>
+                        <th>Reason</th>
+                        <th>Status</th>
+                        <th>Order Date</th>
+                        <th>Replenishment Date</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="item in pendingReplenishmentList" :key="item.id">
-                        <td><strong>{{ getProductNameForOrder(item.productId) }}</strong></td>
-                        <td>{{ item.quantity }}</td>
-                        <td style="color: item.currentStock < 5 ? '#e74c3c' : '#27ae60'">{{ item.currentStock }}</td>
-                        <td>{{ item.reason }}</td>
-                        <td>{{ item.supplier || '-' }}</td>
-                        <td><span class="badge" :style="{ background: item.supplier?.includes('Staff') ? '#3498db' : '#95a5a6', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '11px' }">{{ item.supplier?.includes('Staff') ? 'Staff Order' : 'Manual' }}</span></td>
-                        <td>{{ item.date }}</td>
+                      <tr v-for="order in managerOrders" :key="order.order_id">
+                        <td><strong>{{ order.product_name }}</strong></td>
+                        <td>{{ order.order_quantity }}</td>
+                        <td>₹{{ (order.order_quantity * (data.products.find(p => p.id === order.product_id)?.price || 0)).toFixed(2) }}</td>
+                        <td><small>{{ order.supplier_name }}</small></td>
+                        <td><small>{{ order.reason_for_order || '-' }}</small></td>
                         <td>
-                          <button @click="handleRemoveFromList(item.id)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c">Remove</button>
+                          <span :style="{ 
+                            padding: '4px 8px', 
+                            borderRadius: '4px', 
+                            fontSize: '11px', 
+                            fontWeight: '600',
+                            backgroundColor: getStatusColor(order.status).bg,
+                            color: getStatusColor(order.status).text
+                          }">
+                            {{ getStatusLabel(order.status) }}
+                          </span>
+                        </td>
+                        <td><small>{{ formatDate(order.order_date) }}</small></td>
+                        <td><small>{{ order.order_replenishment_date ? formatDate(order.order_replenishment_date) : '-' }}</small></td>
+                        <td style="display: flex; gap: 6px; flex-wrap: wrap">
+                          <button v-if="order.status === 0" @click="handleMarkOrderDelivered(order)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #27ae60; border-color: #27ae60">✓ Delivered</button>
+                          <button @click="openEditOrderModal(order)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px">✏️ Edit</button>
+                          <button @click="handleDeleteOrder(order.order_id)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #e74c3c; border-color: #e74c3c">🗑️ Delete</button>
                         </td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
-
-              <!-- Place Order Button -->
-              <div v-if="pendingReplenishmentList.length > 0" style="margin-top: 24px; padding-top: 24px; border-top: 2px solid var(--border); display: flex; gap: 12px">
-                <button @click="handlePlaceReplenishmentOrder" class="btn btn-primary" style="padding: 12px 24px; font-size: 14px">
-                  📤 Place Order ({{ pendingReplenishmentList.length }} items)
-                </button>
-                <span style="color: var(--text-muted); font-size: 13px; margin-top: 12px">Ready to order {{ pendingReplenishmentList.length }} item(s)</span>
-              </div>
             </div>
           </div>
         </div>
 
-        <!-- INVOICES VIEW -->
-        <div v-if="currentView === 'invoices'" class="fade-in">
-          <!-- Add Invoice Form -->
-          <div class="card" style="margin-bottom: 20px">
-            <div class="card-header">
-              <h3 class="card-title">➕ Create New Invoice</h3>
+        <!-- Edit Order Modal -->
+        <div v-if="showEditOrderModal && editingOrder" class="modal-overlay" @click.self="showEditOrderModal = false">
+          <div class="modal">
+            <div class="modal-header">
+              <h4 class="modal-title">✏️ Edit Order</h4>
+              <button type="button" class="close" @click="showEditOrderModal = false">&times;</button>
             </div>
-            <div class="card-body">
-              <form @submit.prevent="handleAddInvoice" style="max-width: 800px">
-                <div class="grid-2">
-                  <div class="form-group">
-                    <label for="invoice-appointment">Select Appointment *</label>
-                    <select 
-                      id="invoice-appointment"
-                      @change="handleAppointmentSelect"
-                      class="form-input"
-                      required
-                    >
-                      <option value="">Choose an appointment</option>
-                      <option v-for="appt in data.appointments" :key="appt.id" :value="appt.id">
-                        {{ getCustomerName(appt.customerId) }} - {{ getServiceName(appt.serviceId) }} ({{ appt.date }})
-                      </option>
-                    </select>
-                  </div>
+            <div class="modal-body">
+              <div v-if="editOrderError" class="error-message">{{ editOrderError }}</div>
+              <form @submit.prevent="handleUpdateOrder">
+                <div class="form-group">
+                  <label>Product</label>
+                  <input type="text" class="form-input" :value="editingOrder.product_name" disabled />
                 </div>
-                <div class="grid-2" style="margin-top: 16px; opacity: 0.7">
-                  <div class="form-group">
-                    <label>Customer</label>
-                    <input type="text" :value="getCustomerName(invoiceForm.customerId)" class="form-input" disabled />
-                  </div>
-                  <div class="form-group">
-                    <label>Service</label>
-                    <input type="text" :value="getServiceName(invoiceForm.serviceId)" class="form-input" disabled />
-                  </div>
-                  <div class="form-group">
-                    <label>Invoice Date</label>
-                    <input type="text" :value="invoiceForm.date" class="form-input" disabled />
-                  </div>
+                <div class="form-group">
+                  <label>Quantity</label>
+                  <input 
+                    v-model.number="editOrderForm.quantity" 
+                    type="number" 
+                    min="1" 
+                    class="form-input" 
+                    required 
+                  />
                 </div>
-
-                <div class="grid-2" style="margin-top: 16px">
-                  <div class="form-group">
-                    <label for="invoice-payment">Payment Type *</label>
-                    <select 
-                      id="invoice-payment"
-                      v-model="invoiceForm.paymentType"
-                      class="form-input"
-                      required
-                    >
-                      <option value="cash">Cash</option>
-                      <option value="card">Card</option>
-                    </select>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="invoice-discount">Discount (%) *</label>
-                    <input 
-                      id="invoice-discount"
-                      v-model.number="invoiceForm.discount"
-                      type="number"
-                      placeholder="e.g., 10"
-                      class="form-input"
-                      required
-                      min="0"
-                      max="100"
-                    />
-                  </div>
+                <div class="form-group">
+                  <label>Cost (₹)</label>
+                  <input 
+                    type="text" 
+                    class="form-input" 
+                    :value="(editOrderForm.quantity * editingOrder.product_price).toFixed(2)" 
+                    disabled 
+                  />
                 </div>
-
-                <div v-if="invoiceError" class="error-message">{{ invoiceError }}</div>
-                <div v-if="invoiceSuccess" class="success-message">{{ invoiceSuccess }}</div>
-
-                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
-                  Create Invoice
-                </button>
+                <div class="form-group">
+                  <label>Status</label>
+                  <select v-model.number="editOrderForm.status" class="form-input">
+                    <option :value="0">Pending</option>
+                    <option :value="1">Processed</option>
+                    <option :value="2">Cancelled</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Reason for Order</label>
+                  <textarea 
+                    v-model="editOrderForm.reason" 
+                    class="form-input" 
+                    rows="3"
+                    placeholder="e.g., Low stock, seasonal demand..."
+                  ></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Replenishment Date</label>
+                  <input 
+                    v-model="editOrderForm.replenishment_date" 
+                    type="date" 
+                    class="form-input"
+                  />
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 16px">
+                  <button type="submit" class="btn btn-primary">💾 Save Changes</button>
+                  <button type="button" @click="showEditOrderModal = false" class="btn btn-secondary">Cancel</button>
+                </div>
               </form>
-            </div>
-          </div>
-
-          <div class="stat-grid">
-            <div class="stat-card">
-              <div class="stat-icon">📋</div>
-              <div class="stat-value">{{ data.appointments.length }}</div>
-              <div class="stat-label">Total Invoices</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">✅</div>
-              <div class="stat-value">{{ invoicedAppointments.length }}</div>
-              <div class="stat-label">Paid</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">⏳</div>
-              <div class="stat-value">{{ pendingInvoices.length }}</div>
-              <div class="stat-label">Pending</div>
-            </div>
-          </div>
-
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">All Invoices</h3>
-            </div>
-            <div class="card-body">
-              <div style="margin-bottom: 16px">
-                <input 
-                  v-model="invoiceCustomerName"
-                  type="text" 
-                  placeholder="🔍 Filter by customer name..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Invoice ID</th>
-                      <th>Customer</th>
-                      <th>Service</th>
-                      <th>Amount</th>
-                      <th>Date</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(appt, idx) in filteredInvoices" :key="appt.id">
-                      <td>#INV{{ String(1000 + idx).slice(-4) }}</td>
-                      <td>{{ getCustomerName(appt.customerId) }}</td>
-                      <td>{{ getServiceName(appt.serviceId) }}</td>
-                      <td>₹{{ getServicePrice(appt.serviceId) }}</td>
-                      <td>{{ appt.date }}</td>
-                      <td><span :class="['badge', appt.invoiceStatus === 'invoiced' ? 'badge-green' : 'badge-gold']">{{ appt.invoiceStatus }}</span></td>
-                      <td>
-                        <div style="display: flex; gap: 6px">
-                          <button class="btn btn-sm btn-outline" @click="viewInvoice(appt)" style="padding: 4px 8px; font-size: 12px">
-                            📄 View
-                          </button>
-                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #27ae60; border-color: #27ae60" @click="handleSendInvoice(appt)">
-                            📧 Send
-                          </button>
-                          <button class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; color: #e74c3c; border-color: #e74c3c" @click="handleDeleteInvoice(appt.id)">
-                            🗑 Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
             </div>
           </div>
         </div>
@@ -1698,12 +1977,12 @@
               <form @submit.prevent="handleUpdateRewards" style="max-width: 800px">
                 <div class="grid-2">
                   <div class="form-group">
-                    <label for="points-per-rupee">Points per Rupee Spent</label>
+                    <label for="points-per-currency">Points Per Currency (₹)</label>
                     <input 
-                      id="points-per-rupee"
-                      v-model.number="rewardsForm.pointsPerRupee"
+                      id="points-per-currency"
+                      v-model.number="rewardsForm.POINTS_PER_CURRENCY"
                       type="number"
-                      step="0.1"
+                      step="0.01"
                       min="0"
                       placeholder="e.g., 0.1"
                       class="form-input"
@@ -1713,52 +1992,39 @@
                   </div>
 
                   <div class="form-group">
-                    <label for="points-for-redemption">Points Required for Redemption</label>
+                    <label for="points-for-redemption">Points For Redemption</label>
                     <input 
                       id="points-for-redemption"
-                      v-model.number="rewardsForm.pointsForRedemption"
+                      v-model.number="rewardsForm.POINTS_FOR_REDUMPTION"
                       type="number"
                       min="1"
                       placeholder="e.g., 500"
                       class="form-input"
                       required
                     />
-                    <small class="text-muted">Points needed to redeem discount</small>
+                    <small class="text-muted">Points needed to redeem</small>
                   </div>
 
                   <div class="form-group">
-                    <label for="redemption-value">Redemption Value (₹)</label>
+                    <label for="redemption-value">Redemption Value Per Point (₹)</label>
                     <input 
                       id="redemption-value"
-                      v-model.number="rewardsForm.redemptionValue"
+                      v-model.number="rewardsForm.REDUMPTION_VALUE_PER_POINT"
                       type="number"
-                      min="1"
-                      placeholder="e.g., 25"
+                      step="0.01"
+                      min="0"
+                      placeholder="e.g., 0.05"
                       class="form-input"
                       required
                     />
-                    <small class="text-muted">Rupees discount for redemption points</small>
+                    <small class="text-muted">Rupees value per point (e.g., 0.05 = ₹25 for 500 points)</small>
                   </div>
 
                   <div class="form-group">
-                    <label for="vip-threshold">VIP Threshold (₹ spent)</label>
+                    <label for="first-visit">First Visit Bonus Points</label>
                     <input 
-                      id="vip-threshold"
-                      v-model.number="rewardsForm.vipThreshold"
-                      type="number"
-                      min="1"
-                      placeholder="e.g., 5000"
-                      class="form-input"
-                      required
-                    />
-                    <small class="text-muted">Total spending to become VIP customer</small>
-                  </div>
-
-                  <div class="form-group">
-                    <label for="first-visit-points">First Visit Bonus Points</label>
-                    <input 
-                      id="first-visit-points"
-                      v-model.number="rewardsForm.firstVisitPoints"
+                      id="first-visit"
+                      v-model.number="rewardsForm.FIRST_VISIT_BONUS_POINTS"
                       type="number"
                       min="0"
                       placeholder="e.g., 20"
@@ -1769,10 +2035,10 @@
                   </div>
 
                   <div class="form-group">
-                    <label for="birthday-points">Birthday Bonus Points</label>
+                    <label for="birthday-bonus">Birthday Bonus Points</label>
                     <input 
-                      id="birthday-points"
-                      v-model.number="rewardsForm.birthdayPoints"
+                      id="birthday-bonus"
+                      v-model.number="rewardsForm.BIRTHDAY_BONUS_POINTS"
                       type="number"
                       min="0"
                       placeholder="e.g., 50"
@@ -1786,7 +2052,7 @@
                     <label for="vip-discount">VIP Discount (%)</label>
                     <input 
                       id="vip-discount"
-                      v-model.number="rewardsForm.vipDiscount"
+                      v-model.number="rewardsForm.VIP_DISCOUNT_PERCENTAGE"
                       type="number"
                       min="0"
                       max="100"
@@ -1799,17 +2065,17 @@
                   </div>
 
                   <div class="form-group">
-                    <label for="points-expiry">Points Expiry (Months)</label>
+                    <label for="reward-expiry">Reward Expiry (Days)</label>
                     <input 
-                      id="points-expiry"
-                      v-model.number="rewardsForm.pointsExpiryMonths"
+                      id="reward-expiry"
+                      v-model.number="rewardsForm.REWARD_EXPIRY_DAYS"
                       type="number"
                       min="1"
-                      placeholder="e.g., 6"
+                      placeholder="e.g., 180"
                       class="form-input"
                       required
                     />
-                    <small class="text-muted">Months until points expire</small>
+                    <small class="text-muted">Days until points expire</small>
                   </div>
                 </div>
 
@@ -1830,27 +2096,27 @@
                   <div class="grid-2">
                     <div class="stat-item">
                       <div class="stat-label">Points Earning Rate</div>
-                      <div class="stat-value">{{ rewardsForm.pointsPerRupee * 100 }} pts per ₹100</div>
+                      <div class="stat-value">{{ (rewardsForm.POINTS_PER_CURRENCY * 100).toFixed(1) }} pts per ₹100</div>
                     </div>
                     <div class="stat-item">
                       <div class="stat-label">Redemption Rate</div>
-                      <div class="stat-value">{{ rewardsForm.pointsForRedemption }} pts = ₹{{ rewardsForm.redemptionValue }}</div>
+                      <div class="stat-value">{{ rewardsForm.POINTS_FOR_REDUMPTION }} pts = ₹{{ (rewardsForm.POINTS_FOR_REDUMPTION * rewardsForm.REDUMPTION_VALUE_PER_POINT).toFixed(2) }}</div>
                     </div>
                     <div class="stat-item">
-                      <div class="stat-label">VIP Threshold</div>
-                      <div class="stat-value">₹{{ rewardsForm.vipThreshold }} spent</div>
+                      <div class="stat-label">VIP Discount</div>
+                      <div class="stat-value">{{ rewardsForm.VIP_DISCOUNT_PERCENTAGE }}% discount</div>
                     </div>
                     <div class="stat-item">
-                      <div class="stat-label">VIP Benefits</div>
-                      <div class="stat-value">{{ rewardsForm.vipDiscount }}% discount</div>
+                      <div class="stat-label">First Visit Points</div>
+                      <div class="stat-value">{{ rewardsForm.FIRST_VISIT_BONUS_POINTS }} pts</div>
                     </div>
                     <div class="stat-item">
-                      <div class="stat-label">Bonus Points</div>
-                      <div class="stat-value">First visit: {{ rewardsForm.firstVisitPoints }} pts</div>
+                      <div class="stat-label">Birthday Bonus</div>
+                      <div class="stat-value">{{ rewardsForm.BIRTHDAY_BONUS_POINTS }} pts</div>
                     </div>
                     <div class="stat-item">
                       <div class="stat-label">Points Expiry</div>
-                      <div class="stat-value">{{ rewardsForm.pointsExpiryMonths }} months</div>
+                      <div class="stat-value">{{ rewardsForm.REWARD_EXPIRY_DAYS }} days</div>
                     </div>
                   </div>
                 </div>
@@ -1908,6 +2174,47 @@
                   <div class="text-muted" style="margin: 8px 0">Customer reviews and ratings</div>
                   <button class="btn btn-primary w-full">📥 Download CSV</button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Salon Settings View -->
+        <div v-if="currentView === 'settings'" class="fade-in">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">⚙️ Salon Settings</h3>
+            </div>
+            <div class="card-body">
+              <div v-if="filteredSalonConfig.length === 0" class="empty-state">
+                <div class="empty-state-icon">⚙️</div>
+                <div class="empty-state-text">No settings available</div>
+              </div>
+              <div v-else>
+                <table style="width: 100%; border-collapse: collapse">
+                  <thead>
+                    <tr style="border-bottom: 2px solid var(--border)">
+                      <th style="padding: 12px; text-align: left; font-weight: 600">Setting Name</th>
+                      <th style="padding: 12px; text-align: left; font-weight: 600">Value</th>
+                      <th style="padding: 12px; text-align: left; font-weight: 600">From Date</th>
+                      <th style="padding: 12px; text-align: left; font-weight: 600">To Date</th>
+                      <th style="padding: 12px; text-align: center; font-weight: 600">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="setting in filteredSalonConfig" :key="setting.setting_id" style="border-bottom: 1px solid var(--border)">
+                      <td style="padding: 12px">{{ setting.param_name }}</td>
+                      <td style="padding: 12px">{{ setting.param_value }}</td>
+                      <td style="padding: 12px">{{ formatDate(setting.from_date) }}</td>
+                      <td style="padding: 12px">{{ setting.to_date ? formatDate(setting.to_date) : 'N/A' }}</td>
+                      <td style="padding: 12px; text-align: center">
+                        <button class="btn btn-sm btn-outline" @click="handleEditSetting(setting)" style="padding: 4px 8px; font-size: 11px">
+                          ✎ Edit
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -2030,6 +2337,116 @@
             </button>
             <button type="submit" class="btn btn-primary" style="flex: 1">
               Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Appointment Modal -->
+  <div v-if="showEditAppointmentModal && editingAppointment" class="modal-overlay" @click="closeEditAppointmentModal">
+    <div class="modal-content" @click.stop style="max-width: 600px">
+      <div class="modal-header">
+        <h3 class="modal-title">✎ Edit Appointment</h3>
+        <button class="modal-close" @click="closeEditAppointmentModal">✕</button>
+      </div>
+      <div class="modal-body">
+        <form @submit.prevent="handleSubmitEditAppointment">
+          <div class="form-group" style="margin-bottom: 16px">
+            <label style="font-weight: 600; display: block; margin-bottom: 8px">Customer</label>
+            <input type="text" :value="getCustomerName(editingAppointment.customerId)" class="form-input" readonly style="background: #f5f5f5"/>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 16px">
+            <label style="font-weight: 600; display: block; margin-bottom: 8px">Select Services *</label>
+            <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 200px; overflow-y: auto">
+              <div v-for="service in data.services" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+                <input 
+                  :id="'edit-service-' + service.id"
+                  type="checkbox" 
+                  :value="service.id" 
+                  v-model="editAppointmentForm.serviceIds"
+                  style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer"
+                />
+                <label :for="'edit-service-' + service.id" style="cursor: pointer; flex: 1; margin: 0">
+                  {{ service.name }} - ₹{{ service.price }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2" style="gap: 16px; margin-bottom: 16px">
+            <div class="form-group">
+              <label for="edit-appt-date">Date * <span style="font-size: 12px; color: var(--text-muted); font-weight: 400">({{ editBookingDateInfo }})</span></label>
+              <input 
+                id="edit-appt-date"
+                v-model="editAppointmentForm.date"
+                type="date"
+                class="form-input"
+                :min="minEditBookingDate"
+                :max="maxEditBookingDate"
+                required
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-appt-time">Time *</label>
+              <select 
+                id="edit-appt-time"
+                v-model="editAppointmentForm.time"
+                class="form-input"
+                required
+              >
+                <option value="">Choose a time</option>
+                <option value="09:00">09:00</option>
+                <option value="09:30">09:30</option>
+                <option value="10:00">10:00</option>
+                <option value="10:30">10:30</option>
+                <option value="11:00">11:00</option>
+                <option value="11:30">11:30</option>
+                <option value="12:00">12:00</option>
+                <option value="12:30">12:30</option>
+                <option value="13:00">13:00</option>
+                <option value="13:30">13:30</option>
+                <option value="14:00">14:00</option>
+                <option value="14:30">14:30</option>
+                <option value="15:00">15:00</option>
+                <option value="15:30">15:30</option>
+                <option value="16:00">16:00</option>
+                <option value="16:30">16:30</option>
+                <option value="17:00">17:00</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="grid-column: 1 / -1">
+              <label for="edit-appt-staff">Stylist (Optional)</label>
+              <select 
+                id="edit-appt-staff"
+                v-model="editAppointmentForm.staffId"
+                class="form-input"
+              >
+                <option value="">Unassigned</option>
+                <option 
+                  v-for="staff in data.staff" 
+                  :key="staff.id" 
+                  :value="staff.id"
+                >
+                  {{ staff.name }}{{ staff.skills ? ' - ' + staff.skills : '' }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div v-if="editAppointmentError" class="error-message">{{ editAppointmentError }}</div>
+          <div v-if="editAppointmentSuccess" class="success-message">{{ editAppointmentSuccess }}</div>
+
+          <div style="display: flex; gap: 12px; margin-top: 20px">
+            <button type="button" class="btn btn-outline" @click="closeEditAppointmentModal" style="flex: 1">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              ✓ Save Changes
             </button>
           </div>
         </form>
@@ -2210,11 +2627,11 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px">
             <div style="border-right: 1px solid var(--border-color)">
               <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Invoice ID</div>
-              <div style="font-size: 18px; font-weight: 600; color: var(--charcoal)">#INV{{ String(1000 + (data.appointments.findIndex(a => a.id === selectedInvoice.id))).slice(-4) }}</div>
+              <div style="font-size: 18px; font-weight: 600; color: var(--charcoal)">#{{ selectedInvoice.invoice_number }}</div>
             </div>
             <div>
               <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Invoice Date</div>
-              <div style="font-size: 18px; font-weight: 600; color: var(--charcoal)">{{ selectedInvoice.date }}</div>
+              <div style="font-size: 18px; font-weight: 600; color: var(--charcoal)">{{ selectedInvoice.invoice_date }}</div>
             </div>
           </div>
         </div>
@@ -2224,15 +2641,15 @@
           <div style="display: grid; gap: 8px">
             <div style="display: grid; grid-template-columns: 140px 1fr">
               <span style="color: var(--text-muted)">Name:</span>
-              <span style="font-weight: 500">{{ getCustomerName(selectedInvoice.customerId) }}</span>
+              <span style="font-weight: 500">{{ selectedInvoice.customer_name }}</span>
             </div>
             <div style="display: grid; grid-template-columns: 140px 1fr">
               <span style="color: var(--text-muted)">Email:</span>
-              <span style="font-weight: 500">{{ data.customers.find(c => c.id === selectedInvoice.customerId)?.email || '-' }}</span>
+              <span style="font-weight: 500">{{ data.customers.find(c => c.id === selectedInvoice.customer_id)?.email || '-' }}</span>
             </div>
             <div style="display: grid; grid-template-columns: 140px 1fr">
               <span style="color: var(--text-muted)">Phone:</span>
-              <span style="font-weight: 500">{{ data.customers.find(c => c.id === selectedInvoice.customerId)?.phone || '-' }}</span>
+              <span style="font-weight: 500">{{ data.customers.find(c => c.id === selectedInvoice.customer_id)?.phone || '-' }}</span>
             </div>
           </div>
         </div>
@@ -2241,16 +2658,12 @@
           <h4 style="font-size: 14px; font-weight: 600; color: var(--charcoal); margin-bottom: 12px">Service Details</h4>
           <div style="display: grid; gap: 8px">
             <div style="display: grid; grid-template-columns: 140px 1fr">
-              <span style="color: var(--text-muted)">Service:</span>
-              <span style="font-weight: 500">{{ getServiceName(selectedInvoice.serviceId) }}</span>
-            </div>
-            <div style="display: grid; grid-template-columns: 140px 1fr">
-              <span style="color: var(--text-muted)">Service Amount:</span>
-              <span style="font-weight: 500">₹{{ getServicePrice(selectedInvoice.serviceId) }}</span>
+              <span style="color: var(--text-muted)">Services:</span>
+              <span style="font-weight: 500">{{ selectedInvoice.service_descs || 'N/A' }}</span>
             </div>
             <div style="display: grid; grid-template-columns: 140px 1fr">
               <span style="color: var(--text-muted)">Staff:</span>
-              <span style="font-weight: 500">{{ getStaffName(selectedInvoice.staffId) }}</span>
+              <span style="font-weight: 500">{{ selectedInvoice.staff_name || 'Not Assigned' }}</span>
             </div>
           </div>
         </div>
@@ -2258,11 +2671,15 @@
         <div style="border-top: 2px solid var(--border-color); padding-top: 16px; margin-bottom: 20px">
           <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; margin-bottom: 8px">
             <span style="color: var(--text-muted)">Subtotal:</span>
-            <span style="text-align: right; font-weight: 500">₹{{ getServicePrice(selectedInvoice.serviceId) }}</span>
+            <span style="text-align: right; font-weight: 500">₹{{ selectedInvoice.invoice_amount || getServicePrice(selectedInvoice.serviceId) }}</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; margin-bottom: 8px" v-if="selectedInvoice.other_charges">
+            <span style="color: var(--text-muted)">Other Charges:</span>
+            <span style="text-align: right; font-weight: 500">₹{{ selectedInvoice.other_charges }}</span>
           </div>
           <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; font-size: 14px; margin-bottom: 8px">
             <span style="color: var(--text-muted)">Total Amount:</span>
-            <span style="text-align: right; font-weight: 600; color: var(--gold); font-size: 16px">₹{{ getServicePrice(selectedInvoice.serviceId) }}</span>
+            <span style="text-align: right; font-weight: 600; color: var(--gold); font-size: 16px">₹{{ selectedInvoice.total_charges || selectedInvoice.invoice_amount || getServicePrice(selectedInvoice.serviceId) }}</span>
           </div>
         </div>
 
@@ -2272,7 +2689,27 @@
         </div>
         <div style="display: grid; grid-template-columns: 140px 1fr; margin-top: 8px">
           <span style="color: var(--text-muted)">Status:</span>
-          <span :class="['badge', selectedInvoice.invoiceStatus === 'invoiced' ? 'badge-green' : 'badge-gold']">{{ selectedInvoice.invoiceStatus }}</span>
+          <span :class="['badge', selectedInvoice.status === 1 ? 'badge-green' : 'badge-gold']">
+            {{ selectedInvoice.status === 0 ? 'Pending' : selectedInvoice.status === 1 ? 'Invoiced' : 'Sent' }}
+          </span>
+        </div>
+
+        <div v-if="selectedInvoice.rewards_earned > 0 || selectedInvoice.rewards_utilized > 0" style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-color)">
+          <h4 style="font-size: 14px; font-weight: 600; color: var(--charcoal); margin-bottom: 12px">Rewards Details</h4>
+          <div style="display: grid; gap: 8px">
+            <div style="display: grid; grid-template-columns: 140px 1fr" v-if="selectedInvoice.rewards_earned > 0">
+              <span style="color: var(--text-muted)">Rewards Earned:</span>
+              <span style="font-weight: 500; color: #27ae60">+{{ selectedInvoice.rewards_earned }} pts</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 140px 1fr" v-if="selectedInvoice.rewards_utilized > 0">
+              <span style="color: var(--text-muted)">Rewards Used:</span>
+              <span style="font-weight: 500; color: #e74c3c">-{{ selectedInvoice.rewards_utilized }} pts</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 140px 1fr">
+              <span style="color: var(--text-muted)">Current Balance:</span>
+              <span style="font-weight: 500">{{ selectedInvoice.current_reward_points }} pts</span>
+            </div>
+          </div>
         </div>
 
         <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border-color); display: flex; gap: 8px">
@@ -2287,7 +2724,133 @@
     </div>
   </div>
 
-  <!-- Product Details Modal -->
+  <!-- Edit Product Modal -->
+  <div v-if="showEditProductModal" class="modal-overlay" @click.self="cancelEditProduct">
+    <div class="modal-content" @click.stop style="max-width: 640px">
+      <div class="modal-header">
+        <h3 class="modal-title">✎ Edit Product</h3>
+        <button class="modal-close" @click="cancelEditProduct">✕</button>
+      </div>
+      <div class="modal-body">
+        <form @submit.prevent="handleSaveEditProduct">
+          <div class="form-group">
+            <label for="edit-product-name">Product Name *</label>
+            <input 
+              id="edit-product-name"
+              v-model="editProductForm.name"
+              type="text"
+              placeholder="e.g., L'Oreal Serum"
+              class="form-input"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-product-category">Category *</label>
+            <input 
+              id="edit-product-category"
+              v-model="editProductForm.categoryName"
+              type="text"
+              placeholder="e.g., Hair Care"
+              class="form-input"
+              required
+            />
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+            <div class="form-group">
+              <label for="edit-product-stock">Stock Quantity *</label>
+              <input 
+                id="edit-product-stock"
+                v-model.number="editProductForm.stock"
+                type="number"
+                placeholder="e.g., 10"
+                class="form-input"
+                required
+                min="0"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-product-minstock">Minimum Stock *</label>
+              <input 
+                id="edit-product-minstock"
+                v-model.number="editProductForm.minStock"
+                type="number"
+                placeholder="e.g., 5"
+                class="form-input"
+                required
+                min="0"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="edit-product-costprice">Cost Price (₹) *</label>
+              <input 
+                id="edit-product-costprice"
+                v-model.number="editProductForm.costPrice"
+                type="number"
+                placeholder="e.g., 45"
+                class="form-input"
+                required
+                min="0"
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-product-supplier">Supplier *</label>
+            <input 
+              id="edit-product-supplier"
+              v-model="editProductForm.supplier"
+              type="text"
+              placeholder="e.g., BeautyPro Ltd"
+              class="form-input"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-product-supplier-contact">Supplier Contact *</label>
+            <input
+              id="edit-product-supplier-contact"
+              v-model="editProductForm.supplierContact"
+              type="text"
+              placeholder="e.g., +91-9876543210"
+              class="form-input"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-product-supplier-email">Supplier Email *</label>
+            <input
+              id="edit-product-supplier-email"
+              v-model="editProductForm.supplierEmail"
+              type="email"
+              placeholder="e.g., supplier@company.com"
+              class="form-input"
+              required
+            />
+          </div>
+
+          <div v-if="editProductError" class="error-message">{{ editProductError }}</div>
+          <div v-if="editProductSuccess" class="success-message">{{ editProductSuccess }}</div>
+
+          <div style="display: flex; gap: 12px; margin-top: 20px">
+            <button type="button" class="btn btn-outline" @click="cancelEditProduct" style="flex: 1">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
   <div v-if="showProductDetailsModal && selectedProduct" class="modal-overlay" @click="showProductDetailsModal = false">
     <div class="modal-content" @click.stop style="max-width: 640px">
       <div class="modal-header">
@@ -2301,15 +2864,75 @@
           <div><strong>Stock:</strong> {{ selectedProduct.stock ?? '-' }} {{ selectedProduct.unit || '' }}</div>
           <div><strong>Min Stock:</strong> {{ selectedProduct.minStock ?? '-' }}</div>
           <div><strong>Cost Price:</strong> ₹{{ selectedProduct.costPrice ?? '-' }}</div>
-          <div><strong>Sell Price:</strong> ₹{{ selectedProduct.sellPrice ?? '-' }}</div>
           <div><strong>Supplier:</strong> {{ selectedProduct.supplier || '-' }}</div>
           <div><strong>Supplier Contact:</strong> {{ selectedProduct.supplierContact || '-' }}</div>
           <div style="grid-column: 1 / -1"><strong>Supplier Email:</strong> {{ selectedProduct.supplierEmail || '-' }}</div>
-          <div style="grid-column: 1 / -1"><strong>Description:</strong> {{ selectedProduct.description || '-' }}</div>
         </div>
         <div style="display: flex; justify-content: flex-end; margin-top: 20px">
           <button class="btn btn-outline" @click="showProductDetailsModal = false">Close</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Salon Setting Modal -->
+  <div v-if="showEditSettingModal" class="modal-overlay" @click="showEditSettingModal = false">
+    <div class="modal-content" @click.stop style="max-width: 500px">
+      <div class="modal-header">
+        <h3 class="modal-title">⚙️ Edit Setting</h3>
+        <button class="modal-close" @click="showEditSettingModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <form @submit.prevent="handleSaveSetting">
+          <div class="form-group">
+            <label>Setting Name</label>
+            <input 
+              :value="editSettingForm.param_name"
+              type="text" 
+              class="form-input" 
+              disabled
+            />
+          </div>
+          <div class="form-group">
+            <label for="setting-value">Value</label>
+            <input 
+              id="setting-value"
+              v-model="editSettingForm.param_value"
+              type="text" 
+              placeholder="Enter setting value"
+              class="form-input"
+              required
+            />
+          </div>
+          <div class="form-group">
+            <label for="setting-from-date">From Date</label>
+            <input 
+              id="setting-from-date"
+              v-model="editSettingForm.from_date"
+              type="date" 
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="setting-to-date">To Date</label>
+            <input 
+              id="setting-to-date"
+              v-model="editSettingForm.to_date"
+              type="date" 
+              class="form-input"
+            />
+          </div>
+          <div v-if="settingError" class="error-message">{{ settingError }}</div>
+          <div v-if="settingSuccess" class="success-message">{{ settingSuccess }}</div>
+          <div style="display: flex; gap: 12px; margin-top: 20px">
+            <button type="button" class="btn btn-outline" @click="showEditSettingModal = false" style="flex: 1">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              Save Setting
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -2395,10 +3018,23 @@ const bookingForm = ref({
   serviceIds: [],
   date: "",
   time: "",
-  staffId: ""
+  staffId: "",
+  appointmentId: null
 });
 const bookingError = ref("");
 const bookingSuccess = ref("");
+
+// Appointment Edit Modal state
+const showEditAppointmentModal = ref(false);
+const editingAppointment = ref(null);
+const editAppointmentForm = ref({
+  serviceIds: [],
+  date: "",
+  time: "",
+  staffId: ""
+});
+const editAppointmentError = ref("");
+const editAppointmentSuccess = ref("");
 
 // Service form state
 const serviceForm = ref({
@@ -2406,8 +3042,13 @@ const serviceForm = ref({
   categoryId: "",
   price: 0,
   duration: 0,
-  productsRequired: ""
+  productsRequired: "",
+  fromDate: "",
+  toDate: ""
 });
+const isEditingService = ref(false);
+const editingServiceId = ref(null);
+const editingServiceData = ref(null);
 const serviceError = ref("");
 const serviceSuccess = ref("");
 
@@ -2423,6 +3064,7 @@ const customerForm = ref({
 });
 const isEditingCustomer = ref(false);
 const editingCustomerId = ref(null);
+const editingCustomerData = ref(null);
 const customerError = ref("");
 const customerSuccess = ref("");
 
@@ -2438,19 +3080,39 @@ const staffForm = ref({
   salary: 0,
   username: ""
 });
+const isEditingStaff = ref(false);
+const editingStaffId = ref(null);
+const editingStaffData = ref(null);
 const staffError = ref("");
 const staffSuccess = ref("");
 
 // Invoice form state
 const invoiceForm = ref({
+  appointmentId: "",
   customerId: "",
+  staffId: "",
   serviceId: "",
   date: "",
   paymentType: "cash",
-  discount: 0
+  discount: 0,
+  services: [],
+  amount: 0,
+  customerName: "",
+  staffName: "",
+  serviceNames: ""
 });
 const invoiceError = ref("");
 const invoiceSuccess = ref("");
+const invoices = ref([]);
+const todaysAppointmentsForInvoice = ref([]);
+const quickAppointmentForm = ref({
+  customerId: "",
+  serviceIds: [],
+  time: "",
+  staffId: ""
+});
+const quickAppointmentError = ref("");
+const quickAppointmentSuccess = ref("");
 
 // Inventory/Product form state
 const inventoryForm = ref({
@@ -2481,8 +3143,23 @@ const completedAppointmentFilter = ref("");
 const bookingCustomerSearch = ref("");
 const showBookingCustomerDropdown = ref(false);
 
-// Service editing state
-const editingServiceId = ref(null);
+// Product editing state
+const showEditProductModal = ref(false);
+const editProductForm = ref({
+  name: "",
+  categoryName: "",
+  stock: 0,
+  minStock: 0,
+  costPrice: 0,
+  supplier: "",
+  supplierContact: "",
+  supplierEmail: ""
+});
+const editingProductId = ref(null);
+const editProductError = ref("");
+const editProductSuccess = ref("");
+
+
 
 // Staff bookings modal state
 const showStaffBookingsModal = ref(false);
@@ -2507,10 +3184,7 @@ const replenishmentForm = ref({
   supplier: ""
 });
 const replenishmentError = ref("");
-const pendingReplenishmentList = ref([
-  { id: 1, productId: 2, quantity: 10, currentStock: 3, reason: "Low stock alert", supplier: "Beauty Supplies Ltd", date: "2026-03-20" },
-  { id: 2, productId: 4, quantity: 5, currentStock: 2, reason: "High demand", supplier: "Health & Wellness Co", date: "2026-03-21" }
-]);
+const pendingReplenishmentList = ref([]);
 const managerReplenishmentRequests = ref([
   { id: 1, staffName: "Alice Brown", productId: 2, quantity: 5, reason: "Low stock", date: "2026-03-22" },
   { id: 2, staffName: "Carol Smith", productId: 4, quantity: 3, reason: "High demand", date: "2026-03-21" }
@@ -2522,17 +3196,29 @@ const staffReplenishmentRequests = ref([
 
 // Rewards form state
 const rewardsForm = ref({
-  pointsPerRupee: 0.1,
-  pointsForRedemption: 500,
-  redemptionValue: 25,
-  vipThreshold: 5000,
-  firstVisitPoints: 20,
-  birthdayPoints: 50,
-  vipDiscount: 15,
-  pointsExpiryMonths: 6
+  POINTS_PER_CURRENCY: 0.1,
+  POINTS_FOR_REDUMPTION: 500,
+  REDUMPTION_VALUE_PER_POINT: 0.05,
+  FIRST_VISIT_BONUS_POINTS: 20,
+  BIRTHDAY_BONUS_POINTS: 50,
+  VIP_DISCOUNT_PERCENTAGE: 15,
+  REWARD_EXPIRY_DAYS: 180
 });
 const rewardsError = ref("");
 const rewardsSuccess = ref("");
+
+// Salon Config state
+const salonConfigList = ref([]);
+const showEditSettingModal = ref(false);
+const editingSettingData = ref(null);
+const editSettingForm = ref({
+  param_name: "",
+  param_value: "",
+  from_date: "",
+  to_date: ""
+});
+const settingError = ref("");
+const settingSuccess = ref("");
 
 const user = computed(() => {
   const currentUser = appStore.user;
@@ -2545,15 +3231,194 @@ const user = computed(() => {
   }
   return {
     name: currentUser.name || currentUser.username || "Manager",
-    userId: currentUser.userId || currentUser.username || "manager",
+    userId: currentUser.username || "manager",
     role: currentUser.role || "manager"
   };
 });
 const data = computed(() => appStore.data);
 
+// Attendance API integration for manager
+const fetchedAttendance = ref([]);
+const attendanceLoading = ref(false);
+const attendanceError = ref("");
+
+// Daily appointment count for salon
+const dailyAppointmentCounts = ref([]);
+const dailyCountLoading = ref(false);
+const dailyCountError = ref("");
+
+// Manager inventory transaction tracking
+const managerInventoryTransactions = ref([]);
+const managerTransactionDateFrom = ref("");
+const managerTransactionDateTo = ref("");
+
+// Manager wholesale orders tracking
+const managerOrders = ref([]);
+
+// Edit order modal state
+const showEditOrderModal = ref(false);
+const editingOrder = ref(null);
+const editOrderForm = ref({
+  status: 0,
+  quantity: 1,
+  reason: "",
+  replenishment_date: ""
+});
+const editOrderError = ref("");
+
+const fetchManagerAttendance = async () => {
+  attendanceLoading.value = true;
+  attendanceError.value = "";
+  
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      attendanceError.value = "Not authenticated";
+      attendanceLoading.value = false;
+      return;
+    }
+
+    // Get today's attendance (backend defaults to today when no date param provided)
+    const response = await fetch(
+      `${API_BASE_URL}/api/manager-staff-attendance`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        }
+      }
+    );
+
+    if (response.ok) {
+      const attendanceData = await response.json();
+      const mappedAttendance = attendanceData.map(record => ({
+        staffId: record.staff_id,
+        date: new Date(record.register_datetime).toISOString().split('T')[0],
+        status: "present" // Marking means present
+      }));
+      fetchedAttendance.value = mappedAttendance;
+      // Update the main data store with fetched attendance
+      data.value.attendance = mappedAttendance;
+      console.log("Manager attendance loaded:", fetchedAttendance.value);
+    } else if (response.status === 404) {
+      fetchedAttendance.value = [];
+      data.value.attendance = [];
+    } else {
+      attendanceError.value = "Failed to load attendance data";
+    }
+  } catch (error) {
+    console.error("Error fetching attendance:", error);
+    attendanceError.value = "Error loading attendance";
+  } finally {
+    attendanceLoading.value = false;
+  }
+};
+
+// Fetch daywise appointment counts for the salon
+const fetchDailyAppointmentCounts = async () => {
+  dailyCountLoading.value = true;
+  dailyCountError.value = "";
+  
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      dailyCountError.value = "Not authenticated";
+      dailyCountLoading.value = false;
+      return;
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/daily-appointment-count`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        }
+      }
+    );
+
+    console.log("Daily appointment count response status:", response.status);
+
+    if (response.ok) {
+      const data = await response.json();
+      dailyAppointmentCounts.value = data;
+      console.log("Daily appointment counts loaded:", dailyAppointmentCounts.value);
+    } else if (response.status === 404) {
+      dailyAppointmentCounts.value = [];
+      console.log("No appointment count data found");
+    } else if (response.status === 403) {
+      dailyCountError.value = "You don't have permission to view appointment counts";
+      console.error("Access denied - likely not a manager");
+      dailyAppointmentCounts.value = [];
+    } else {
+      const errorData = await response.json().catch(() => ({}));
+      dailyCountError.value = errorData.message || "Failed to load daily appointment counts";
+      console.error("Error response:", response.status, errorData);
+    }
+  } catch (error) {
+    console.error("Error fetching daily counts:", error);
+    dailyCountError.value = "Error loading daily appointment counts";
+  } finally {
+    dailyCountLoading.value = false;
+  }
+};
+
 const today = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+// Fetch today's appointments from dedicated endpoint for invoice creation
+const fetchTodaysAppointmentsForInvoice = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      console.error("Not authenticated for today's appointments");
+      return;
+    }
+
+    const response = await fetch(
+      `${API_BASE_URL}/api/todays-appointments`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        }
+      }
+    );
+
+    if (response.ok) {
+      const todaysAppts = await response.json();
+      if (Array.isArray(todaysAppts) && todaysAppts.length > 0) {
+        // Map today's appointments to frontend format for easier invoice creation
+        const mappedTodayAppts = todaysAppts.map(appt => ({
+          id: appt.appointment_id,
+          customerId: appt.customer_id,
+          customer_name: appt.customer_name,
+          staffId: appt.staff_id,
+          staff_name: appt.staff_name,
+          date: new Date(appt.datetime).toISOString().split('T')[0],
+          datetime: appt.datetime,
+          time: new Date(appt.datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+          services: appt.services || [],
+          status: "confirmed",
+          invoiceStatus: "pending"
+        }));
+        todaysAppointmentsForInvoice.value = mappedTodayAppts;
+        console.log("Today's appointments fetched for invoice creation:", mappedTodayAppts);
+      } else {
+        todaysAppointmentsForInvoice.value = [];
+      }
+    }
+  } catch (error) {
+    console.error("Error fetching today's appointments:", error);
+  }
 };
 
 const todayAppointments = computed(() => {
@@ -2575,8 +3440,11 @@ const todayAvailableStaff = computed(() => {
 });
 
 const staffForSelectedDay = computed(() => {
+  // Use fetched attendance data from API if available, otherwise use mock data
+  const attendanceData = fetchedAttendance.value.length > 0 ? fetchedAttendance.value : data.value.attendance;
+  
   return data.value.staff.filter(staff => {
-    const isPresent = data.value.attendance.find(
+    const isPresent = attendanceData.find(
       a => a.staffId === staff.id && a.date === selectedStaffDate.value && a.status === "present"
     );
     return !!isPresent;
@@ -2658,6 +3526,14 @@ const hasBridalPackageSelected = () => {
   });
 };
 
+// Check if bridal package is selected in edit form
+const hasBridalPackageSelectedInEdit = () => {
+  return editAppointmentForm.value.serviceIds.some(serviceId => {
+    const service = data.value.services.find(s => s.id === parseInt(serviceId));
+    return service && service.name === "Bridal Package";
+  });
+};
+
 // Compute minimum booking date based on service type
 const minBookingDate = computed(() => {
   const today = new Date();
@@ -2666,18 +3542,48 @@ const minBookingDate = computed(() => {
   if (hasBridalPackageSelected()) {
     minDate.setMonth(minDate.getMonth() + 1); // 1 month for bridal package
   } else {
-    minDate.setDate(minDate.getDate() + 1); // Tomorrow for normal services
+    // Allow booking today for managers
+    minDate.setDate(minDate.getDate()); // Today for normal services
   }
   
   return minDate.toISOString().split('T')[0];
 });
 
-// Compute maximum booking date (6 months for bridal, 2 days for others)
+// Compute minimum booking date (6 months for bridal, 3 days for others - today through 2 days out)
 const maxBookingDate = computed(() => {
   const today = new Date();
   const maxDate = new Date(today);
   
   if (hasBridalPackageSelected()) {
+    maxDate.setMonth(maxDate.getMonth() + 6); // 6 months for bridal package
+  } else {
+    maxDate.setDate(maxDate.getDate() + 2); // 2 days from today for other services
+  }
+  
+  return maxDate.toISOString().split('T')[0];
+});
+
+// Edit appointment date constraints (same rules as create)
+const minEditBookingDate = computed(() => {
+  const today = new Date();
+  const minDate = new Date(today);
+  
+  if (hasBridalPackageSelectedInEdit()) {
+    minDate.setMonth(minDate.getMonth() + 1); // 1 month for bridal package
+  } else {
+    // Allow booking today for managers
+    minDate.setDate(minDate.getDate()); // Today for normal services
+  }
+  
+  return minDate.toISOString().split('T')[0];
+});
+
+// Compute maximum edit booking date (6 months for bridal, 2 days for others)
+const maxEditBookingDate = computed(() => {
+  const today = new Date();
+  const maxDate = new Date(today);
+  
+  if (hasBridalPackageSelectedInEdit()) {
     maxDate.setMonth(maxDate.getMonth() + 6); // 6 months for bridal package
   } else {
     maxDate.setDate(maxDate.getDate() + 2); // 2 days for other services
@@ -2695,7 +3601,20 @@ const bookingDateInfo = computed(() => {
   if (hasBridalPackageSelected()) {
     return `Bridal Package: Book 1 to 6 months in advance`;
   } else {
-    return `Other services: Book from tomorrow onwards for 2 days`;
+    return `Other services: Book today or within next 2 days`;
+  }
+});
+
+// Helper text for edit appointment date info
+const editBookingDateInfo = computed(() => {
+  if (editAppointmentForm.value.serviceIds.length === 0) {
+    return "Select a service to see available booking dates";
+  }
+  
+  if (hasBridalPackageSelectedInEdit()) {
+    return `Bridal Package: Book 1 to 6 months in advance`;
+  } else {
+    return `Other services: Book today or within next 2 days`;
   }
 });
 
@@ -2711,6 +3630,7 @@ const pageTitle = computed(() => {
     invoices: "Invoices",
     finance: "Finance & Reports",
     reports: "Download Reports",
+    settings: "Salon Settings"
   };
   return titles[currentView.value] || "Dashboard";
 });
@@ -2721,6 +3641,29 @@ const invoicedAppointments = computed(() => {
 
 const pendingInvoices = computed(() => {
   return data.value.appointments.filter(a => a.invoiceStatus === "pending");
+});
+
+const staffOrderRequests = computed(() => {
+  return managerInventoryTransactions.value.filter(txn => txn.txn_type === 0);
+});
+
+const managerReplenishmentOrders = computed(() => {
+  return managerInventoryTransactions.value.filter(txn => txn.txn_type === 1);
+});
+
+const groupedSupplierOrders = computed(() => {
+  const grouped = {};
+  managerReplenishmentOrders.value.forEach(order => {
+    const supplier = getProductSupplier(order.product_id);
+    if (!grouped[supplier]) {
+      grouped[supplier] = {
+        supplier: supplier,
+        items: []
+      };
+    }
+    grouped[supplier].items.push(order);
+  });
+  return Object.values(grouped);
 });
 
 const totalRevenue = computed(() => {
@@ -2785,12 +3728,9 @@ const upcomingDates = computed(() => {
   const dates = [];
   const today = new Date();
   
-  // Start from beginning of current month
-  const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-  
-  // Go through 60 days (roughly 2 months)
-  for (let i = 0; i < 60; i++) {
-    const date = new Date(startDate);
+  // Start from today and go for next 7 days
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(today);
     date.setDate(date.getDate() + i);
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     dates.push(dateStr);
@@ -2823,7 +3763,8 @@ const displayedBookings = computed(() => {
   if (selectedDate.value) {
     return getDateBookings(selectedDate.value);
   }
-  return todayAppointments.value;
+  // Show all appointments (past and future)
+  return data.value.appointments;
 });
 
 // Filtered data computed properties
@@ -2872,9 +3813,9 @@ const filteredProducts = computed(() => {
 });
 
 const filteredInvoices = computed(() => {
-  if (!invoiceCustomerName.value.trim()) return data.value.appointments;
-  return data.value.appointments.filter(appt => {
-    const customerNameStr = getCustomerName(appt.customerId).toLowerCase();
+  if (!invoiceCustomerName.value.trim()) return invoices.value;
+  return invoices.value.filter(inv => {
+    const customerNameStr = inv.customer_name ? inv.customer_name.toLowerCase() : getCustomerName(inv.customer_id).toLowerCase();
     return customerNameStr.includes(invoiceCustomerName.value.toLowerCase());
   });
 });
@@ -2887,6 +3828,20 @@ const filteredBookings = computed(() => {
     const searchTerm = bookingCustomerName.value.toLowerCase();
     return customerNameStr.includes(searchTerm) || customerEmailStr.includes(searchTerm);
   });
+});
+
+// Filter out reward-related settings from salon config display (they're in Rewards tab)
+const filteredSalonConfig = computed(() => {
+  const rewardFields = [
+    "REWARD_EXPIRY_DAYS",
+    "POINTS_PER_CURRENCY",
+    "POINTS_FOR_REDUMPTION",
+    "REDUMPTION_VALUE_PER_POINT",
+    "FIRST_VISIT_BONUS_POINTS",
+    "BIRTHDAY_BONUS_POINTS",
+    "VIP_DISCOUNT_PERCENTAGE"
+  ];
+  return salonConfigList.value.filter(config => !rewardFields.includes(config.param_name));
 });
 
 const filteredOrders = computed(() => {
@@ -2916,11 +3871,13 @@ const filteredCompletedAppointments = computed(() => {
 
 // Helper functions
 const getCustomerName = (id) => {
-  return data.value.customers.find(c => c.id === id)?.name || "Unknown";
+  const customerId = parseInt(id) || id;
+  return data.value.customers.find(c => c.id === customerId || String(c.id) === String(id))?.name || "Unknown";
 };
 
 const getCustomerEmail = (id) => {
-  return data.value.customers.find(c => c.id === id)?.email || "";
+  const customerId = parseInt(id) || id;
+  return data.value.customers.find(c => c.id === customerId || String(c.id) === String(id))?.email || "";
 };
 
 const getServiceName = (id) => {
@@ -2931,6 +3888,24 @@ const getServicePrice = (id) => {
   return data.value.services.find(s => s.id === id)?.price || 0;
 };
 
+// Get service name from appointment (handles both serviceId and services array)
+const getAppointmentServiceName = (appt) => {
+  if (appt.services && appt.services.length > 0) {
+    // Show all services, not just the first one
+    // Try different field names: name, service_desc, service_name
+    const serviceNames = appt.services.map(s => {
+      console.log("Service object:", s);
+      return s.name || s.service_desc || s.service_name || "Service";
+    }).join(', ');
+    console.log("Service names for appt", appt.id, ":", serviceNames);
+    return serviceNames;
+  } else if (appt.serviceId) {
+    return getServiceName(appt.serviceId);
+  }
+  console.log("No services for appt", appt.id, "services:", appt.services, "serviceId:", appt.serviceId);
+  return "Unknown";
+};
+
 const getStaffName = (id) => {
   return data.value.staff.find(s => s.id === id)?.name || null;
 };
@@ -2939,8 +3914,22 @@ const getCategoryName = (id) => {
   return data.value.serviceCategories.find(c => c.id === id)?.name || "Unknown";
 };
 
+const getServiceStatus = (service) => {
+  if (!service.toDate) return "Active";
+  const today = new Date().toISOString().split('T')[0];
+  return service.toDate < today ? "Inactive" : "Active";
+};
+
 const getProductNameForOrder = (id) => {
   return data.value.products.find(p => p.id === id)?.name || "Unknown";
+};
+
+const getProductName = (id) => {
+  return data.value.products.find(p => p.id === id)?.name || "Unknown";
+};
+
+const getProductSupplier = (id) => {
+  return data.value.products.find(p => p.id === id)?.supplier || "Unknown";
 };
 
 const getStaffAttendance = (staffId) => {
@@ -2952,9 +3941,21 @@ const getStaffAppointments = (staffId) => {
   return data.value.appointments.filter(a => a.staffId === staffId && a.date === today()).length;
 };
 
-const getTimeFromDate = (dateStr) => {
-  // For demo, return a time range
-  return "10:00 AM"; // In real app, parse from full datetime
+const getTimeFromDate = (datetimeStr) => {
+  if (!datetimeStr) return "N/A";
+  try {
+    // Extract time from ISO datetime format (YYYY-MM-DDTHH:MM:SS)
+    const timePart = datetimeStr.split('T')[1];
+    if (!timePart) return "N/A";
+    const [hours, minutes] = timePart.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${ampm}`;
+  } catch (e) {
+    console.error("Error parsing datetime:", datetimeStr, e);
+    return "N/A";
+  }
 };
 
 const apptStatusBadge = (status) => {
@@ -3100,7 +4101,407 @@ const selectBookingCustomer = (customer) => {
   showBookingCustomerDropdown.value = false;
 };
 
-const handleCreateBooking = () => {
+// Fetch appointments from API
+const fetchAppointments = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/appointment`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const appointments = await response.json();
+      console.log("Raw backend response:", appointments);
+      // Map backend response to frontend format
+      const mappedAppointments = appointments.map(appt => ({
+        id: appt.appointment_id,
+        customerId: appt.customer_id,
+        customer_name: appt.customer_name,
+        staffId: appt.staff_id,
+        staff_name: appt.staff_name,
+        date: appt.datetime.split('T')[0],
+        datetime: appt.datetime,
+        notes: appt.datetime.split('T')[1],
+        services: appt.services || [],
+        status: "confirmed",
+        invoiceStatus: "pending"
+      }));
+      console.log("Mapped appointments:", mappedAppointments);
+      appStore.data.appointments = mappedAppointments;
+      console.log("Appointments fetched successfully:", mappedAppointments);
+    } else {
+      console.error("Failed to fetch appointments:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching appointments:", error);
+  }
+};
+
+const fetchInvoices = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/invoice`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const fetchedInvoices = await response.json();
+      // Map backend response to frontend format
+      const mappedInvoices = fetchedInvoices.map(inv => ({
+        id: inv.invoice_number || inv.id,
+        invoice_number: inv.invoice_number,
+        customer_id: inv.customer_id,
+        customer_name: inv.customer_name || "",
+        staff_id: inv.staff_id,
+        staff_name: inv.staff_name || "",
+        service_ids: inv.service_ids || "",
+        service_descs: inv.service_descs || "",
+        invoice_amount: inv.invoice_amount || 0,
+        other_charges: inv.other_charges || 0,
+        total_charges: inv.total_charges || inv.invoice_amount || 0,
+        invoice_date: inv.invoice_date || new Date().toISOString().split('T')[0],
+        status: inv.status || 0,
+        rewards_earned: inv.rewards_earned || 0,
+        rewards_utilized: inv.rewards_utilized || 0,
+        current_reward_points: inv.current_reward_points || 0
+      }));
+      invoices.value = mappedInvoices;
+      console.log("Invoices fetched successfully:", mappedInvoices);
+    } else {
+      console.error("Failed to fetch invoices:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching invoices:", error);
+  }
+};
+
+const fetchManagerInventoryTransactions = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    let url = `${API_BASE_URL}/api/inventory-transaction`;
+    
+    // Add date range if provided
+    if (managerTransactionDateFrom.value && managerTransactionDateTo.value) {
+      url += `?from_date=${managerTransactionDateFrom.value}&to_date=${managerTransactionDateTo.value}`;
+    }
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const transactions = await response.json();
+      managerInventoryTransactions.value = transactions;
+      console.log("Manager inventory transactions fetched:", transactions);
+    } else {
+      console.error("Failed to fetch inventory transactions:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching inventory transactions:", error);
+  }
+};
+
+const fetchManagerOrders = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      console.error("Not authenticated");
+      return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/order`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const orders = await response.json();
+      managerOrders.value = orders;
+      console.log("Manager wholesale orders fetched:", orders);
+    } else {
+      console.error("Failed to fetch orders:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+  }
+};
+
+// Create supplier order
+// Open edit order modal
+const openEditOrderModal = (order) => {
+  editingOrder.value = order;
+  editOrderForm.value = {
+    status: order.status,
+    quantity: order.order_quantity,
+    reason: order.reason_for_order || "",
+    replenishment_date: order.order_replenishment_date ? new Date(order.order_replenishment_date).toISOString().split('T')[0] : ""
+  };
+  editOrderError.value = "";
+  showEditOrderModal.value = true;
+};
+
+// Update supplier order
+const handleUpdateOrder = async () => {
+  editOrderError.value = "";
+
+  if (!editingOrder.value) {
+    editOrderError.value = "No order selected";
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      editOrderError.value = "Authentication required. Please login again.";
+      return;
+    }
+
+    const payload = {
+      status: parseInt(editOrderForm.value.status),
+      order_quantity: parseInt(editOrderForm.value.quantity),
+      reason_for_order: editOrderForm.value.reason
+    };
+
+    if (editOrderForm.value.replenishment_date) {
+      payload.order_replenishment_date = editOrderForm.value.replenishment_date;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/order/${editingOrder.value.order_id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      console.log("Order updated successfully:", result);
+      showEditOrderModal.value = false;
+      editingOrder.value = null;
+      
+      // Refresh orders list
+      await fetchManagerOrders();
+    } else {
+      editOrderError.value = result.message || "Failed to update order";
+      console.error("Error updating order:", result);
+    }
+  } catch (error) {
+    editOrderError.value = "Unable to connect to server. Please try again.";
+    console.error("Network error:", error);
+  }
+};
+
+// Delete supplier order
+const handleDeleteOrder = async (orderId) => {
+  if (!confirm("Are you sure you want to delete this order? This action cannot be undone.")) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/order/${orderId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      console.log("Order deleted successfully");
+      // Refresh orders list
+      await fetchManagerOrders();
+    } else {
+      alert(result.message || "Failed to delete order");
+      console.error("Error deleting order:", result);
+    }
+  } catch (error) {
+    alert("Unable to connect to server. Please try again.");
+    console.error("Network error:", error);
+  }
+};
+
+// Mark order as delivered and auto-replenish stock
+const handleMarkOrderDelivered = async (order) => {
+  if (!confirm(`Mark order for "${order.product_name}" as Delivered? This will auto-replenish the stock.`)) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    const payload = {
+      status: 1, // Mark as Processed/Delivered
+      order_quantity: order.order_quantity
+    };
+
+    const response = await fetch(`${API_BASE_URL}/api/order/${order.order_id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      alert(`Order marked as Delivered! Stock replenished by ${order.order_quantity} units.`);
+      console.log("Order delivered and stock replenished:", result);
+      
+      // Refresh both orders and products
+      await fetchManagerOrders();
+      await fetchProducts();
+    } else {
+      alert(result.message || "Failed to mark order as delivered");
+      console.error("Error marking order delivered:", result);
+    }
+  } catch (error) {
+    alert("Unable to connect to server. Please try again.");
+    console.error("Network error:", error);
+  }
+};
+
+// Place grouped supplier orders to wholesale
+const handlePlaceOrderToWholesale = async (supplierGroup) => {
+  if (!confirm(`Are you sure you want to place all ${supplierGroup.items.length} item(s) to wholesale for supplier "${supplierGroup.supplier}"?`)) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    let successCount = 0;
+    let failCount = 0;
+
+    // Post each item as a separate order to wholesale
+    for (const item of supplierGroup.items) {
+      try {
+        const product = data.value.products.find(p => p.id === item.product_id);
+        const orderPayload = {
+          product_id: item.product_id,
+          order_quantity: item.quantity,
+          reason_for_order: item.reason || "Manager replenishment order"
+        };
+
+        const response = await fetch(`${API_BASE_URL}/api/order`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "Authentication-Token": token
+          },
+          body: JSON.stringify(orderPayload)
+        });
+
+        if (response.ok) {
+          successCount++;
+          console.log(`Order placed for product ID ${item.product_id}`);
+        } else {
+          failCount++;
+          console.error(`Failed to place order for product ID ${item.product_id}`);
+        }
+      } catch (error) {
+        failCount++;
+        console.error("Error placing order:", error);
+      }
+    }
+
+    const summary = `Orders Placed to Wholesale!\n================================\nSupplier: ${supplierGroup.supplier}\nSuccessful: ${successCount}\nFailed: ${failCount}\nTotal Items: ${supplierGroup.items.length}`;
+    alert(summary);
+    
+    // Refresh both lists
+    await fetchManagerOrders();
+    await fetchManagerInventoryTransactions();
+    
+    console.log(`${successCount} orders placed to wholesale, ${failCount} failed`);
+  } catch (error) {
+    alert("Error placing orders: " + error.message);
+    console.error("Critical error:", error);
+  }
+};
+
+// Get status color
+const getStatusColor = (status) => {
+  switch(status) {
+    case 0: // Pending
+      return { bg: '#fff3cd', text: '#856404' };
+    case 1: // Processed
+      return { bg: '#d4edda', text: '#155724' };
+    case 2: // Cancelled
+      return { bg: '#f8d7da', text: '#721c24' };
+    default:
+      return { bg: '#e2e3e5', text: '#383d41' };
+  }
+};
+
+// Get status label
+const getStatusLabel = (status) => {
+  switch(status) {
+    case 0: return "Pending";
+    case 1: return "Processed";
+    case 2: return "Cancelled";
+    default: return "Unknown";
+  }
+};
+
+const handleCreateBooking = async () => {
   bookingError.value = "";
   bookingSuccess.value = "";
 
@@ -3133,51 +4534,249 @@ const handleCreateBooking = () => {
     if (hasBridalPackageSelected()) {
       bookingError.value = `Bridal Package must be booked 1 to 6 months in advance`;
     } else {
-      bookingError.value = `Please select a date from tomorrow onwards for 2 days`;
+      bookingError.value = `Please select today or within the next 2 days`;
     }
     return;
   }
 
-  // Create a booking for each selected service
-  const serviceNames = bookingForm.value.serviceIds.map(serviceId => {
-    const service = data.value.services.find(s => s.id == serviceId);
-    return service ? service.name : '';
-  }).filter(Boolean).join(', ');
+  // Get customer email
+  if (!bookingForm.value.customerId) {
+    bookingError.value = "Please select a customer";
+    return;
+  }
+  
+  if (!data.value.customers || data.value.customers.length === 0) {
+    bookingError.value = "No customers found. Please wait for data to load and try again.";
+    return;
+  }
+  
+  const customerEmail = getCustomerEmail(bookingForm.value.customerId);
+  if (!customerEmail) {
+    const customerId = parseInt(bookingForm.value.customerId) || bookingForm.value.customerId;
+    const customer = data.value.customers.find(c => c.id === customerId || String(c.id) === String(bookingForm.value.customerId));
+    bookingError.value = customer ? `Customer "${customer.name}" has no email address` : "Selected customer not found. Please select a valid customer.";
+    console.error("Customer lookup failed for ID:", bookingForm.value.customerId, "Available customers:", data.value.customers);
+    return;
+  }
 
-  const newBooking = {
-    id: Math.max(...data.value.appointments.map(a => a.id || 0), 0) + 1,
-    customerId: parseInt(bookingForm.value.customerId),
-    serviceId: parseInt(bookingForm.value.serviceIds[0]),
-    services: bookingForm.value.serviceIds.map(s => parseInt(s)),
-    serviceNames: serviceNames,
-    date: bookingForm.value.date,
-    status: "confirmed",
-    notes: bookingForm.value.time,
-    invoiceStatus: "pending",
-    staffId: bookingForm.value.staffId ? parseInt(bookingForm.value.staffId) : null
-  };
+  // Combine date and time into ISO datetime
+  const appointmentDateTime = `${bookingForm.value.date}T${bookingForm.value.time}:00`;
 
-  data.value.appointments.push(newBooking);
-  bookingSuccess.value = `Booking created successfully for ${serviceNames}!`;
+  // Get staff ID if assigned
+  const staffId = bookingForm.value.staffId ? parseInt(bookingForm.value.staffId) : null;
 
-  setTimeout(() => {
-    bookingForm.value = {
-      customerId: "",
-      serviceIds: [],
-      date: "",
-      time: "",
-      staffId: ""
-    };
-    bookingSuccess.value = "";
-  }, 1500);
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    bookingError.value = "Authentication token not found";
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/appointment`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify({
+        customer_email: customerEmail,
+        service_ids: bookingForm.value.serviceIds.map(id => parseInt(id)),
+        appointment_datetime: appointmentDateTime,
+        staff_id: staffId
+      })
+    });
+
+    const data_response = await response.json();
+    
+    if (response.ok) {
+      const serviceNames = bookingForm.value.serviceIds.map(serviceId => {
+        const service = data.value.services.find(s => s.id == serviceId);
+        return service ? service.name : '';
+      }).filter(Boolean).join(', ');
+
+      bookingSuccess.value = `Booking created successfully for ${serviceNames}!`;
+      
+      // Refresh appointments list
+      await fetchAppointments();
+      
+      // Clear form
+      setTimeout(() => {
+        bookingForm.value = {
+          customerId: "",
+          serviceIds: [],
+          date: "",
+          time: "",
+          staffId: ""
+        };
+        bookingCustomerSearch.value = "";
+        bookingSuccess.value = "";
+      }, 1500);
+    } else {
+      bookingError.value = data_response.message || "Failed to create appointment";
+    }
+  } catch (error) {
+    console.error("Fetch error:", error);
+    bookingError.value = "Network error: " + error.message;
+  }
+};
+
+const handleCreateQuickAppointmentForToday = async () => {
+  quickAppointmentError.value = "";
+  quickAppointmentSuccess.value = "";
+
+  if (!quickAppointmentForm.value.customerId) {
+    quickAppointmentError.value = "Please select a customer";
+    return;
+  }
+
+  if (quickAppointmentForm.value.serviceIds.length === 0) {
+    quickAppointmentError.value = "Please select at least one service";
+    return;
+  }
+
+  if (!quickAppointmentForm.value.time) {
+    quickAppointmentError.value = "Please select a time";
+    return;
+  }
+
+  const customerEmail = getCustomerEmail(quickAppointmentForm.value.customerId);
+  if (!customerEmail) {
+    const customerId = parseInt(quickAppointmentForm.value.customerId) || quickAppointmentForm.value.customerId;
+    const customer = data.value.customers.find(c => c.id === customerId || String(c.id) === String(quickAppointmentForm.value.customerId));
+    quickAppointmentError.value = customer ? `Customer "${customer.name}" has no email address` : "Selected customer not found";
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      quickAppointmentError.value = "Authentication required";
+      return;
+    }
+
+    // Get today's date
+    const today = new Date().toISOString().split('T')[0];
+    const appointmentDateTime = `${today}T${quickAppointmentForm.value.time}:00`;
+
+    const staffId = quickAppointmentForm.value.staffId ? parseInt(quickAppointmentForm.value.staffId) : null;
+
+    const response = await fetch(`${API_BASE_URL}/api/appointment`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify({
+        customer_email: customerEmail,
+        service_ids: quickAppointmentForm.value.serviceIds.map(id => parseInt(id)),
+        appointment_datetime: appointmentDateTime,
+        staff_id: staffId
+      })
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      const serviceNames = quickAppointmentForm.value.serviceIds.map(serviceId => {
+        const service = data.value.services.find(s => s.id == serviceId);
+        return service ? service.name : '';
+      }).filter(Boolean).join(', ');
+
+      quickAppointmentSuccess.value = `Appointment created for today at ${quickAppointmentForm.value.time}!`;
+
+      // Reset form
+      setTimeout(() => {
+        quickAppointmentForm.value = {
+          customerId: "",
+          serviceIds: [],
+          time: "",
+          staffId: ""
+        };
+        quickAppointmentSuccess.value = "";
+        // Refresh appointments
+        fetchAppointments();
+        fetchTodaysAppointmentsForInvoice();
+      }, 1500);
+    } else {
+      quickAppointmentError.value = result.message || "Failed to create appointment";
+    }
+  } catch (error) {
+    console.error("Error creating appointment:", error);
+    quickAppointmentError.value = "Network error: " + error.message;
+  }
+};
+
+// Fetch services from API
+const fetchServices = async () => {
+  console.log("fetchServices() called");
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/service`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const services = await response.json();
+      console.log("Services API returned:", services);
+      // Map backend field names to frontend field names
+      appStore.data.services = services.map(s => {
+        // Find the category ID from the category name
+        const category = data.value.serviceCategories.find(
+          c => c.name.toLowerCase() === (s.service_category || '').toLowerCase()
+        );
+        const categoryId = category ? category.id : 1;
+
+        return {
+          id: s.service_id,
+          name: s.service_desc,
+          categoryId: categoryId,
+          category: s.service_category,
+          price: s.service_price,
+          duration: s.service_duration,
+          productsRequired: s.service_products || "None",
+          fromDate: s.from_date,
+          toDate: s.to_date,
+          rating: s.service_rating,
+          reviews: s.no_of_reviews,
+          active: s.active_flg
+        };
+      });
+      console.log("Services after mapping:", appStore.data.services);
+    } else {
+      console.error("Failed to fetch services:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching services:", error);
+  }
 };
 
 // Service handlers
-const handleAddService = () => {
+const handleServiceSubmit = async () => {
+  console.log("handleServiceSubmit called - isEditingService:", isEditingService.value);
+  if (isEditingService.value) {
+    return await handleUpdateService();
+  } else {
+    return await handleAddService();
+  }
+};
+
+const handleAddService = async () => {
   serviceError.value = "";
   serviceSuccess.value = "";
 
-  if (!serviceForm.value.name) {
+  if (!serviceForm.value.name?.trim()) {
     serviceError.value = "Service name is required";
     return;
   }
@@ -3197,70 +4796,271 @@ const handleAddService = () => {
     return;
   }
 
-  if (editingServiceId.value) {
-    // Update existing service
-    const index = data.value.services.findIndex(s => s.id === editingServiceId.value);
-    if (index > -1) {
-      data.value.services[index] = {
-        ...data.value.services[index],
-        categoryId: parseInt(serviceForm.value.categoryId),
-        name: serviceForm.value.name,
-        price: serviceForm.value.price,
-        duration: serviceForm.value.duration,
-        description: `${serviceForm.value.name} service`,
-        productsRequired: serviceForm.value.productsRequired || "None"
-      };
-      serviceSuccess.value = "Service updated successfully!";
-    }
-  } else {
-    // Create new service
-    const newService = {
-      id: Math.max(...data.value.services.map(s => s.id || 0), 0) + 1,
-      categoryId: parseInt(serviceForm.value.categoryId),
-      name: serviceForm.value.name,
-      price: serviceForm.value.price,
-      duration: serviceForm.value.duration,
-      description: `${serviceForm.value.name} service`,
-      productsRequired: serviceForm.value.productsRequired || "None"
-    };
-
-    data.value.services.push(newService);
-    serviceSuccess.value = "Service added successfully!";
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    serviceError.value = "Authentication token not found";
+    return;
   }
 
-  setTimeout(() => {
-    serviceForm.value = {
-      name: "",
-      categoryId: "",
-      price: 0,
-      duration: 0,
-      productsRequired: ""
-    };
-    editingServiceId.value = null;
-    serviceSuccess.value = "";
-  }, 1500);
-};
+  // Find category name from category ID
+  const categoryName = data.value.serviceCategories.find(c => c.id == serviceForm.value.categoryId)?.name || "Hair";
 
-const handleEditService = (service) => {
-  editingServiceId.value = service.id;
-  serviceForm.value = {
-    name: service.name,
-    categoryId: String(service.categoryId),
-    price: service.price,
-    duration: service.duration,
-    productsRequired: service.productsRequired || ""
+  const payload = {
+    service_desc: serviceForm.value.name.trim(),
+    service_category: categoryName,
+    service_price: serviceForm.value.price,
+    service_duration: serviceForm.value.duration,
+    service_products: serviceForm.value.productsRequired?.trim() || "",
+    from_date: serviceForm.value.fromDate || new Date().toISOString().split('T')[0],
+    to_date: serviceForm.value.toDate || null
   };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/service`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log("Service created:", result);
+      serviceSuccess.value = "Service added successfully!";
+      
+      // Fetch updated service list
+      await fetchServices();
+      
+      // Reset form
+      serviceForm.value = {
+        name: "",
+        categoryId: "",
+        price: 0,
+        duration: 0,
+        productsRequired: "",
+        fromDate: "",
+        toDate: ""
+      };
+      
+      setTimeout(() => {
+        serviceSuccess.value = "";
+      }, 1500);
+    } else {
+      const error = await response.json();
+      serviceError.value = error.message || "Failed to add service";
+      console.error("Error adding service:", error);
+    }
+  } catch (error) {
+    serviceError.value = "Error adding service: " + error.message;
+    console.error("Error adding service:", error);
+  }
 };
 
 const cancelEditService = () => {
-  editingServiceId.value = null;
   serviceForm.value = {
     name: "",
     categoryId: "",
     price: 0,
     duration: 0,
-    productsRequired: ""
+    productsRequired: "",
+    fromDate: "",
+    toDate: ""
   };
+  isEditingService.value = false;
+  editingServiceId.value = null;
+  editingServiceData.value = null;
+  serviceError.value = "";
+  serviceSuccess.value = "";
+};
+
+const handleEditService = (service) => {
+  console.log("handleEditService called with service:", service);
+  serviceError.value = "";
+  serviceSuccess.value = "";
+  
+  // Store service data for display in modal
+  editingServiceData.value = service;
+  
+  // Populate form with service data
+  serviceForm.value = {
+    name: service.name,
+    categoryId: Number(service.categoryId),
+    price: service.price,
+    duration: service.duration,
+    productsRequired: service.productsRequired || "",
+    fromDate: service.fromDate || "",
+    toDate: service.toDate || ""
+  };
+  
+  console.log("Setting isEditingService to true, editingServiceId to:", service.id);
+  console.log("Form populated:", serviceForm.value);
+  
+  isEditingService.value = true;
+  editingServiceId.value = service.id;
+  
+  console.log("After setting flags - isEditingService:", isEditingService.value, "editingServiceId:", editingServiceId.value);
+};
+
+const handleUpdateService = async () => {
+  console.log("handleUpdateService called - isEditingService:", isEditingService.value, "editingServiceId:", editingServiceId.value);
+  console.log("Current form values:", serviceForm.value);
+  serviceError.value = "";
+  serviceSuccess.value = "";
+
+  if (!serviceForm.value.name?.trim()) {
+    serviceError.value = "Service name is required";
+    console.error("Validation failed: name required");
+    return;
+  }
+
+  if (!serviceForm.value.categoryId) {
+    serviceError.value = "Please select a category";
+    console.error("Validation failed: category required", serviceForm.value.categoryId);
+    return;
+  }
+
+  if (!serviceForm.value.price || serviceForm.value.price <= 0) {
+    serviceError.value = "Price must be greater than 0";
+    console.error("Validation failed: price required");
+    return;
+  }
+
+  if (!serviceForm.value.duration || serviceForm.value.duration < 15) {
+    serviceError.value = "Duration must be at least 15 minutes";
+    console.error("Validation failed: duration required");
+    return;
+  }
+
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    serviceError.value = "Authentication token not found";
+    console.error("No auth token");
+    return;
+  }
+
+  // Find category name from category ID
+  const categoryName = data.value.serviceCategories.find(c => c.id == serviceForm.value.categoryId)?.name || "Hair";
+  console.log("Category ID:", serviceForm.value.categoryId, "Category Name:", categoryName);
+
+  const payload = {
+    service_desc: serviceForm.value.name.trim(),
+    service_category: categoryName,
+    service_price: serviceForm.value.price,
+    service_duration: serviceForm.value.duration,
+    service_products: serviceForm.value.productsRequired?.trim() || "",
+    from_date: serviceForm.value.fromDate || new Date().toISOString().split('T')[0],
+    to_date: serviceForm.value.toDate || null
+  };
+
+  console.log("Sending payload:", payload);
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/service/${editingServiceId.value}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    console.log("PUT Response status:", response.status, "OK:", response.ok);
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log("Service updated:", result);
+      serviceSuccess.value = "Service updated successfully!";
+      
+      console.log("Calling fetchServices to refresh the list...");
+      // Fetch updated service list
+      await fetchServices();
+      console.log("Services refreshed after update. Total services:", data.value.services.length);
+      data.value.services.forEach(s => {
+        console.log("  -", s.id, ":", s.name, "($" + s.price + ")");
+      });
+      
+      // Reset form
+      isEditingService.value = false;
+      editingServiceId.value = null;
+      editingServiceData.value = null;
+      serviceForm.value = {
+        name: "",
+        categoryId: "",
+        price: 0,
+        duration: 0,
+        productsRequired: "",
+        fromDate: "",
+        toDate: ""
+      };
+      
+      setTimeout(() => {
+        serviceSuccess.value = "";
+      }, 1500);
+    } else {
+      console.error("Response status:", response.status);
+      const error = await response.json();
+      serviceError.value = error.message || "Failed to update service";
+      console.error("Error updating service:", error);
+    }
+  } catch (error) {
+    serviceError.value = "Error updating service: " + error.message;
+    console.error("Error updating service - catch block:", error);
+  }
+};
+
+const handleDeleteService = async (serviceId) => {
+  if (!confirm("Are you sure you want to delete this service?")) {
+    return;
+  }
+
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    alert("Authentication token not found");
+    return;
+  }
+
+  try {
+    console.log("Attempting to delete service:", serviceId);
+    console.log("API URL:", `${API_BASE_URL}/api/service/${serviceId}`);
+    
+    const response = await fetch(`${API_BASE_URL}/api/service/${serviceId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    console.log("Delete response status:", response.status, "OK:", response.ok);
+
+    if (response.ok) {
+      console.log("Service deleted successfully");
+      alert("Service deleted successfully!");
+      
+      // Fetch updated service list
+      await fetchServices();
+    } else {
+      console.error("Delete failed with status:", response.status);
+      let errorMsg = "Failed to delete service";
+      
+      try {
+        const error = await response.json();
+        errorMsg = error.message || errorMsg;
+      } catch (e) {
+        console.error("Could not parse error response:", e);
+      }
+      
+      alert("Error: " + errorMsg);
+    }
+  } catch (error) {
+    console.error("Fetch error:", error);
+    alert("Network error: " + error.message + "\n\nMake sure the backend server is running on " + API_BASE_URL);
+  }
 };
 
 // Staff bookings handler
@@ -3281,31 +5081,65 @@ const viewInvoice = (appointment) => {
   showInvoiceModal.value = true;
 };
 
-const handleDeleteService = (serviceId) => {
-  if (confirm("Are you sure you want to delete this service?")) {
-    const index = data.value.services.findIndex(s => s.id === serviceId);
-    if (index > -1) {
-      data.value.services.splice(index, 1);
+// Fetch customers from API
+const fetchCustomers = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/customer`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const customers = await response.json();
+      // Map backend field names to frontend field names
+      appStore.data.customers = customers.map(c => ({
+        id: c.customer_id,
+        name: c.customer_name,
+        email: c.customer_email,
+        phone: c.customer_contact,
+        dob: c.customer_dob,
+        address: c.customer_address,
+        preferences: c.customer_preferences,
+        customerType: c.customer_type,
+        noOfVisits: c.number_of_visits,
+        registrationDate: c.customer_reg_date,
+        pointsBalance: c.customer_available_rewards || 0
+      }));
+      console.log("Customers fetched:", appStore.data.customers);
+    } else {
+      console.error("Failed to fetch customers:", response.status);
     }
+  } catch (error) {
+    console.error("Error fetching customers:", error);
   }
 };
 
 // Customer handlers
-const handleAddCustomer = () => {
+const handleAddCustomer = async () => {
   customerError.value = "";
   customerSuccess.value = "";
 
-  if (!customerForm.value.name) {
+  if (!customerForm.value.name?.trim()) {
     customerError.value = "Customer name is required";
     return;
   }
 
-  if (!customerForm.value.email) {
+  if (!customerForm.value.email?.trim()) {
     customerError.value = "Email is required";
     return;
   }
 
-  if (!customerForm.value.phone) {
+  if (!customerForm.value.phone?.trim()) {
     customerError.value = "Phone is required";
     return;
   }
@@ -3315,40 +5149,66 @@ const handleAddCustomer = () => {
     return;
   }
 
-  const newCustomer = {
-    id: Math.max(...data.value.customers.map(c => c.id || 0), 0) + 1,
-    name: customerForm.value.name,
-    email: customerForm.value.email,
-    phone: customerForm.value.phone,
-    dob: customerForm.value.dob,
-    address: customerForm.value.address || "",
-    preferences: customerForm.value.preferences || "",
-    customerType: customerForm.value.customerType || "Normal",
-    totalSpent: 0,
-    pointsBalance: data.value.rewards?.firstVisitPoints || 20,
-    pointsEarned: data.value.rewards?.firstVisitPoints || 20,
-    lastPointsUpdate: new Date().toISOString().split('T')[0],
-    invoices: 0,
-    noOfVisits: 0,
-    registrationDate: new Date().toISOString().split('T')[0],
-    password: "pass123"
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    customerError.value = "Authentication token not found";
+    return;
+  }
+
+  const payload = {
+    customer_name: customerForm.value.name.trim(),
+    customer_email: customerForm.value.email.trim(),
+    customer_contact: customerForm.value.phone.trim(),
+    customer_dob: customerForm.value.dob,
+    customer_address: customerForm.value.address?.trim() || "",
+    customer_preferences: customerForm.value.preferences?.trim() || "",
+    customer_type: customerForm.value.customerType || "Normal"
   };
 
-  data.value.customers.push(newCustomer);
-  customerSuccess.value = "Customer added successfully!";
+  try {
+    console.log("Sending payload:", payload);
+    const response = await fetch(`${API_BASE_URL}/api/customer`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
 
-  setTimeout(() => {
-    customerForm.value = {
-      name: "",
-      email: "",
-      phone: "",
-      dob: "",
-      address: "",
-      preferences: "",
-      customerType: "Normal"
-    };
-    customerSuccess.value = "";
-  }, 1500);
+    console.log("Response status:", response.status);
+    const responseData = await response.json();
+    console.log("Response data:", responseData);
+
+    if (response.ok) {
+      customerSuccess.value = "Customer added successfully!";
+      
+      // Fetch updated customer list
+      await fetchCustomers();
+      
+      // Reset form
+      customerForm.value = {
+        name: "",
+        email: "",
+        phone: "",
+        dob: "",
+        address: "",
+        preferences: "",
+        customerType: "Normal"
+      };
+      
+      setTimeout(() => {
+        customerSuccess.value = "";
+      }, 1500);
+    } else {
+      customerError.value = responseData.message || "Failed to add customer";
+      console.error("Error adding customer:", responseData);
+    }
+  } catch (error) {
+    customerError.value = "Error adding customer: " + error.message;
+    console.error("Error adding customer:", error);
+  }
 };
 
 const cancelEditCustomer = () => {
@@ -3363,25 +5223,48 @@ const cancelEditCustomer = () => {
   };
   isEditingCustomer.value = false;
   editingCustomerId.value = null;
+  editingCustomerData.value = null;
   customerError.value = "";
   customerSuccess.value = "";
 };
 
-const handleUpdateCustomer = () => {
+const handleEditCustomer = (customer) => {
+  customerError.value = "";
+  customerSuccess.value = "";
+  
+  // Store customer data for display in modal
+  editingCustomerData.value = customer;
+  
+  // Populate form with customer data
+  customerForm.value = {
+    name: customer.name,
+    email: customer.email,
+    phone: customer.phone,
+    dob: customer.dob,
+    address: customer.address || "",
+    preferences: customer.preferences || "",
+    customerType: customer.customerType || "Normal"
+  };
+  
+  isEditingCustomer.value = true;
+  editingCustomerId.value = customer.id;
+};
+
+const handleUpdateCustomer = async () => {
   customerError.value = "";
   customerSuccess.value = "";
 
-  if (!customerForm.value.name) {
+  if (!customerForm.value.name?.trim()) {
     customerError.value = "Customer name is required";
     return;
   }
 
-  if (!customerForm.value.email) {
+  if (!customerForm.value.email?.trim()) {
     customerError.value = "Email is required";
     return;
   }
 
-  if (!customerForm.value.phone) {
+  if (!customerForm.value.phone?.trim()) {
     customerError.value = "Phone is required";
     return;
   }
@@ -3391,39 +5274,107 @@ const handleUpdateCustomer = () => {
     return;
   }
 
-  const customerIndex = data.value.customers.findIndex(c => c.id === editingCustomerId.value);
-  if (customerIndex === -1) {
-    customerError.value = "Customer not found";
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    customerError.value = "Authentication token not found";
     return;
   }
 
-  data.value.customers[customerIndex] = {
-    ...data.value.customers[customerIndex],
-    name: customerForm.value.name,
-    email: customerForm.value.email,
-    phone: customerForm.value.phone,
-    dob: customerForm.value.dob,
-    address: customerForm.value.address || "",
-    preferences: customerForm.value.preferences || "",
-    customerType: customerForm.value.customerType || "Normal"
+  const payload = {
+    customer_name: customerForm.value.name.trim(),
+    customer_email: customerForm.value.email.trim(),
+    customer_contact: customerForm.value.phone.trim(),
+    customer_dob: customerForm.value.dob,
+    customer_address: customerForm.value.address?.trim() || "",
+    customer_preferences: customerForm.value.preferences?.trim() || "",
+    customer_type: customerForm.value.customerType || "Normal"
   };
 
-  customerSuccess.value = "Customer updated successfully!";
-  isEditingCustomer.value = false;
-  editingCustomerId.value = null;
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/customer/${editingCustomerId.value}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
 
-  setTimeout(() => {
-    customerForm.value = {
-      name: "",
-      email: "",
-      phone: "",
-      dob: "",
-      address: "",
-      preferences: "",
-      customerType: "Normal"
-    };
-    customerSuccess.value = "";
-  }, 1500);
+    if (response.ok) {
+      const result = await response.json();
+      console.log("Customer updated:", result);
+      customerSuccess.value = "Customer updated successfully!";
+      
+      // Fetch updated customer list
+      await fetchCustomers();
+      
+      // Reset form
+      isEditingCustomer.value = false;
+      editingCustomerId.value = null;
+      editingCustomerData.value = null;
+      customerForm.value = {
+        name: "",
+        email: "",
+        phone: "",
+        dob: "",
+        address: "",
+        preferences: "",
+        customerType: "Normal"
+      };
+      
+      setTimeout(() => {
+        customerSuccess.value = "";
+      }, 1500);
+    } else {
+      const error = await response.json();
+      customerError.value = error.message || "Failed to update customer";
+      console.error("Error updating customer:", error);
+    }
+  } catch (error) {
+    customerError.value = "Error updating customer: " + error.message;
+    console.error("Error updating customer:", error);
+  }
+};
+
+const handleDeleteCustomer = async (customerId) => {
+  if (!confirm("Are you sure you want to delete this customer?")) {
+    return;
+  }
+
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    alert("Authentication token not found");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/customer/${customerId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log("Customer deleted:", result);
+      alert("Customer deleted successfully!");
+      
+      // Fetch updated customer list
+      await fetchCustomers();
+    } else {
+      const error = await response.json();
+      const errorMsg = error.message || "Failed to delete customer";
+      alert("Error: " + errorMsg);
+      console.error("Error deleting customer:", error);
+    }
+  } catch (error) {
+    alert("Error deleting customer: " + error.message);
+    console.error("Error deleting customer:", error);
+  }
 };
 
 // Initialize rewards form with store data
@@ -3436,72 +5387,210 @@ const initializeRewardsForm = () => {
 // Call initialization
 initializeRewardsForm();
 
-const handleUpdateRewards = () => {
+// Fetch Rewards Settings from salon_config
+const fetchRewardsSettings = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      console.error("Not authenticated");
+      return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/salon-config`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const allConfigs = await response.json();
+      const rewardSettings = Array.isArray(allConfigs) ? allConfigs : [allConfigs];
+      
+      rewardSettings.forEach(setting => {
+        if (setting.param_name === "POINTS_PER_CURRENCY") {
+          rewardsForm.value.POINTS_PER_CURRENCY = parseFloat(setting.param_value);
+        } else if (setting.param_name === "POINTS_FOR_REDUMPTION") {
+          rewardsForm.value.POINTS_FOR_REDUMPTION = parseInt(setting.param_value);
+        } else if (setting.param_name === "REDUMPTION_VALUE_PER_POINT") {
+          rewardsForm.value.REDUMPTION_VALUE_PER_POINT = parseFloat(setting.param_value);
+        } else if (setting.param_name === "FIRST_VISIT_BONUS_POINTS") {
+          rewardsForm.value.FIRST_VISIT_BONUS_POINTS = parseInt(setting.param_value);
+        } else if (setting.param_name === "BIRTHDAY_BONUS_POINTS") {
+          rewardsForm.value.BIRTHDAY_BONUS_POINTS = parseInt(setting.param_value);
+        } else if (setting.param_name === "VIP_DISCOUNT_PERCENTAGE") {
+          rewardsForm.value.VIP_DISCOUNT_PERCENTAGE = parseFloat(setting.param_value);
+        } else if (setting.param_name === "REWARD_EXPIRY_DAYS") {
+          rewardsForm.value.REWARD_EXPIRY_DAYS = parseInt(setting.param_value);
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Error fetching rewards settings:", error);
+  }
+};
+
+const handleUpdateRewards = async () => {
   rewardsError.value = "";
   rewardsSuccess.value = "";
 
   // Validation
-  if (rewardsForm.value.pointsPerRupee <= 0) {
-    rewardsError.value = "Points per rupee must be greater than 0";
+  if (rewardsForm.value.POINTS_PER_CURRENCY <= 0) {
+    rewardsError.value = "Points per currency must be greater than 0";
     return;
   }
 
-  if (rewardsForm.value.pointsForRedemption <= 0) {
+  if (rewardsForm.value.POINTS_FOR_REDUMPTION <= 0) {
     rewardsError.value = "Points for redemption must be greater than 0";
     return;
   }
 
-  if (rewardsForm.value.redemptionValue <= 0) {
-    rewardsError.value = "Redemption value must be greater than 0";
+  if (rewardsForm.value.REDUMPTION_VALUE_PER_POINT <= 0) {
+    rewardsError.value = "Redemption value per point must be greater than 0";
     return;
   }
 
-  if (rewardsForm.value.vipThreshold <= 0) {
-    rewardsError.value = "VIP threshold must be greater than 0";
+  if (rewardsForm.value.REWARD_EXPIRY_DAYS <= 0) {
+    rewardsError.value = "Reward expiry days must be greater than 0";
     return;
   }
 
-  if (rewardsForm.value.pointsExpiryMonths <= 0) {
-    rewardsError.value = "Points expiry must be greater than 0 months";
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      rewardsError.value = "Not authenticated";
+      return;
+    }
+
+    const getResponse = await fetch(`${API_BASE_URL}/api/salon-config`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (!getResponse.ok) {
+      rewardsError.value = "Failed to fetch current settings";
+      return;
+    }
+
+    const allConfigs = await getResponse.json();
+    const configArray = Array.isArray(allConfigs) ? allConfigs : [allConfigs];
+    
+    const rewardUpdates = [
+      { name: "POINTS_PER_CURRENCY", value: rewardsForm.value.POINTS_PER_CURRENCY.toString() },
+      { name: "POINTS_FOR_REDUMPTION", value: rewardsForm.value.POINTS_FOR_REDUMPTION.toString() },
+      { name: "REDUMPTION_VALUE_PER_POINT", value: rewardsForm.value.REDUMPTION_VALUE_PER_POINT.toString() },
+      { name: "FIRST_VISIT_BONUS_POINTS", value: rewardsForm.value.FIRST_VISIT_BONUS_POINTS.toString() },
+      { name: "BIRTHDAY_BONUS_POINTS", value: rewardsForm.value.BIRTHDAY_BONUS_POINTS.toString() },
+      { name: "VIP_DISCOUNT_PERCENTAGE", value: rewardsForm.value.VIP_DISCOUNT_PERCENTAGE.toString() },
+      { name: "REWARD_EXPIRY_DAYS", value: rewardsForm.value.REWARD_EXPIRY_DAYS.toString() }
+    ];
+
+    for (const update of rewardUpdates) {
+      const config = configArray.find(c => c.param_name === update.name);
+      if (config) {
+        const putResponse = await fetch(`${API_BASE_URL}/api/salon-config/${config.setting_id}`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "Authentication-Token": token
+          },
+          body: JSON.stringify({ param_value: update.value })
+        });
+
+        if (!putResponse.ok) {
+          rewardsError.value = `Failed to update ${update.name}`;
+          return;
+        }
+      }
+    }
+
+    rewardsSuccess.value = "Reward settings updated successfully!";
+    setTimeout(() => {
+      rewardsSuccess.value = "";
+    }, 3000);
+  } catch (error) {
+    console.error("Error updating rewards:", error);
+    rewardsError.value = "Error updating reward settings";
+  }
+};
+
+// Fetch staff from API
+const fetchStaff = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
     return;
   }
 
-  // Update the store
-  data.value.rewards = { ...rewardsForm.value };
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/staff`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
 
-  rewardsSuccess.value = "Reward settings updated successfully!";
-
-  setTimeout(() => {
-    rewardsSuccess.value = "";
-  }, 3000);
+    if (response.ok) {
+      const staffList = await response.json();
+      // Map backend field names to frontend field names
+      appStore.data.staff = staffList.map(s => ({
+        id: s.staff_id,
+        name: s.staff_name,
+        email: s.staff_email,
+        phone: s.staff_contact,
+        role: s.staff_role,
+        dob: s.staff_dob,
+        doj: s.staff_doj,
+        skills: s.staff_skills,
+        salary: s.staff_salary,
+        rating: s.staff_cumulative_rating,
+        reviews: s.no_of_reviews,
+        status: "active"
+      }));
+      console.log("Staff fetched:", appStore.data.staff);
+    } else {
+      console.error("Failed to fetch staff:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching staff:", error);
+  }
 };
 
 // Staff handlers
-const handleAddStaff = () => {
+const handleAddStaff = async () => {
   staffError.value = "";
   staffSuccess.value = "";
 
-  if (!staffForm.value.name) {
+  if (!staffForm.value.name?.trim()) {
     staffError.value = "Staff name is required";
     return;
   }
 
-  if (!staffForm.value.role) {
+  if (!staffForm.value.role?.trim()) {
     staffError.value = "Role is required";
     return;
   }
 
-  if (!staffForm.value.email) {
+  if (!staffForm.value.email?.trim()) {
     staffError.value = "Email is required";
     return;
   }
 
-  if (!staffForm.value.phone) {
+  if (!staffForm.value.phone?.trim()) {
     staffError.value = "Phone is required";
     return;
   }
 
-  if (!staffForm.value.skills) {
+  if (!staffForm.value.skills?.trim()) {
     staffError.value = "Skills are required";
     return;
   }
@@ -3521,79 +5610,144 @@ const handleAddStaff = () => {
     return;
   }
 
-  if (!staffForm.value.username) {
+  if (!staffForm.value.username?.trim()) {
     staffError.value = "Username is required";
     return;
   }
 
-  const newStaff = {
-    id: Math.max(...data.value.staff.map(s => s.id || 0), 0) + 1,
-    name: staffForm.value.name,
-    role: staffForm.value.role,
-    email: staffForm.value.email,
-    phone: staffForm.value.phone,
-    skills: staffForm.value.skills,
-    dob: staffForm.value.dob,
-    doj: staffForm.value.doj,
-    username: staffForm.value.username,
-    status: "active",
-    registrationDate: staffForm.value.doj,
-    salary: staffForm.value.salary
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    staffError.value = "Authentication token not found";
+    return;
+  }
+
+  const payload = {
+    staff_name: staffForm.value.name.trim(),
+    staff_role: staffForm.value.role.trim(),
+    staff_email: staffForm.value.email.trim(),
+    staff_contact: staffForm.value.phone.trim(),
+    staff_skills: staffForm.value.skills.trim(),
+    staff_dob: staffForm.value.dob,
+    staff_doj: staffForm.value.doj,
+    staff_salary: staffForm.value.salary,
+    username: staffForm.value.username.trim()
   };
 
-  data.value.staff.push(newStaff);
-  staffSuccess.value = "Staff member added successfully!";
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/staff`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
 
-  setTimeout(() => {
-    staffForm.value = {
-      name: "",
-      role: "",
-      email: "",
-      phone: "",
-      skills: "",
-      dob: "",
-      doj: "",
-      salary: 0,
-      username: ""
-    };
-    staffSuccess.value = "";
-  }, 1500);
+    if (response.ok) {
+      const result = await response.json();
+      console.log("Staff created:", result);
+      staffSuccess.value = "Staff member added successfully!";
+      
+      // Fetch updated staff list
+      await fetchStaff();
+      
+      // Reset form
+      staffForm.value = {
+        name: "",
+        role: "",
+        email: "",
+        phone: "",
+        skills: "",
+        dob: "",
+        doj: "",
+        salary: 0,
+        username: ""
+      };
+      
+      setTimeout(() => {
+        staffSuccess.value = "";
+      }, 1500);
+    } else {
+      const error = await response.json();
+      staffError.value = error.message || "Failed to add staff";
+      console.error("Error adding staff:", error);
+    }
+  } catch (error) {
+    staffError.value = "Error adding staff: " + error.message;
+    console.error("Error adding staff:", error);
+  }
 };
 
 // Invoice handlers
 const handleAppointmentSelect = (event) => {
   const appointmentId = parseInt(event.target.value);
+  console.log("Appointment selected:", appointmentId);
+  
   if (!appointmentId) {
+    invoiceForm.value.appointmentId = "";
     invoiceForm.value.customerId = "";
+    invoiceForm.value.staffId = "";
     invoiceForm.value.serviceId = "";
     invoiceForm.value.date = "";
+    invoiceForm.value.services = [];
+    invoiceForm.value.amount = 0;
     return;
   }
   
-  const appointment = data.value.appointments.find(a => a.id === appointmentId);
+  // Search in today's appointments (which is what the dropdown shows)
+  const appointment = todaysAppointmentsForInvoice.value.find(a => a.id === appointmentId);
+  console.log("Found appointment:", appointment);
+  
   if (appointment) {
+    invoiceForm.value.appointmentId = appointment.id;
     invoiceForm.value.customerId = appointment.customerId;
-    invoiceForm.value.serviceId = appointment.serviceId;
+    invoiceForm.value.staffId = appointment.staffId;
+    // Extract service ID from services array (first service) or use serviceId if it exists
+    const serviceId = appointment.services && appointment.services.length > 0 
+      ? appointment.services[0].id 
+      : (appointment.serviceId || "");
+    invoiceForm.value.serviceId = serviceId;
     invoiceForm.value.date = appointment.date;
+    invoiceForm.value.services = appointment.services || [];
+    
+    // Calculate total amount from all services
+    console.log("Services array:", invoiceForm.value.services);
+    let totalAmount = 0;
+    if (invoiceForm.value.services && invoiceForm.value.services.length > 0) {
+      totalAmount = invoiceForm.value.services.reduce((sum, service) => {
+        const servicePrice = parseFloat(service.price) || 0;
+        console.log("Service:", service.name, "Price:", servicePrice);
+        return sum + servicePrice;
+      }, 0);
+    }
+    invoiceForm.value.amount = totalAmount;
+    
+    console.log(`Selected appointment #${appointmentId} - Amount: ₹${totalAmount}`);
   }
 };
 
-const handleAddInvoice = () => {
+const handleAddInvoice = async () => {
   invoiceError.value = "";
   invoiceSuccess.value = "";
+
+  if (!invoiceForm.value.appointmentId) {
+    invoiceError.value = "Please select an appointment";
+    return;
+  }
 
   if (!invoiceForm.value.customerId) {
     invoiceError.value = "Please select a customer";
     return;
   }
 
-  if (!invoiceForm.value.serviceId) {
-    invoiceError.value = "Please select a service";
+  if (!invoiceForm.value.staffId) {
+    invoiceError.value = "Staff information missing from appointment";
     return;
   }
 
-  if (!invoiceForm.value.date) {
-    invoiceError.value = "Please select a date";
+  if (invoiceForm.value.services.length === 0) {
+    invoiceError.value = "No services found for this appointment";
     return;
   }
 
@@ -3602,31 +5756,86 @@ const handleAddInvoice = () => {
     return;
   }
 
-  const newInvoice = {
-    id: Math.max(...data.value.appointments.map(a => a.id || 0), 0) + 1,
-    customerId: parseInt(invoiceForm.value.customerId),
-    serviceId: parseInt(invoiceForm.value.serviceId),
-    date: invoiceForm.value.date,
-    status: "confirmed",
-    invoiceStatus: "pending",
-    paymentType: invoiceForm.value.paymentType,
-    discount: invoiceForm.value.discount,
-    notes: "Invoice created"
-  };
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      invoiceError.value = "Authentication required. Please login again.";
+      return;
+    }
 
-  data.value.appointments.push(newInvoice);
-  invoiceSuccess.value = "Invoice created successfully!";
+    // Calculate invoice amount from services
+    const serviceTotal = invoiceForm.value.services.reduce((sum, service) => {
+      return sum + (service.price || 0);
+    }, 0);
 
-  setTimeout(() => {
-    invoiceForm.value = {
-      customerId: "",
-      serviceId: "",
-      date: "",
-      paymentType: "cash",
-      discount: 0
+    // Apply discount
+    const discountAmount = (serviceTotal * invoiceForm.value.discount) / 100;
+    const invoiceAmount = serviceTotal - discountAmount;
+
+    // Build service_ids as comma-separated string
+    const serviceIds = invoiceForm.value.services.map(s => s.id).join(",");
+
+    // Prepare payload for backend
+    const payload = {
+      appointment_id: invoiceForm.value.appointmentId,
+      customer_id: invoiceForm.value.customerId,
+      staff_id: invoiceForm.value.staffId,
+      service_ids: serviceIds,
+      invoice_amount: parseFloat(invoiceAmount.toFixed(2)),
+      other_charges: 0,
+      discount_percentage: invoiceForm.value.discount
     };
-    invoiceSuccess.value = "";
-  }, 1500);
+
+    console.log("Creating invoice with payload:", payload);
+
+    const response = await fetch(`${API_BASE_URL}/api/invoice`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      invoiceSuccess.value = "Invoice created successfully!";
+      console.log("Invoice created:", result);
+
+      // Remove the invoiced appointment from today's appointments list immediately
+      const appointmentIndex = todaysAppointmentsForInvoice.value.findIndex(appt => appt.id === invoiceForm.value.appointmentId);
+      if (appointmentIndex > -1) {
+        todaysAppointmentsForInvoice.value.splice(appointmentIndex, 1);
+      }
+
+      // Reset form
+      setTimeout(() => {
+        invoiceForm.value = {
+          appointmentId: "",
+          customerId: "",
+          staffId: "",
+          serviceId: "",
+          date: "",
+          paymentType: "cash",
+          discount: 0,
+          services: []
+        };
+        invoiceSuccess.value = "";
+        // Refresh appointments and invoices to show updated status
+        fetchAppointments();
+        fetchInvoices();
+        fetchTodaysAppointmentsForInvoice();
+      }, 1500);
+    } else {
+      invoiceError.value = result.message || "Failed to create invoice";
+      console.error("Error creating invoice:", result);
+    }
+  } catch (error) {
+    invoiceError.value = "Unable to connect to server. Please try again.";
+    console.error("Network error:", error);
+  }
 };
 
 const handleDeleteInvoice = (appointmentId) => {
@@ -3639,10 +5848,8 @@ const handleDeleteInvoice = (appointmentId) => {
 };
 
 const handleSendInvoice = (invoice) => {
-  const customerEmail = data.value.customers.find(c => c.id === invoice.customerId)?.email;
-  const customerName = getCustomerName(invoice.customerId);
-  const serviceName = getServiceName(invoice.serviceId);
-  const servicePrice = getServicePrice(invoice.serviceId);
+  const customerEmail = data.value.customers.find(c => c.id === invoice.customer_id)?.email;
+  const customerName = getCustomerName(invoice.customer_id);
   
   if (!customerEmail) {
     alert("Customer email not found!");
@@ -3650,10 +5857,14 @@ const handleSendInvoice = (invoice) => {
   }
 
   // Show confirmation dialog
-  if (confirm(`Send invoice to ${customerName} (${customerEmail})?\n\nService: ${serviceName}\nAmount: ₹${servicePrice}`)) {
-    // In a real application, this would call an API to send email
-    // For now, we'll just show a success message
-    alert(`✓ Invoice sent successfully to ${customerEmail}!\n\nInvoice Details:\n- Customer: ${customerName}\n- Service: ${serviceName}\n- Amount: ₹${servicePrice}\n- Date: ${invoice.date}`);
+  if (confirm(`Send invoice to ${customerName} (${customerEmail})?\n\nInvoice: #${invoice.invoice_number}\nAmount: ₹${invoice.total_charges}`)) {
+    // Update invoice status to Invoiced (1) in the local state
+    invoice.status = 1;
+    
+    // Show success message
+    alert(`✓ Invoice #${invoice.invoice_number} sent successfully to ${customerEmail}!`);
+    
+    console.log(`Invoice ${invoice.invoice_number} marked as sent to ${customerEmail}`);
   }
 };
 
@@ -3680,37 +5891,115 @@ const handleReportsAccess = () => {
   }
 };
 
-const verifyFinancialPassword = () => {
+const verifyFinancialPassword = async () => {
   financialPasswordError.value = "";
   
-  // Default password is "admin123" - you can change this
-  const correctPassword = "admin123";
+  if (!financialPasswordInput.value) {
+    financialPasswordError.value = "❌ Password is required.";
+    return;
+  }
   
-  if (financialPasswordInput.value === correctPassword) {
-    financeAuthenticated.value = true;
-    showFinancePasswordModal.value = false;
-    currentView.value = 'finance';
-    financialPasswordInput.value = "";
-  } else {
-    financialPasswordError.value = "❌ Incorrect password. Please try again.";
-    financialPasswordInput.value = "";
+  try {
+    if (!appStore.user || !appStore.user.username) {
+      financialPasswordError.value = "❌ User information not found. Please login again.";
+      return;
+    }
+
+    // Determine login endpoint based on user role
+    let loginEndpoint = "";
+    const userRole = appStore.user.role?.toLowerCase() || "manager";
+    
+    if (userRole === "owner") {
+      loginEndpoint = `${API_BASE_URL}/owner-login`;
+    } else if (userRole === "manager") {
+      loginEndpoint = `${API_BASE_URL}/manager-login`;
+    } else if (userRole === "staff") {
+      loginEndpoint = `${API_BASE_URL}/staff-login`;
+    } else if (userRole === "customer") {
+      loginEndpoint = `${API_BASE_URL}/customer-login`;
+    }
+
+    const response = await fetch(loginEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: appStore.user.username,
+        password: financialPasswordInput.value
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.token) {
+      financeAuthenticated.value = true;
+      showFinancePasswordModal.value = false;
+      currentView.value = 'finance';
+      financialPasswordInput.value = "";
+    } else {
+      financialPasswordError.value = "❌ Incorrect password. Please try again.";
+      financialPasswordInput.value = "";
+    }
+  } catch (error) {
+    console.error("Error verifying password:", error);
+    financialPasswordError.value = "❌ Error verifying password. Please try again.";
   }
 };
 
-const verifyReportsPassword = () => {
+const verifyReportsPassword = async () => {
   financialPasswordError.value = "";
   
-  // Default password is "admin123" - you can change this
-  const correctPassword = "admin123";
+  if (!financialPasswordInput.value) {
+    financialPasswordError.value = "❌ Password is required.";
+    return;
+  }
   
-  if (financialPasswordInput.value === correctPassword) {
-    reportsAuthenticated.value = true;
-    showReportsPasswordModal.value = false;
-    currentView.value = 'reports';
-    financialPasswordInput.value = "";
-  } else {
-    financialPasswordError.value = "❌ Incorrect password. Please try again.";
-    financialPasswordInput.value = "";
+  try {
+    if (!appStore.user || !appStore.user.username) {
+      financialPasswordError.value = "❌ User information not found. Please login again.";
+      return;
+    }
+
+    // Determine login endpoint based on user role
+    let loginEndpoint = "";
+    const userRole = appStore.user.role?.toLowerCase() || "manager";
+    
+    if (userRole === "owner") {
+      loginEndpoint = `${API_BASE_URL}/owner-login`;
+    } else if (userRole === "manager") {
+      loginEndpoint = `${API_BASE_URL}/manager-login`;
+    } else if (userRole === "staff") {
+      loginEndpoint = `${API_BASE_URL}/staff-login`;
+    } else if (userRole === "customer") {
+      loginEndpoint = `${API_BASE_URL}/customer-login`;
+    }
+
+    const response = await fetch(loginEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        username: appStore.user.username,
+        password: financialPasswordInput.value
+      })
+    });
+
+    const data = await response.json();
+
+    if (response.ok && data.token) {
+      reportsAuthenticated.value = true;
+      showReportsPasswordModal.value = false;
+      currentView.value = 'reports';
+      financialPasswordInput.value = "";
+    } else {
+      financialPasswordError.value = "❌ Incorrect password. Please try again.";
+      financialPasswordInput.value = "";
+    }
+  } catch (error) {
+    console.error("Error verifying password:", error);
+    financialPasswordError.value = "❌ Error verifying password. Please try again.";
   }
 };
 
@@ -3768,7 +6057,7 @@ const sendAIMessage = () => {
 };
 
 // Product/Inventory handlers
-const handleAddProduct = () => {
+const handleAddProduct = async () => {
   inventoryError.value = "";
   inventorySuccess.value = "";
 
@@ -3787,73 +6076,262 @@ const handleAddProduct = () => {
     return;
   }
 
-  if (!inventoryForm.value.supplier) {
+  if (inventoryForm.value.stock < 0) {
+    inventoryError.value = "Stock quantity cannot be negative";
+    return;
+  }
+
+  if (inventoryForm.value.minStock < 0) {
+    inventoryError.value = "Minimum stock cannot be negative";
+    return;
+  }
+
+  if (!inventoryForm.value.supplier || !inventoryForm.value.supplier.trim()) {
     inventoryError.value = "Supplier is required";
     return;
   }
 
-  if (!inventoryForm.value.supplierContact) {
+  if (!inventoryForm.value.supplierContact || !inventoryForm.value.supplierContact.trim()) {
     inventoryError.value = "Supplier contact is required";
     return;
   }
 
-  if (!inventoryForm.value.supplierEmail) {
+  if (!inventoryForm.value.supplierEmail || !inventoryForm.value.supplierEmail.trim()) {
     inventoryError.value = "Supplier email is required";
     return;
   }
 
-  const newProduct = {
-    id: Math.max(...data.value.products.map(p => p.id || 0), 0) + 1,
-    name: inventoryForm.value.name,
-    categoryName: inventoryForm.value.categoryName,
-    stock: inventoryForm.value.stock,
-    minStock: inventoryForm.value.minStock,
-    costPrice: inventoryForm.value.costPrice,
-    sellPrice: inventoryForm.value.costPrice * 1.5,
-    supplier: inventoryForm.value.supplier,
-    supplierContact: inventoryForm.value.supplierContact,
-    supplierEmail: inventoryForm.value.supplierEmail,
-    description: `${inventoryForm.value.name} product`
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    inventoryError.value = "You are not authenticated. Please log in again.";
+    return;
+  }
+
+  const payload = {
+    product_name: inventoryForm.value.name.trim(),
+    product_category: inventoryForm.value.categoryName.trim(),
+    stock_quantity: inventoryForm.value.stock,
+    minimum_stock: inventoryForm.value.minStock,
+    price: inventoryForm.value.costPrice,
+    supplier_name: inventoryForm.value.supplier.trim(),
+    supplier_contact: inventoryForm.value.supplierContact.trim(),
+    supplier_email: inventoryForm.value.supplierEmail.trim()
   };
 
-  data.value.products.push(newProduct);
-  inventorySuccess.value = "Product added successfully!";
+  console.log("Payload being sent:", payload);
+  console.log("Form values:", inventoryForm.value);
 
-  setTimeout(() => {
-    inventoryForm.value = {
-      name: "",
-      categoryName: "",
-      stock: 0,
-      minStock: 0,
-      costPrice: 0,
-      supplier: "",
-      supplierContact: "",
-      supplierEmail: ""
-    };
-    inventorySuccess.value = "";
-  }, 1500);
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/product`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data_response = await response.json();
+    if (!response.ok) {
+      inventoryError.value = data_response.message || "Failed to add product";
+      console.error("Product add error response:", data_response);
+      return;
+    }
+
+    inventorySuccess.value = data_response.message || "Product added successfully!";
+    
+    // Refresh products list
+    await fetchProducts();
+
+    setTimeout(() => {
+      inventoryForm.value = {
+        name: "",
+        categoryName: "",
+        stock: 0,
+        minStock: 0,
+        costPrice: 0,
+        supplier: "",
+        supplierContact: "",
+        supplierEmail: ""
+      };
+      inventorySuccess.value = "";
+    }, 1500);
+  } catch (error) {
+    inventoryError.value = "Unable to connect to server. Please try again.";
+    console.error("Product operation error:", error);
+  }
+};
+
+
+
+const handleDeleteProduct = async (productId) => {
+  if (!confirm("Are you sure you want to delete this product?")) {
+    return;
+  }
+
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    inventoryError.value = "You are not authenticated. Please log in again.";
+    return;
+  }
+
+  inventoryError.value = "";
+  inventorySuccess.value = "";
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/product/${productId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    const data_response = await response.json();
+    if (!response.ok) {
+      inventoryError.value = data_response.message || "Failed to delete product";
+      return;
+    }
+
+    inventorySuccess.value = data_response.message || "Product deleted successfully!";
+    
+    // Refresh products list
+    await fetchProducts();
+
+    setTimeout(() => {
+      inventorySuccess.value = "";
+    }, 1500);
+  } catch (error) {
+    inventoryError.value = "Unable to connect to server. Please try again.";
+    console.error("Delete product error:", error);
+  }
 };
 
 const handleEditProduct = (product) => {
-  inventoryForm.value = {
-    name: product.name,
-    categoryName: product.categoryName,
-    stock: product.stock,
-    minStock: product.minStock,
-    costPrice: product.costPrice,
-    supplier: product.supplier,
-    supplierContact: product.supplierContact || "",
-    supplierEmail: product.supplierEmail || ""
+  editingProductId.value = product.product_id || product.id;
+  editProductForm.value = {
+    name: product.product_desc || product.name,
+    categoryName: product.product_category_name || product.categoryName,
+    stock: product.product_curr_qoh || product.stock,
+    minStock: product.product_min_qoh || product.minStock,
+    costPrice: product.product_price || product.costPrice,
+    supplier: product.product_supplier_name || product.supplier,
+    supplierContact: product.product_supplier_contact || product.supplierContact || "",
+    supplierEmail: product.product_supplier_email || product.supplierEmail || ""
   };
+  showEditProductModal.value = true;
 };
 
-const handleDeleteProduct = (productId) => {
-  if (confirm("Are you sure you want to delete this product?")) {
-    const index = data.value.products.findIndex(p => p.id === productId);
-    if (index > -1) {
-      data.value.products.splice(index, 1);
-    }
+const handleSaveEditProduct = async () => {
+  editProductError.value = "";
+  editProductSuccess.value = "";
+
+  if (!editProductForm.value.name) {
+    editProductError.value = "Product name is required";
+    return;
   }
+
+  if (!editProductForm.value.categoryName) {
+    editProductError.value = "Category is required";
+    return;
+  }
+
+  if (editProductForm.value.costPrice <= 0) {
+    editProductError.value = "Cost price must be greater than 0";
+    return;
+  }
+
+  if (!editProductForm.value.supplier) {
+    editProductError.value = "Supplier is required";
+    return;
+  }
+
+  if (!editProductForm.value.supplierContact) {
+    editProductError.value = "Supplier contact is required";
+    return;
+  }
+
+  if (!editProductForm.value.supplierEmail) {
+    editProductError.value = "Supplier email is required";
+    return;
+  }
+
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    editProductError.value = "You are not authenticated. Please log in again.";
+    return;
+  }
+
+  const payload = {
+    product_name: editProductForm.value.name,
+    product_category: editProductForm.value.categoryName,
+    stock_quantity: editProductForm.value.stock,
+    minimum_stock: editProductForm.value.minStock,
+    price: editProductForm.value.costPrice,
+    supplier_name: editProductForm.value.supplier,
+    product_supplier_contact: editProductForm.value.supplierContact,
+    product_supplier_email: editProductForm.value.supplierEmail
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/product/${editingProductId.value}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const data_response = await response.json();
+    if (!response.ok) {
+      editProductError.value = data_response.message || "Failed to update product";
+      return;
+    }
+
+    editProductSuccess.value = data_response.message || "Product updated successfully!";
+    
+    // Refresh products list
+    await fetchProducts();
+
+    setTimeout(() => {
+      showEditProductModal.value = false;
+      editingProductId.value = null;
+      editProductForm.value = {
+        name: "",
+        categoryName: "",
+        stock: 0,
+        minStock: 0,
+        costPrice: 0,
+        supplier: "",
+        supplierContact: "",
+        supplierEmail: ""
+      };
+      editProductSuccess.value = "";
+    }, 1500);
+  } catch (error) {
+    editProductError.value = "Unable to connect to server. Please try again.";
+    console.error("Update product error:", error);
+  }
+};
+
+const cancelEditProduct = () => {
+  showEditProductModal.value = false;
+  editingProductId.value = null;
+  editProductForm.value = {
+    name: "",
+    categoryName: "",
+    stock: 0,
+    minStock: 0,
+    costPrice: 0,
+    supplier: "",
+    supplierContact: "",
+    supplierEmail: ""
+  };
+  editProductError.value = "";
 };
 
 const viewProductDetails = (product) => {
@@ -3863,6 +6341,13 @@ const viewProductDetails = (product) => {
 
 // Staff edit/delete handlers
 const handleEditStaff = (staff) => {
+  staffError.value = "";
+  staffSuccess.value = "";
+  
+  // Store staff data for display in modal
+  editingStaffData.value = staff;
+  
+  // Populate form with staff data
   staffForm.value = {
     name: staff.name,
     role: staff.role,
@@ -3872,61 +6357,351 @@ const handleEditStaff = (staff) => {
     dob: staff.dob || "",
     doj: staff.doj,
     salary: staff.salary,
-    username: staff.username,
-    password: staff.password || ""
+    username: staff.username || ""
   };
+  
+  isEditingStaff.value = true;
+  editingStaffId.value = staff.id;
 };
 
-const handleDeleteStaff = (staffId) => {
-  if (confirm("Are you sure you want to delete this staff member?")) {
-    const index = data.value.staff.findIndex(s => s.id === staffId);
-    if (index > -1) {
-      data.value.staff.splice(index, 1);
+const cancelEditStaff = () => {
+  staffForm.value = {
+    name: "",
+    role: "",
+    email: "",
+    phone: "",
+    skills: "",
+    dob: "",
+    doj: "",
+    salary: 0,
+    username: ""
+  };
+  isEditingStaff.value = false;
+  editingStaffId.value = null;
+  editingStaffData.value = null;
+  staffError.value = "";
+  staffSuccess.value = "";
+};
+
+const handleUpdateStaff = async () => {
+  staffError.value = "";
+  staffSuccess.value = "";
+
+  if (!staffForm.value.name?.trim()) {
+    staffError.value = "Staff name is required";
+    return;
+  }
+
+  if (!staffForm.value.role?.trim()) {
+    staffError.value = "Role is required";
+    return;
+  }
+
+  if (!staffForm.value.email?.trim()) {
+    staffError.value = "Email is required";
+    return;
+  }
+
+  if (!staffForm.value.phone?.trim()) {
+    staffError.value = "Phone is required";
+    return;
+  }
+
+  if (!staffForm.value.skills?.trim()) {
+    staffError.value = "Skills are required";
+    return;
+  }
+
+  if (!staffForm.value.dob) {
+    staffError.value = "Date of birth is required";
+    return;
+  }
+
+  if (!staffForm.value.doj) {
+    staffError.value = "Date of joining is required";
+    return;
+  }
+
+  if (!staffForm.value.salary || staffForm.value.salary <= 0) {
+    staffError.value = "Salary must be greater than 0";
+    return;
+  }
+
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    staffError.value = "Authentication token not found";
+    return;
+  }
+
+  const payload = {
+    staff_name: staffForm.value.name.trim(),
+    staff_role: staffForm.value.role.trim(),
+    staff_email: staffForm.value.email.trim(),
+    staff_contact: staffForm.value.phone.trim(),
+    staff_skills: staffForm.value.skills.trim(),
+    staff_dob: staffForm.value.dob,
+    staff_doj: staffForm.value.doj,
+    staff_salary: staffForm.value.salary
+  };
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/staff/${editingStaffId.value}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log("Staff updated:", result);
+      staffSuccess.value = "Staff member updated successfully!";
+      
+      // Fetch updated staff list
+      await fetchStaff();
+      
+      // Reset form
+      isEditingStaff.value = false;
+      editingStaffId.value = null;
+      editingStaffData.value = null;
+      staffForm.value = {
+        name: "",
+        role: "",
+        email: "",
+        phone: "",
+        skills: "",
+        dob: "",
+        doj: "",
+        salary: 0,
+        username: ""
+      };
+      
+      setTimeout(() => {
+        staffSuccess.value = "";
+      }, 1500);
+    } else {
+      const error = await response.json();
+      staffError.value = error.message || "Failed to update staff";
+      console.error("Error updating staff:", error);
     }
+  } catch (error) {
+    staffError.value = "Error updating staff: " + error.message;
+    console.error("Error updating staff:", error);
   }
 };
 
-// Customer edit/delete handlers
-const handleEditCustomer = (customer) => {
-  customerForm.value = {
-    name: customer.name,
-    email: customer.email,
-    phone: customer.phone,
-    dob: customer.dob,
-    address: customer.address,
-    preferences: customer.preferences || "",
-    customerType: customer.customerType || "Normal"
-  };
-  isEditingCustomer.value = true;
-  editingCustomerId.value = customer.id;
-};
+const handleDeleteStaff = async (staffId) => {
+  if (!confirm("Are you sure you want to delete this staff member?")) {
+    return;
+  }
 
-const handleDeleteCustomer = (customerId) => {
-  if (confirm("Are you sure you want to delete this customer?")) {
-    const index = data.value.customers.findIndex(c => c.id === customerId);
-    if (index > -1) {
-      data.value.customers.splice(index, 1);
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    alert("Authentication token not found");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/staff/${staffId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log("Staff deleted:", result);
+      alert("Staff member deleted successfully!");
+      
+      // Fetch updated staff list
+      await fetchStaff();
+    } else {
+      const error = await response.json();
+      const errorMsg = error.message || "Failed to delete staff";
+      alert("Error: " + errorMsg);
+      console.error("Error deleting staff:", error);
     }
+  } catch (error) {
+    alert("Error deleting staff: " + error.message);
+    console.error("Error deleting staff:", error);
   }
 };
 
 // Booking edit/delete handlers
 const handleEditBooking = (booking) => {
-  bookingForm.value = {
-    customerId: booking.customerId,
-    serviceId: booking.serviceId,
+  editingAppointment.value = booking;
+  
+  // Extract time from datetime (format: "HH:MM:SS" or "HH:MM")
+  let timeValue = "";
+  if (booking.datetime) {
+    const timePart = booking.datetime.split('T')[1]; // Get HH:MM:SS
+    if (timePart) {
+      timeValue = timePart.substring(0, 5); // Get only HH:MM
+    }
+  } else if (booking.notes) {
+    timeValue = booking.notes.substring(0, 5); // In case time is in notes
+  }
+  
+  editAppointmentForm.value = {
+    serviceIds: booking.services.map(s => s.id) || [],
     date: booking.date,
-    time: booking.notes,
-    staffId: booking.staffId
+    time: timeValue,
+    staffId: booking.staffId || ""
   };
+  editAppointmentError.value = "";
+  editAppointmentSuccess.value = "";
+  showEditAppointmentModal.value = true;
 };
 
-const handleDeleteBooking = (bookingId) => {
-  if (confirm("Are you sure you want to delete this booking?")) {
-    const index = data.value.appointments.findIndex(a => a.id === bookingId);
-    if (index > -1) {
-      data.value.appointments.splice(index, 1);
+const handleSubmitEditAppointment = async () => {
+  editAppointmentError.value = "";
+  editAppointmentSuccess.value = "";
+
+  if (!editingAppointment.value) {
+    editAppointmentError.value = "No appointment selected";
+    return;
+  }
+
+  if (!editAppointmentForm.value.date) {
+    editAppointmentError.value = "Please select a date";
+    return;
+  }
+
+  if (!editAppointmentForm.value.time) {
+    editAppointmentError.value = "Please select a time";
+    return;
+  }
+
+  // Validate appointment date is within allowed range
+  const selectedDate = new Date(editAppointmentForm.value.date);
+  const minDate = new Date(minEditBookingDate.value);
+  const maxDate = new Date(maxEditBookingDate.value);
+
+  if (selectedDate < minDate || selectedDate > maxDate) {
+    if (hasBridalPackageSelectedInEdit()) {
+      editAppointmentError.value = `Bridal Package must be booked 1 to 6 months in advance`;
+    } else {
+      editAppointmentError.value = `Appointment must be scheduled today or within the next 2 days`;
     }
+    return;
+  }
+
+  // Combine date and time into ISO datetime
+  const appointmentDateTime = `${editAppointmentForm.value.date}T${editAppointmentForm.value.time}:00`;
+
+  // Get staff ID if assigned
+  const staffId = editAppointmentForm.value.staffId ? parseInt(editAppointmentForm.value.staffId) : null;
+
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    editAppointmentError.value = "Authentication token not found";
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/appointment/${editingAppointment.value.id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify({
+        appointment_datetime: appointmentDateTime,
+        service_ids: editAppointmentForm.value.serviceIds.length > 0 ? editAppointmentForm.value.serviceIds.map(id => parseInt(id)) : undefined,
+        staff_id: staffId
+      })
+    });
+
+    const data_response = await response.json();
+    
+    if (response.ok) {
+      editAppointmentSuccess.value = "Appointment updated successfully!";
+      
+      // Refresh appointments list
+      await fetchAppointments();
+      
+      // Close modal after brief success message
+      setTimeout(() => {
+        showEditAppointmentModal.value = false;
+        editingAppointment.value = null;
+        editAppointmentForm.value = {
+          serviceIds: [],
+          date: "",
+          time: "",
+          staffId: ""
+        };
+        editAppointmentError.value = "";
+        editAppointmentSuccess.value = "";
+      }, 1500);
+    } else {
+      editAppointmentError.value = data_response.message || "Failed to update appointment";
+    }
+  } catch (error) {
+    console.error("Fetch error:", error);
+    editAppointmentError.value = "Network error: " + error.message;
+  }
+};
+
+const closeEditAppointmentModal = () => {
+  showEditAppointmentModal.value = false;
+  editingAppointment.value = null;
+  editAppointmentForm.value = {
+    serviceIds: [],
+    date: "",
+    time: "",
+    staffId: ""
+  };
+  editAppointmentError.value = "";
+  editAppointmentSuccess.value = "";
+};
+
+const handleSubmitEditBooking = async () => {
+  // This function is deprecated - using handleSubmitEditAppointment instead
+};
+
+const cancelEditBooking = () => {
+  // This function is deprecated - using closeEditAppointmentModal instead
+};
+
+const handleDeleteBooking = async (bookingId) => {
+  if (!confirm("Are you sure you want to delete this appointment?")) {
+    return;
+  }
+
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    alert("Authentication token not found");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/appointment/${bookingId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      alert("Appointment deleted successfully!");
+      // Refresh appointments list
+      await fetchAppointments();
+    } else {
+      const error = await response.json();
+      alert("Error: " + (error.message || "Failed to delete appointment"));
+    }
+  } catch (error) {
+    console.error("Fetch error:", error);
+    alert("Network error: " + error.message);
   }
 };
 
@@ -4043,7 +6818,20 @@ const handleRejectStaffOrder = (req) => {
   }
 };
 
-const handleAddReplenishment = () => {
+const handleReplenishmentProductSelect = () => {
+  // Auto-populate supplier info from selected product
+  const selectedProductId = replenishmentForm.value.productId;
+  if (selectedProductId) {
+    const selectedProduct = data.value.products.find(p => p.id === selectedProductId);
+    if (selectedProduct) {
+      replenishmentForm.value.supplier = selectedProduct.supplier || "Not specified";
+    }
+  } else {
+    replenishmentForm.value.supplier = "";
+  }
+};
+
+const handleAddReplenishment = async () => {
   replenishmentError.value = "";
 
   if (!replenishmentForm.value.productId) {
@@ -4061,60 +6849,84 @@ const handleAddReplenishment = () => {
     return;
   }
 
-  const product = data.value.products.find(p => p.id === parseInt(replenishmentForm.value.productId));
-  const newItem = {
-    id: Math.max(...pendingReplenishmentList.value.map(r => r.id || 0), 0) + 1,
-    productId: parseInt(replenishmentForm.value.productId),
-    quantity: replenishmentForm.value.quantity,
-    currentStock: product?.currentStock || 0,
-    reason: replenishmentForm.value.reason,
-    supplier: replenishmentForm.value.supplier || "TBD",
-    date: new Date().toISOString().split('T')[0]
-  };
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      replenishmentError.value = "Authentication required. Please login again.";
+      return;
+    }
 
-  pendingReplenishmentList.value.push(newItem);
-  
-  // Reset form
-  replenishmentForm.value = {
-    productId: "",
-    quantity: 1,
-    reason: "",
-    supplier: ""
-  };
-  
-  console.log(`Added ${getProductNameForOrder(newItem.productId)} (${newItem.quantity} units) to order list`);
-};
+    const payload = {
+      product_id: parseInt(replenishmentForm.value.productId),
+      quantity: parseInt(replenishmentForm.value.quantity)
+      // Note: service_id is optional - manager replenishment doesn't require it
+    };
 
-const handleRemoveFromList = (id) => {
-  pendingReplenishmentList.value = pendingReplenishmentList.value.filter(item => item.id !== id);
-  console.log(`Removed item from replenishment order list`);
-};
+    console.log("Creating replenishment with payload:", payload);
 
-const handlePlaceReplenishmentOrder = () => {
-  if (pendingReplenishmentList.value.length === 0) {
-    alert("No items to order");
-    return;
+    const response = await fetch(`${API_BASE_URL}/api/inventory-transaction`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      const product = data.value.products.find(p => p.id === parseInt(replenishmentForm.value.productId));
+      const productName = product?.name || "Product";
+      
+      // Update product stock if returned from backend
+      if (result.updated_stock !== undefined && product) {
+        product.currentStock = result.updated_stock;
+      }
+      
+      // Reset form
+      replenishmentForm.value = {
+        productId: "",
+        quantity: 1,
+        reason: "",
+        supplier: ""
+      };
+      
+      // Refresh inventory transactions to show newly created replenishment
+      await fetchManagerInventoryTransactions();
+      
+      console.log(`Replenishment added for ${productName}`, result);
+    } else {
+      replenishmentError.value = result.message || "Failed to add replenishment";
+      console.error("Error adding replenishment:", result);
+    }
+  } catch (error) {
+    replenishmentError.value = "Unable to connect to server. Please try again.";
+    console.error("Network error:", error);
   }
-
-  const totalQty = pendingReplenishmentList.value.reduce((sum, item) => sum + item.quantity, 0);
-  const summary = `Order Placed Successfully!\n================================\nTotal Items: ${pendingReplenishmentList.value.length}\nTotal Quantity: ${totalQty} units\n\nOrder Status: Awaiting Delivery\nDate: ${new Date().toISOString().split('T')[0]}`;
-
-  alert(summary);
-  
-  // Clear the list after placing order
-  pendingReplenishmentList.value = [];
-  console.log(`Replenishment order placed for ${totalQty} units`);
 };
 
 const handleCreateInvoiceFromAppointment = (appt) => {
   // Pre-fill invoice form with appointment details
+  // Extract first service ID from services array, or use serviceId if available
+  const serviceId = appt.services && appt.services.length > 0 ? appt.services[0].id : (appt.serviceId || null);
+  
+  // Create a hidden select event to trigger dropdown selection
+  const selectElement = document.querySelector('#invoice-appointment');
+  if (selectElement) {
+    selectElement.value = appt.id;
+  }
+  
   invoiceForm.value = {
+    appointmentId: appt.id,
     customerId: appt.customerId,
-    serviceId: appt.serviceId || appt.service,
+    staffId: appt.staffId,
+    serviceId: serviceId,
     date: appt.date,
-    invoiceStatus: "pending",
     paymentType: "cash",
-    discount: 0
+    discount: 0,
+    services: appt.services || []
   };
   currentView.value = "invoices";
   
@@ -4124,7 +6936,15 @@ const handleCreateInvoiceFromAppointment = (appt) => {
     data.value.appointments[index].invoiceGenerated = true;
   }
   
-  console.log(`📄 Creating invoice for appointment #${appt.id} (${getCustomerName(appt.customerId)})`);
+  console.log(`📄 Creating invoice for appointment #${appt.id} (${getCustomerName(appt.customerId)}) - Staff: ${appt.staff_name}, Services:`, appt.services);
+  
+  // Scroll to invoice form after a brief delay to allow DOM update
+  setTimeout(() => {
+    const invoiceFormElement = document.querySelector('#invoice-form');
+    if (invoiceFormElement) {
+      invoiceFormElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 100);
 };
 
 // Close customer dropdown when clicking outside
@@ -4140,8 +6960,172 @@ const handleClickOutside = (event) => {
   }
 };
 
+// Fetch products from API
+const fetchProducts = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/product`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const products = await response.json();
+      // Update the store data with fetched products, converting backend field names to frontend names
+      appStore.data.products = products.map(p => ({
+        product_id: p.product_id,
+        id: p.product_id,
+        product_desc: p.product_desc,
+        name: p.product_desc,
+        product_category_name: p.product_category_name,
+        categoryName: p.product_category_name,
+        product_price: p.product_price,
+        price: p.product_price,
+        costPrice: p.product_price,
+        product_min_qoh: p.product_min_qoh,
+        minStock: p.product_min_qoh,
+        product_curr_qoh: p.product_curr_qoh,
+        currentStock: p.product_curr_qoh,
+        stock: p.product_curr_qoh,
+        product_supplier_name: p.product_supplier_name,
+        supplier: p.product_supplier_name,
+        product_supplier_contact: p.product_supplier_contact,
+        supplierContact: p.product_supplier_contact,
+        product_supplier_email: p.product_supplier_email,
+        supplierEmail: p.product_supplier_email,
+        product_low_stock_alert: p.product_low_stock_alert,
+        unit: "unit"
+      }));
+    }
+  } catch (error) {
+    console.error("Error fetching products:", error);
+  }
+};
+
+// Fetch Salon Config from API
+const fetchSalonConfig = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      console.error("Not authenticated");
+      return;
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/api/salon-config`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      salonConfigList.value = Array.isArray(data) ? data : [data];
+    } else {
+      console.error("Failed to fetch salon config:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching salon config:", error);
+  }
+};
+
+// Handle Edit Setting
+const handleEditSetting = (setting) => {
+  editingSettingData.value = setting;
+  editSettingForm.value = {
+    param_name: setting.param_name,
+    param_value: setting.param_value,
+    from_date: setting.from_date ? setting.from_date.split('T')[0] : '',
+    to_date: setting.to_date ? setting.to_date.split('T')[0] : ''
+  };
+  showEditSettingModal.value = true;
+  settingError.value = "";
+  settingSuccess.value = "";
+};
+
+// Save Setting
+const handleSaveSetting = async () => {
+  settingError.value = "";
+  settingSuccess.value = "";
+  
+  if (!editSettingForm.value.param_value.trim()) {
+    settingError.value = "Setting value is required";
+    return;
+  }
+  
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      settingError.value = "Not authenticated";
+      return;
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/api/salon-config/${editingSettingData.value.setting_id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify({
+        param_value: editSettingForm.value.param_value,
+        from_date: editSettingForm.value.from_date,
+        to_date: editSettingForm.value.to_date
+      })
+    });
+    
+    if (response.ok) {
+      settingSuccess.value = "Setting updated successfully";
+      showEditSettingModal.value = false;
+      fetchSalonConfig();
+      setTimeout(() => {
+        settingSuccess.value = "";
+      }, 3000);
+    } else {
+      settingError.value = "Failed to update setting";
+    }
+  } catch (error) {
+    console.error("Error updating setting:", error);
+    settingError.value = "Error updating setting";
+  }
+};
+
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  const date = new Date(dateStr);
+  return date.toLocaleDateString();
+};
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  // Fetch products, customers, staff, and services from API on component mount
+  fetchProducts();
+  fetchCustomers();
+  fetchStaff();
+  fetchServices();
+  fetchAppointments();
+  fetchInvoices();
+  // Fetch manager attendance data
+  fetchManagerAttendance();
+  // Fetch daily appointment counts
+  fetchDailyAppointmentCounts();
+  // Fetch today's appointments for invoice creation
+  fetchTodaysAppointmentsForInvoice();
+  // Fetch manager inventory transactions
+  fetchManagerInventoryTransactions();
+  // Fetch manager wholesale orders
+  fetchManagerOrders();
 });
 
 onUnmounted(() => {

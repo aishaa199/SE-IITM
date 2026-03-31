@@ -241,15 +241,15 @@ const today = () => {
 };
 
 const register = async () => {
-  if (!regForm.name || !regForm.email || !regForm.password) {
-    error.value = "Name, email and password are required.";
+  if (!regForm.name || !regForm.email || !regForm.password || !regForm.dob || !regForm.phone) {
+    error.value = "Name, email, password, date of birth, and phone are required.";
     return;
   }
 
   isLoading.value = true;
   
   try {
-    const response = await fetch(`${API_BASE_URL}/api/auth/register/customer`, {
+    const response = await fetch(`${API_BASE_URL}/register-customer`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -265,24 +265,62 @@ const register = async () => {
 
     const data = await response.json();
 
-    if (data.success) {
-      // Store token
-      localStorage.setItem("authToken", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
-      
-      // Update app store
-      appStore.login({ token: data.token, ...data.user });
-      
-      regSuccess.value = true;
-      tab.value = "customer";
-      form.email = regForm.email;
-      form.password = regForm.password;
-      error.value = "";
-      
-      // Auto-redirect after 2 seconds
-      setTimeout(() => {
-        router.push("/");
-      }, 2000);
+    if (response.status === 201 || data.customer_id) {
+      // Registration successful - now auto-login
+      try {
+        const loginResponse = await fetch(`${API_BASE_URL}/customer-login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: regForm.email,
+            password: regForm.password
+          })
+        });
+        
+        const loginData = await loginResponse.json();
+        
+        if (loginResponse.ok) {
+          // Store token and user info
+          localStorage.setItem("authToken", loginData.token);
+          if (loginData.user) {
+            localStorage.setItem("user", JSON.stringify(loginData.user));
+          } else {
+            // Store username and role from login response
+            localStorage.setItem("user", JSON.stringify({
+              username: loginData.username,
+              role: loginData.role
+            }));
+          }
+          
+          // Update app store
+          appStore.login({ 
+            token: loginData.token,
+            role: "customer",
+            username: loginData.username
+          });
+          
+          regSuccess.value = true;
+          error.value = "";
+          
+          // Auto-redirect after 2 seconds
+          setTimeout(() => {
+            router.push("/");
+          }, 2000);
+        } else {
+          // Registration successful but login failed
+          regSuccess.value = true;
+          error.value = "";
+          tab.value = "customer";
+          form.email = regForm.email;
+          form.password = regForm.password;
+        }
+      } catch (loginErr) {
+        console.error("Login error after registration:", loginErr);
+        regSuccess.value = true;
+        tab.value = "customer";
+        form.email = regForm.email;
+        form.password = regForm.password;
+      }
     } else {
       error.value = data.message || "Registration failed. Please try again.";
     }

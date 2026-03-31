@@ -16,13 +16,6 @@
         </div>
 
         <div
-          :class="['nav-item', { active: currentView === 'branches' }]"
-          @click="currentView = 'branches'"
-        >
-          <span class="nav-icon">🏢</span> Branches ({{ ownerData.branches.length }})
-        </div>
-
-        <div
           :class="['nav-item', { active: currentView === 'managers' }]"
           @click="currentView = 'managers'"
         >
@@ -60,11 +53,6 @@
         <div v-if="currentView === 'overview'" class="fade-in">
           <div class="stats-grid">
             <div class="stat-card">
-              <div class="stat-icon">🏢</div>
-              <div class="stat-label">Total Branches</div>
-              <div class="stat-value">{{ ownerData.branches.length }}</div>
-            </div>
-            <div class="stat-card">
               <div class="stat-icon">📊</div>
               <div class="stat-label">Total Revenue</div>
               <div class="stat-value">₹{{ totalRevenue }}</div>
@@ -87,13 +75,6 @@
               <div class="stat-icon">💰</div>
               <div class="stat-label">Avg Revenue/Booking</div>
               <div class="stat-value">₹{{ avgRevenuePerBooking }}</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">📈</div>
-              <div class="stat-label">Avg Customers/Branch</div>
-              <div class="stat-value">{{ avgCustomersPerBranch }}</div>
-            </div>
-            <div class="stat-card">
               <div class="stat-icon">⭐</div>
               <div class="stat-label">Overall Performance</div>
               <div class="stat-value">{{ overallPerformance }}%</div>
@@ -408,13 +389,7 @@
                     </div>
                     <div class="text-muted" style="font-size: 12px; margin-top: 4px">↑ 8% from last week</div>
                   </div>
-                  <div style="padding: 16px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)); border-radius: 8px; border-left: 5px solid #3b82f6">
-                    <div style="display: flex; justify-content: space-between; align-items: center">
-                      <span>Customers Per Branch</span>
-                      <span style="font-weight: 700; font-size: 18px; color: #3b82f6">{{ avgCustomersPerBranch }}</span>
-                    </div>
-                    <div class="text-muted" style="font-size: 12px; margin-top: 4px">Optimal distribution</div>
-                  </div>
+
                   <div style="padding: 16px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05)); border-radius: 8px; border-left: 5px solid #f59e0b">
                     <div style="display: flex; justify-content: space-between; align-items: center">
                       <span>Conversion Rate</span>
@@ -435,232 +410,6 @@
           </div>
         </div>
 
-        <!-- BRANCHES VIEW -->
-        <div v-if="currentView === 'branches'" class="fade-in">
-          <!-- Create New Branch Form -->
-          <div class="card" style="margin-bottom: 24px; border-left: 5px solid var(--gold)">
-            <div class="card-header">
-              <h3 class="card-title">➕ Create New Branch</h3>
-            </div>
-            <div class="card-body">
-              <form @submit.prevent="handleCreateBranch">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px">
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Branch Name *</label>
-                    <input 
-                      v-model="newBranchForm.name"
-                      type="text"
-                      placeholder="Enter branch name"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Location *</label>
-                    <input 
-                      v-model="newBranchForm.location"
-                      type="text"
-                      placeholder="Enter branch location"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Manager Name *</label>
-                    <input 
-                      v-model="newBranchForm.manager"
-                      type="text"
-                      placeholder="Enter manager name"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Phone *</label>
-                    <input 
-                      v-model="newBranchForm.phone"
-                      type="tel"
-                      placeholder="Enter phone number"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Email *</label>
-                    <input 
-                      v-model="newBranchForm.email"
-                      type="email"
-                      placeholder="Enter email"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Status *</label>
-                    <select 
-                      v-model="newBranchForm.status"
-                      class="form-input"
-                      required
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div v-if="branchError" style="color: #ef4444; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; margin-top: 16px">
-                  {{ branchError }}
-                </div>
-                <div v-if="branchSuccess" style="color: #22c55e; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; margin-top: 16px">
-                  {{ branchSuccess }}
-                </div>
-
-                <div style="display: flex; gap: 12px; margin-top: 16px">
-                  <button type="submit" class="btn btn-primary">✅ Create Branch</button>
-                  <button type="button" class="btn btn-secondary" @click="resetBranchForm">Clear Form</button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <!-- Edit Branch Form -->
-          <div v-if="showEditForm" class="card" style="margin-bottom: 24px; border-left: 5px solid var(--gold)">
-            <div class="card-header">
-              <h3 class="card-title">✏️ Edit Branch</h3>
-            </div>
-            <div class="card-body">
-              <form @submit.prevent="handleSaveBranch">
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label for="edit-branch-name">Branch Name *</label>
-                    <input 
-                      id="edit-branch-name"
-                      v-model="editForm.name"
-                      type="text"
-                      placeholder="Enter branch name"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-branch-location">Location *</label>
-                    <input 
-                      id="edit-branch-location"
-                      v-model="editForm.location"
-                      type="text"
-                      placeholder="Enter branch location"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-branch-manager">Manager Name *</label>
-                    <input 
-                      id="edit-branch-manager"
-                      v-model="editForm.manager"
-                      type="text"
-                      placeholder="Enter manager name"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-branch-phone">Phone *</label>
-                    <input 
-                      id="edit-branch-phone"
-                      v-model="editForm.phone"
-                      type="tel"
-                      placeholder="Enter phone number"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-branch-email">Email *</label>
-                    <input 
-                      id="edit-branch-email"
-                      v-model="editForm.email"
-                      type="email"
-                      placeholder="Enter email"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-branch-status">Status *</label>
-                    <select 
-                      id="edit-branch-status"
-                      v-model="editForm.status"
-                      class="form-input"
-                      required
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style="display: flex; gap: 12px; margin-top: 16px">
-                  <button type="submit" class="btn btn-primary">💾 Save Changes</button>
-                  <button type="button" class="btn btn-secondary" @click="showEditForm = false">Cancel</button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px">
-            <div v-for="branch in ownerData.branches" :key="branch.id" class="card">
-              <div class="card-header" style="display: flex; justify-content: space-between; align-items: center">
-                <div>
-                  <h3 class="card-title" style="margin: 0">{{ branch.name }}</h3>
-                  <p style="margin: 4px 0 0 0; color: #6f675a; font-size: 12px">📍 {{ branch.location }}</p>
-                </div>
-              </div>
-              <div class="card-body">
-                <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 6px">
-                  <div style="font-size: 12px; color: #6f675a; margin-bottom: 4px">Manager</div>
-                  <div style="font-weight: 600; color: var(--gold)">{{ branch.manager }}</div>
-                </div>
-
-                <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 6px">
-                  <div style="font-size: 12px; color: #6f675a; margin-bottom: 4px">Contact</div>
-                  <div style="font-size: 13px">📞 {{ branch.phone }}</div>
-                  <div style="font-size: 13px">✉️ {{ branch.email }}</div>
-                </div>
-
-                <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 6px">
-                  <div style="font-size: 12px; color: #6f675a; margin-bottom: 4px">Stats</div>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px">
-                    <div>👥 {{ branch.customers }} Customers</div>
-                    <div>📅 {{ branch.bookings }} Bookings</div>
-                    <div style="grid-column: 1 / -1">💰 ₹{{ branch.revenue }} Revenue</div>
-                  </div>
-                </div>
-
-                <div style="padding: 12px; background: var(--light-bg); border-radius: 6px; margin-bottom: 12px">
-                  <div style="font-size: 12px; color: #6f675a; margin-bottom: 4px">Status</div>
-                  <span :class="['badge', branch.status === 'active' ? 'badge-success' : 'badge-danger']">{{ branch.status }}</span>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
-                  <button class="btn btn-primary" @click="handleEditBranch(branch)" style="font-size: 12px; padding: 8px">✏️ Edit</button>
-                  <button class="btn btn-danger" @click="handleDeleteBranch(branch.id)" style="font-size: 12px; padding: 8px">🗑️ Delete</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- REPORTS VIEW -->
         <div v-if="currentView === 'reports'" class="fade-in">
           <div class="card">
@@ -668,18 +417,8 @@
               <h3 class="card-title">Download Reports</h3>
             </div>
             <div class="card-body">
-              <!-- Branch Selection -->
-              <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px">
-                <label style="font-weight: 600">Select Branch:</label>
-                <select v-model.number="selectedBranchId" class="form-input" style="flex: 1; max-width: 300px">
-                  <option v-for="branch in ownerData.branches" :key="branch.id" :value="branch.id">
-                    {{ branch.name }}
-                  </option>
-                </select>
-              </div>
-
-              <!-- Branch Reports Grid -->
-              <div v-if="selectedBranch" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px">
+              <!-- Reports Grid -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px">
                 <div class="report-item">
                   <div class="report-icon">📊</div>
                   <div class="report-title">Sales Report</div>
@@ -831,12 +570,7 @@
 
                       <div class="manager-form-item">
                         <label class="manager-form-label">Assign to Branch *</label>
-                        <select v-model.number="newManagerForm.branchId" class="form-input" required>
-                          <option value="">Select a branch</option>
-                          <option v-for="branch in ownerData.branches" :key="branch.id" :value="branch.id">
-                            {{ branch.name }}
-                          </option>
-                        </select>
+                        <input v-model="newManagerForm.branchName" type="text" placeholder="Enter branch name" class="form-input" required />
                       </div>
 
                       <div class="manager-form-item manager-form-item-full">
@@ -959,48 +693,9 @@ export default {
     const appStore = useAppStore();
     const API_BASE_URL = 'http://localhost:5000';
     const currentView = ref('overview');
-    const selectedBranchId = ref(1);
 
     const ownerData = ref({
-      ownerName: "Glow Suite Owner",
-      branches: [
-        {
-          id: 1,
-          name: "Downtown Branch",
-          location: "City Center",
-          manager: "Rajesh Kumar",
-          phone: "+91-9876543210",
-          email: "downtown@glowsuite.com",
-          customers: 45,
-          bookings: 120,
-          revenue: 28500,
-          status: "active"
-        },
-        {
-          id: 2,
-          name: "Westside Branch",
-          location: "Mall Road",
-          manager: "Priya Sharma",
-          phone: "+91-9876543211",
-          email: "westside@glowsuite.com",
-          customers: 38,
-          bookings: 95,
-          revenue: 22500,
-          status: "active"
-        },
-        {
-          id: 3,
-          name: "North Branch",
-          location: "Corporate Plaza",
-          manager: "Amit Patel",
-          phone: "+91-9876543212",
-          email: "north@glowsuite.com",
-          customers: 32,
-          bookings: 78,
-          revenue: 18750,
-          status: "active"
-        }
-      ],
+      ownerName: appStore.user?.username || "Glow Suite Owner",
       bookings: [
         { id: 1, customerId: 1, amount: 500, date: "2026-03-05" },
         { id: 2, customerId: 2, amount: 750, date: "2026-03-06" },
@@ -1044,25 +739,19 @@ export default {
       return Math.round(totalRevenue.value / totalBookings.value);
     });
 
-    const avgCustomersPerBranch = computed(() => {
-      if (ownerData.value.branches.length === 0) return 0;
-      return Math.round(totalCustomers.value / ownerData.value.branches.length);
-    });
-
     const overallPerformance = computed(() => {
-      const baseScore = 65;
-      const revenueBonus = Math.min((totalRevenue.value / 5000) * 20, 20);
-      const bookingBonus = Math.min((totalBookings.value / 10) * 10, 10);
-      const score = Math.min(baseScore + revenueBonus + bookingBonus, 100);
-      return Math.round(score);
+      // Calculate performance based on bookings and revenue
+      const bookingScore = Math.min((totalBookings.value / 10) * 100, 100);
+      const revenueScore = Math.min((totalRevenue.value / 5000) * 100, 100);
+      return Math.round((bookingScore + revenueScore) / 2);
     });
 
     const businessHealth = computed(() => {
       const score = overallPerformance.value;
-      if (score >= 85) return '🚀 Excellent';
-      if (score >= 70) return '📈 Good';
-      if (score >= 50) return '⚖️ Average';
-      return '⚠️ Needs Work';
+      if (score >= 85) return 'Excellent';
+      if (score >= 70) return 'Good';
+      if (score >= 50) return 'Fair';
+      return 'Needs Improvement';
     });
 
     const businessHealthColor = computed(() => {
@@ -1071,80 +760,6 @@ export default {
       if (score >= 70) return '#3b82f6';
       if (score >= 50) return '#f59e0b';
       return '#ef4444';
-    });
-
-    // Branch-specific report data
-    const selectedBranch = computed(() => {
-      return ownerData.value.branches.find(b => b.id === selectedBranchId.value);
-    });
-
-    const branchSalesReport = computed(() => {
-      if (!selectedBranch.value) return null;
-      return {
-        totalSales: selectedBranch.value.revenue,
-        transactionCount: selectedBranch.value.bookings,
-        avgTransactionValue: Math.round(selectedBranch.value.revenue / selectedBranch.value.bookings),
-        topService: 'Hair Styling'
-      };
-    });
-
-    const branchBookingsReport = computed(() => {
-      if (!selectedBranch.value) return null;
-      return {
-        totalBookings: selectedBranch.value.bookings,
-        completedBookings: Math.round(selectedBranch.value.bookings * 0.85),
-        pendingBookings: Math.round(selectedBranch.value.bookings * 0.1),
-        cancelledBookings: Math.round(selectedBranch.value.bookings * 0.05),
-        avgBookingValue: Math.round(selectedBranch.value.revenue / selectedBranch.value.bookings)
-      };
-    });
-
-    const branchStaffReport = computed(() => {
-      if (!selectedBranch.value) return null;
-      const staffCount = Math.ceil(selectedBranch.value.bookings / 25);
-      return {
-        totalStaff: staffCount,
-        presentToday: Math.round(staffCount * 0.9),
-        absentToday: Math.round(staffCount * 0.1),
-        avgPerformance: '4.7/5.0',
-        topPerformer: 'Amara Osei'
-      };
-    });
-
-    const branchInventoryReport = computed(() => {
-      if (!selectedBranch.value) return null;
-      return {
-        totalProducts: Math.floor(selectedBranch.value.bookings / 20),
-        lowStockItems: Math.floor(selectedBranch.value.bookings / 80),
-        totalValue: selectedBranch.value.revenue * 0.15,
-        lastUpdated: '2026-03-20'
-      };
-    });
-
-    const branchFinancialReport = computed(() => {
-      if (!selectedBranch.value) return null;
-      const revenue = selectedBranch.value.revenue;
-      const expenses = revenue * 0.35;
-      const profit = revenue - expenses;
-      return {
-        revenue: revenue,
-        expenses: expenses,
-        profit: profit,
-        profitMargin: Math.round((profit / revenue) * 100),
-        growth: '12.5%'
-      };
-    });
-
-    const branchFeedbackReport = computed(() => {
-      if (!selectedBranch.value) return null;
-      const totalFeedback = Math.floor(selectedBranch.value.customers * 0.6);
-      return {
-        totalFeedback: totalFeedback,
-        avgRating: '4.8/5.0',
-        positiveReviews: Math.round(totalFeedback * 0.85),
-        negativeReviews: Math.round(totalFeedback * 0.05),
-        neutralReviews: Math.round(totalFeedback * 0.1)
-      };
     });
 
     const getStatusBadgeClass = (status) => {
@@ -1157,107 +772,6 @@ export default {
         baseClasses.push('badge-warning');
       }
       return baseClasses;
-    };
-
-    const showEditForm = ref(false);
-    const editingBranchId = ref(null);
-    const editForm = ref({
-      name: "",
-      location: "",
-      manager: "",
-      phone: "",
-      email: "",
-      status: "active"
-    });
-
-    const newBranchForm = ref({
-      name: "",
-      location: "",
-      manager: "",
-      phone: "",
-      email: "",
-      status: "active"
-    });
-
-    const branchError = ref('');
-    const branchSuccess = ref('');
-
-    const handleCreateBranch = () => {
-      branchError.value = '';
-      branchSuccess.value = '';
-
-      if (!newBranchForm.value.name || !newBranchForm.value.location || !newBranchForm.value.manager || 
-          !newBranchForm.value.phone || !newBranchForm.value.email) {
-        branchError.value = 'All fields are required';
-        return;
-      }
-
-      const newBranch = {
-        id: Math.max(...ownerData.value.branches.map(b => b.id), 0) + 1,
-        name: newBranchForm.value.name,
-        location: newBranchForm.value.location,
-        manager: newBranchForm.value.manager,
-        phone: newBranchForm.value.phone,
-        email: newBranchForm.value.email,
-        customers: 0,
-        bookings: 0,
-        revenue: 0,
-        status: newBranchForm.value.status
-      };
-
-      ownerData.value.branches.push(newBranch);
-      branchSuccess.value = `Branch "${newBranchForm.value.name}" created successfully!`;
-      resetBranchForm();
-      setTimeout(() => { branchSuccess.value = ''; }, 3000);
-    };
-
-    const resetBranchForm = () => {
-      newBranchForm.value = {
-        name: "",
-        location: "",
-        manager: "",
-        phone: "",
-        email: "",
-        status: "active"
-      };
-    };
-
-    const handleEditBranch = (branch) => {
-      editingBranchId.value = branch.id;
-      editForm.value = {
-        name: branch.name,
-        location: branch.location,
-        manager: branch.manager,
-        phone: branch.phone,
-        email: branch.email,
-        status: branch.status
-      };
-      showEditForm.value = true;
-    };
-
-    const handleSaveBranch = () => {
-      if (editingBranchId.value) {
-        const branchIndex = ownerData.value.branches.findIndex(b => b.id === editingBranchId.value);
-        if (branchIndex !== -1) {
-          ownerData.value.branches[branchIndex] = {
-            ...ownerData.value.branches[branchIndex],
-            name: editForm.value.name,
-            location: editForm.value.location,
-            manager: editForm.value.manager,
-            phone: editForm.value.phone,
-            email: editForm.value.email,
-            status: editForm.value.status
-          };
-          showEditForm.value = false;
-          editingBranchId.value = null;
-        }
-      }
-    };
-
-    const handleDeleteBranch = (branchId) => {
-      if (confirm('Are you sure you want to delete this branch? This action cannot be undone.')) {
-        ownerData.value.branches = ownerData.value.branches.filter(b => b.id !== branchId);
-      }
     };
 
     const handleLogout = () => {
@@ -1275,7 +789,7 @@ export default {
       role: '',
       dob: '',
       doj: '',
-      branchId: '',
+      branchName: '',
       userId: '',
       password: ''
     });
@@ -1289,7 +803,7 @@ export default {
 
       if (!newManagerForm.value.name || !newManagerForm.value.email || !newManagerForm.value.phone || 
           !newManagerForm.value.skills || !newManagerForm.value.role || !newManagerForm.value.dob || !newManagerForm.value.doj ||
-          !newManagerForm.value.branchId || !newManagerForm.value.userId || !newManagerForm.value.password) {
+          !newManagerForm.value.branchName || !newManagerForm.value.userId || !newManagerForm.value.password) {
         managerError.value = 'All fields are required';
         return;
       }
@@ -1321,6 +835,7 @@ export default {
             role: newManagerForm.value.role,
             dob: newManagerForm.value.dob,
             doj: newManagerForm.value.doj,
+            branch_name: newManagerForm.value.branchName,
             username: newManagerForm.value.userId,
             password: newManagerForm.value.password,
           }),
@@ -1341,7 +856,7 @@ export default {
           role: newManagerForm.value.role,
           dob: newManagerForm.value.dob,
           doj: newManagerForm.value.doj,
-          branchId: newManagerForm.value.branchId,
+          branchName: newManagerForm.value.branchName,
           userId: newManagerForm.value.userId,
           createdDate: new Date().toISOString().split('T')[0],
         });
@@ -1363,7 +878,7 @@ export default {
         role: '',
         dob: '',
         doj: '',
-        branchId: '',
+        branchName: '',
         userId: '',
         password: ''
       };
@@ -1375,9 +890,9 @@ export default {
       }
     };
 
-    const getManagerBranch = (branchId) => {
-      const branch = ownerData.value.branches.find(b => b.id === branchId);
-      return branch ? branch.name : 'Unknown Branch';
+    const getManagerBranch = (branchName) => {
+      // Manager branch name is directly available from the manager object
+      return branchName || 'Unassigned';
     };
 
     // Change password
@@ -1470,26 +985,11 @@ export default {
       totalCustomers,
       hoveredBar,
       avgRevenuePerBooking,
-      avgCustomersPerBranch,
       overallPerformance,
       businessHealth,
       businessHealthColor,
       getStatusBadgeClass,
-      showEditForm,
-      editForm,
-      editingBranchId,
-      handleEditBranch,
-      handleSaveBranch,
-      handleDeleteBranch,
       handleLogout,
-      selectedBranchId,
-      selectedBranch,
-      branchSalesReport,
-      branchBookingsReport,
-      branchStaffReport,
-      branchInventoryReport,
-      branchFinancialReport,
-      branchFeedbackReport,
       managers,
       newManagerForm,
       managerError,
@@ -1502,12 +1002,7 @@ export default {
       passwordForm,
       passwordError,
       passwordSuccess,
-      handleChangePassword,
-      newBranchForm,
-      branchError,
-      branchSuccess,
-      handleCreateBranch,
-      resetBranchForm
+      handleChangePassword
     };
   }
 };

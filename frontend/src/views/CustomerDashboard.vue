@@ -22,31 +22,36 @@
         <div class="nav-section">Bookings</div>
         <div
           :class="['nav-item', { active: currentView === 'dashboard' }]"
-          @click="currentView = 'dashboard'; sidebarOpen = false"
+          @click.stop="currentView = 'dashboard'; sidebarOpen = false"
+          style="cursor: pointer; user-select: none"
         >
           <span class="nav-icon">📊</span> Dashboard
         </div>
         <div
           :class="['nav-item', { active: currentView === 'book-appointment' }]"
-          @click="currentView = 'book-appointment'; sidebarOpen = false"
+          @click.stop="currentView = 'book-appointment'; sidebarOpen = false"
+          style="cursor: pointer; user-select: none"
         >
           <span class="nav-icon">📅</span> Book Appointment
         </div>
         <div
           :class="['nav-item', { active: currentView === 'appointments' }]"
-          @click="currentView = 'appointments'; sidebarOpen = false"
+          @click.stop="currentView = 'appointments'; sidebarOpen = false"
+          style="cursor: pointer; user-select: none"
         >
           <span class="nav-icon">📋</span> My Appointments
         </div>
         <div
           :class="['nav-item', { active: currentView === 'feedback' }]"
-          @click="currentView = 'feedback'; sidebarOpen = false"
+          @click.stop="currentView = 'feedback'; sidebarOpen = false"
+          style="cursor: pointer; user-select: none"
         >
           <span class="nav-icon">💬</span> Feedback & Reviews
         </div>
         <div
           :class="['nav-item', { active: currentView === 'services' }]"
           @click="currentView = 'services'; sidebarOpen = false"
+          style="cursor: pointer; user-select: none; z-index: 10"
         >
           <span class="nav-icon">💇</span> Browse Services
         </div>
@@ -94,19 +99,25 @@
           <div class="stat-grid">
             <div class="stat-card">
               <div class="stat-icon">📅</div>
-              <div class="stat-value">{{ customerData.todayStats.upcomingAppointments }}</div>
+              <div class="stat-value">{{ summaryData.upcoming_appointments_count }}</div>
               <div class="stat-label">Upcoming Appointments</div>
             </div>
             <div class="stat-card">
               <div class="stat-icon">✅</div>
-              <div class="stat-value">{{ customerData.todayStats.totalAppointments }}</div>
-              <div class="stat-label">Total Appointments</div>
+              <div class="stat-value">{{ summaryData.past_appointments_count }}</div>
+              <div class="stat-label">Past Appointments</div>
             </div>
 
             <div class="stat-card">
               <div class="stat-icon">⭐</div>
-              <div class="stat-value">{{ customerData.membershipStatus }}</div>
+              <div class="stat-value">{{ summaryData.customer_type || 'Regular' }}</div>
               <div class="stat-label">Membership Status</div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">🎁</div>
+              <div class="stat-value">{{ summaryData.available_rewards }}</div>
+              <div class="stat-label">Reward Points</div>
             </div>
           </div>
 
@@ -118,16 +129,19 @@
                 <h3 class="card-title">📅 Upcoming Appointments</h3>
               </div>
               <div class="card-body">
-                <div v-if="customerData.upcomingAppointments.length === 0" class="empty-state">
+                <div v-if="loadingUpcomingAppointments" style="text-align: center; padding: 20px; color: var(--text-muted)">
+                  <p>Loading...</p>
+                </div>
+                <div v-else-if="upcomingAppointmentsData.length === 0" class="empty-state">
                   <div class="empty-state-icon">📅</div>
                   <div class="empty-state-text">No upcoming appointments</div>
                   <button class="btn btn-primary" style="margin-top: 12px" @click="currentView = 'book-appointment'">Book Now</button>
                 </div>
-                <div v-for="appt in customerData.upcomingAppointments" :key="appt.id" class="booking-item">
+                <div v-for="appt in upcomingAppointmentsData" :key="appt.id" class="booking-item">
                   <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px">
                     <div>
-                      <div style="font-weight: 600">{{ appt.service }}</div>
-                      <div class="text-muted">with {{ appt.staff }}</div>
+                      <div style="font-weight: 600">{{ appt.service_name }}</div>
+                      <div class="text-muted">with {{ appt.staff_name }}</div>
                     </div>
                     <span class="badge badge-gold">₹{{ appt.price }}</span>
                   </div>
@@ -216,11 +230,11 @@
                     >
                       <option value="">Choose a stylist (Optional)</option>
                       <option v-for="staff in availableStylists" :key="staff.id" :value="staff.id">
-                        {{ staff.name }} - ⭐ {{ staff.rating }} - {{ staff.skills }}
+                        {{ staff.name }}{{ staff.skills ? ' - ' + staff.skills : '' }}
                       </option>
                     </select>
                     <div v-if="bookingForm.staffId" class="text-muted" style="font-size: 12px; margin-top: 6px">
-                      Selected: {{ availableStylists.find(s => s.id == bookingForm.staffId)?.name }} (⭐ {{ availableStylists.find(s => s.id == bookingForm.staffId)?.rating }}) - Specializes in {{ availableStylists.find(s => s.id == bookingForm.staffId)?.skills }}
+                      Selected: {{ availableStylists.find(s => s.id == bookingForm.staffId)?.name }}{{ availableStylists.find(s => s.id == bookingForm.staffId)?.skills ? ' - Specializes in ' + availableStylists.find(s => s.id == bookingForm.staffId)?.skills : '' }}
                     </div>
                   </div>
 
@@ -278,76 +292,152 @@
         <div v-if="currentView === 'appointments'" class="fade-in">
           <div class="card">
             <div class="card-header">
-              <h3 class="card-title">Appointment History</h3>
+              <h3 class="card-title">My Appointments</h3>
             </div>
             <div class="card-body">
-              <div style="margin-bottom: 16px">
-                <input 
-                  v-model="appointmentHistoryFilter"
-                  type="text" 
-                  placeholder="🔍 Filter by service or staff name..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
-              </div>
-              <div class="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Service</th>
-                      <th>Staff Member</th>
-                      <th>Date & Time</th>
-                      <th>Price</th>
-                      <th>Status</th>
-                      <th>Rating</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="appt in filteredAppointmentHistory" :key="appt.id" @click="viewAppointmentDetails(appt.id)" style="cursor: pointer; transition: background-color 0.2s;" @mouseenter="($event.target.parentNode.style.backgroundColor = 'var(--light-bg)')" @mouseleave="($event.target.parentNode.style.backgroundColor = 'transparent')">
-                      <td>{{ appt.service }}</td>
-                      <td>{{ appt.staff }}</td>
-                      <td>{{ appt.date }}</td>
-                      <td>₹{{ appt.price }}</td>
-                      <td>
-                        <span :class="['badge', getStatusBadgeClass(appt.status)]">{{ appt.status }}</span>
-                      </td>
-                      <td>
-                        <div style="display: flex; align-items: center; gap: 6px">
-                          <span style="letter-spacing: 1px">
-                            <span v-for="i in 5" :key="i" :style="{ color: i <= appt.rating ? 'var(--gold)' : 'var(--border)', fontSize: '12px' }">⭐</span>
-                          </span>
-                          <span style="font-size: 12px; font-weight: 600; color: var(--gold)">{{ appt.rating }}</span>
-                        </div>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+              <!-- Tab Navigation -->
+              <div style="display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 0">
+                <button
+                  @click="appointmentsTab = 'upcoming'"
+                  :style="{
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: appointmentsTab === 'upcoming' ? 'var(--gold)' : 'var(--text-muted)',
+                    borderBottom: appointmentsTab === 'upcoming' ? '3px solid var(--gold)' : 'none',
+                    transition: 'all 0.2s'
+                  }"
+                >
+                  📅 Upcoming ({{ upcomingAppointmentsData.length }})
+                </button>
+                <button
+                  @click="appointmentsTab = 'history'"
+                  :style="{
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: appointmentsTab === 'history' ? 'var(--gold)' : 'var(--text-muted)',
+                    borderBottom: appointmentsTab === 'history' ? '3px solid var(--gold)' : 'none',
+                    transition: 'all 0.2s'
+                  }"
+                >
+                  ✅ History ({{ historyAppointmentsData.length }})
+                </button>
               </div>
 
-              <!-- Ratings Details Section -->
-              <div v-if="filteredAppointmentHistory.length > 0" style="margin-top: 24px; padding-top: 24px; border-top: 2px solid var(--border)">
-                <h4 style="margin-bottom: 16px; font-weight: 600">📊 Your Service Ratings</h4>
-                <div style="display: flex; flex-direction: column; gap: 12px">
-                  <div v-for="appt in filteredAppointmentHistory" :key="appt.id" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); margin-bottom: 12px">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
-                      <div>
-                        <div style="font-weight: 600">{{ appt.service }}</div>
-                        <div style="font-size: 12px; color: var(--text-muted)">with {{ appt.staff }} • {{ appt.date }}</div>
+              <!-- UPCOMING APPOINTMENTS TAB -->
+              <div v-if="appointmentsTab === 'upcoming'">
+                <div v-if="loadingUpcomingAppointments" style="text-align: center; padding: 20px; color: var(--text-muted)">
+                  <p>Loading upcoming appointments...</p>
+                </div>
+                <div v-else-if="upcomingAppointmentsError" class="error-message" style="margin-bottom: 16px">
+                  {{ upcomingAppointmentsError }}
+                </div>
+                <div v-else-if="upcomingAppointmentsData.length === 0" style="text-align: center; padding: 40px 20px; color: var(--text-muted)">
+                  <div style="font-size: 48px; margin-bottom: 12px">📅</div>
+                  <div style="font-size: 16px; margin-bottom: 12px">No upcoming appointments</div>
+                  <p style="margin-bottom: 16px">You don't have any scheduled appointments yet.</p>
+                  <button class="btn btn-primary" @click="currentView = 'book-appointment'">Book an Appointment</button>
+                </div>
+                <div v-else>
+                  <div style="display: grid; gap: 12px">
+                    <div v-for="appt in upcomingAppointmentsData" :key="appt.id" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold)">
+                      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
+                        <div>
+                          <div style="font-weight: 600; font-size: 16px">{{ appt.service_name }}</div>
+                          <div class="text-muted" style="font-size: 13px; margin-top: 4px">with {{ appt.staff_name }}</div>
+                        </div>
+                        <span class="badge badge-gold" style="padding: 6px 12px">{{ appt.status }}</span>
                       </div>
-                      <div style="display: flex; align-items: center; gap: 6px; font-weight: 600">
-                        <span style="letter-spacing: 1px">
-                          <span v-for="i in 5" :key="i" :style="{ color: i <= appt.rating ? 'var(--gold)' : 'var(--border)' }">⭐</span>
-                        </span>
-                        <span style="color: var(--gold)">{{ appt.rating }}/5</span>
+                      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px">
+                        <div>
+                          <div class="text-muted" style="font-size: 12px">Date</div>
+                          <div style="font-weight: 600">{{ appt.date }}</div>
+                        </div>
+                        <div>
+                          <div class="text-muted" style="font-size: 12px">Time</div>
+                          <div style="font-weight: 600">{{ appt.time }}</div>
+                        </div>
+                        <div>
+                          <div class="text-muted" style="font-size: 12px">Price</div>
+                          <div style="font-weight: 600; color: var(--gold)">₹{{ appt.price }}</div>
+                        </div>
+                      </div>
+                      <div style="display: flex; gap: 8px">
+                        <button class="btn btn-sm btn-outline" style="flex: 1; font-size: 12px" @click="startEditAppointment(appt)">
+                          ✏️ Edit
+                        </button>
+                        <button class="btn btn-sm btn-danger" style="flex: 1; font-size: 12px" @click="handleCancelAppointment(appt.id)">
+                          ❌ Cancel
+                        </button>
                       </div>
                     </div>
-                    <div v-if="getReviewForBooking(appt.id)" style="font-size: 13px; color: var(--text); padding: 8px; background: var(--card-bg); border-left: 3px solid var(--gold); border-radius: 4px">
-                      <div style="margin-bottom: 4px"><strong>Your Review:</strong></div>
-                      "{{ getReviewForBooking(appt.id).comment }}"
-                    </div>
-                    <div v-else style="font-size: 12px; color: var(--text-muted); font-style: italic; padding: 8px">
-                      No detailed review provided for this booking
-                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- APPOINTMENT HISTORY TAB -->
+              <div v-if="appointmentsTab === 'history'">
+                <div v-if="loadingHistoryAppointments" style="text-align: center; padding: 20px; color: var(--text-muted)">
+                  <p>Loading appointment history...</p>
+                </div>
+                <div v-else-if="historyAppointmentsError" class="error-message" style="margin-bottom: 16px">
+                  {{ historyAppointmentsError }}
+                </div>
+                <div v-else-if="historyAppointmentsData.length === 0" style="text-align: center; padding: 40px 20px; color: var(--text-muted)">
+                  <div style="font-size: 48px; margin-bottom: 12px">✅</div>
+                  <div style="font-size: 16px; margin-bottom: 12px">No past appointments yet</div>
+                  <p style="margin-bottom: 16px">Start by booking your first appointment!</p>
+                  <button class="btn btn-primary" @click="currentView = 'book-appointment'">Book Now</button>
+                </div>
+                <div v-else>
+                  <div style="margin-bottom: 16px">
+                    <input 
+                      v-model="appointmentHistoryFilter"
+                      type="text" 
+                      placeholder="🔍 Filter by service or staff name..." 
+                      class="form-input"
+                      style="width: 100%; max-width: 300px"
+                    />
+                  </div>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Service</th>
+                          <th>Staff Member</th>
+                          <th>Date & Time</th>
+                          <th>Price</th>
+                          <th>Status</th>
+                          <th>Rating</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="appt in filteredHistoryAppointments" :key="appt.id" @click="viewAppointmentDetails(appt.id)" style="cursor: pointer; transition: background-color 0.2s;" @mouseenter="($event.target.parentNode.style.backgroundColor = 'var(--light-bg)')" @mouseleave="($event.target.parentNode.style.backgroundColor = 'transparent')">
+                          <td>{{ appt.service }}</td>
+                          <td>{{ appt.staff }}</td>
+                          <td>{{ appt.date }} {{ appt.time }}</td>
+                          <td>₹{{ appt.price }}</td>
+                          <td>
+                            <span :class="['badge', getStatusBadgeClass(appt.status)]">{{ appt.status }}</span>
+                          </td>
+                          <td>
+                            <div style="display: flex; align-items: center; gap: 6px">
+                              <span style="letter-spacing: 1px">
+                                <span v-for="i in 5" :key="i" :style="{ color: i <= (appt.rating || 0) ? 'var(--gold)' : 'var(--border)', fontSize: '12px' }">⭐</span>
+                              </span>
+                              <span style="font-size: 12px; font-weight: 600; color: var(--gold)">{{ appt.rating || '-' }}</span>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
@@ -362,72 +452,95 @@
               <h3 class="card-title">Browse All Services</h3>
             </div>
             <div class="card-body">
-              <!-- Category Tabs -->
-              <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap">
-                <button 
-                  @click="selectedServiceCategory = null" 
-                  :class="['btn', selectedServiceCategory === null ? 'btn-primary' : 'btn-outline']"
-                  style="font-size: 13px; padding: 8px 14px"
-                >
-                  All Services
-                </button>
-                <button 
-                  v-for="category in serviceCategories" 
-                  :key="category"
-                  @click="selectedServiceCategory = category" 
-                  :class="['btn', selectedServiceCategory === category ? 'btn-primary' : 'btn-outline']"
-                  style="font-size: 13px; padding: 8px 14px"
-                >
-                  {{ category }}
-                </button>
+              <!-- Loading State -->
+              <div v-if="loadingServices" style="text-align: center; padding: 40px">
+                <div style="font-size: 18px; color: var(--muted)">Loading services...</div>
               </div>
 
-              <!-- Services Grid -->
-              <div v-if="selectedServiceCategory">
-                <!-- Single Category View -->
-                <div>
-                  <h4 style="margin: 0 0 16px 0; font-weight: 600; color: var(--charcoal)">📋 {{ selectedServiceCategory }}</h4>
-                  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px">
-                    <div v-for="service in filteredServices" :key="service.id" class="service-card" style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px">
-                      <div style="margin-bottom: 8px">
-                        <div style="font-weight: 600; font-size: 16px">{{ service.name }}</div>
-                        <div class="text-muted" style="font-size: 12px">{{ service.category }}</div>
+              <!-- Error State -->
+              <div v-else-if="servicesError" style="padding: 20px; background-color: #fee; border: 1px solid #fcc; border-radius: 8px; color: #c33; margin-bottom: 20px">
+                <div style="font-weight: 600">⚠️ Error Loading Services</div>
+                <div style="font-size: 14px; margin-top: 8px">{{ servicesError }}</div>
+              </div>
+
+              <!-- Empty State -->
+              <div v-else-if="availableServicesData.length === 0" style="text-align: center; padding: 60px 20px; color: var(--muted)">
+                <div style="font-size: 48px; margin-bottom: 16px">🛁</div>
+                <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px">No Services Available</div>
+                <div style="font-size: 14px">Services will appear here once they are added by the salon manager.</div>
+              </div>
+
+              <!-- Category Tabs -->
+              <div v-else>
+                <div style="display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap">
+                  <button 
+                    @click="selectedServiceCategory = null" 
+                    :class="['btn', selectedServiceCategory === null ? 'btn-primary' : 'btn-outline']"
+                    style="font-size: 13px; padding: 8px 14px"
+                  >
+                    All Services
+                  </button>
+                  <button 
+                    v-for="category in serviceCategories" 
+                    :key="category"
+                    @click="selectedServiceCategory = category" 
+                    :class="['btn', selectedServiceCategory === category ? 'btn-primary' : 'btn-outline']"
+                    style="font-size: 13px; padding: 8px 14px"
+                  >
+                    {{ category }}
+                  </button>
+                </div>
+
+                <!-- Services Grid -->
+                <div v-if="selectedServiceCategory">
+                  <!-- Single Category View -->
+                  <div>
+                    <h4 style="margin: 0 0 16px 0; font-weight: 600; color: var(--charcoal)">📋 {{ selectedServiceCategory }}</h4>
+                    <div v-if="filteredServices.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px">
+                      <div v-for="service in filteredServices" :key="service.id" class="service-card" style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px">
+                        <div style="margin-bottom: 8px">
+                          <div style="font-weight: 600; font-size: 16px">{{ service.name }}</div>
+                          <div class="text-muted" style="font-size: 12px">{{ service.category }}</div>
+                        </div>
+                        <div class="text-muted" style="font-size: 13px; margin-bottom: 12px">
+                          {{ service.description }}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
+                          <span style="font-weight: 600; color: var(--gold); font-size: 16px">₹{{ service.price }}</span>
+                          <span class="text-muted" style="font-size: 12px">{{ service.duration }} min</span>
+                        </div>
+                        <button type="button" class="btn btn-primary w-full" @click="startBookingFromService(service.id)">
+                          Book Now
+                        </button>
                       </div>
-                      <div class="text-muted" style="font-size: 13px; margin-bottom: 12px">
-                        {{ service.description }}
-                      </div>
-                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
-                        <span style="font-weight: 600; color: var(--gold); font-size: 16px">₹{{ service.price }}</span>
-                        <span class="text-muted" style="font-size: 12px">{{ service.duration }} min</span>
-                      </div>
-                      <button type="button" class="btn btn-primary w-full" @click="startBookingFromService(service.id)">
-                        Book Now
-                      </button>
+                    </div>
+                    <div v-else style="text-align: center; padding: 40px; color: var(--muted)">
+                      <div>No services in this category</div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              <div v-else>
-                <!-- All Categories View -->
-                <div v-for="category in serviceCategories" :key="category" style="margin-bottom: 32px">
-                  <h4 style="margin: 0 0 16px 0; font-weight: 600; color: var(--charcoal); padding-bottom: 8px; border-bottom: 2px solid var(--gold)">📋 {{ category }}</h4>
-                  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px">
-                    <div v-for="service in getServicesByCategory(category)" :key="service.id" class="service-card" style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px">
-                      <div style="margin-bottom: 8px">
-                        <div style="font-weight: 600; font-size: 16px">{{ service.name }}</div>
-                        <div class="text-muted" style="font-size: 12px">{{ service.category }}</div>
+                <div v-else>
+                  <!-- All Categories View -->
+                  <div v-for="category in serviceCategories" :key="category" style="margin-bottom: 32px">
+                    <h4 style="margin: 0 0 16px 0; font-weight: 600; color: var(--charcoal); padding-bottom: 8px; border-bottom: 2px solid var(--gold)">📋 {{ category }}</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px">
+                      <div v-for="service in getServicesByCategory(category)" :key="service.id" class="service-card" style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px">
+                        <div style="margin-bottom: 8px">
+                          <div style="font-weight: 600; font-size: 16px">{{ service.name }}</div>
+                          <div class="text-muted" style="font-size: 12px">{{ service.category }}</div>
+                        </div>
+                        <div class="text-muted" style="font-size: 13px; margin-bottom: 12px">
+                          {{ service.description }}
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
+                          <span style="font-weight: 600; color: var(--gold); font-size: 16px">₹{{ service.price }}</span>
+                          <span class="text-muted" style="font-size: 12px">{{ service.duration }} min</span>
+                        </div>
+                        <button type="button" class="btn btn-primary w-full" @click="startBookingFromService(service.id)">
+                          Book Now
+                        </button>
                       </div>
-                      <div class="text-muted" style="font-size: 13px; margin-bottom: 12px">
-                        {{ service.description }}
-                      </div>
-                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px">
-                        <span style="font-weight: 600; color: var(--gold); font-size: 16px">₹{{ service.price }}</span>
-                        <span class="text-muted" style="font-size: 12px">{{ service.duration }} min</span>
-                      </div>
-                      <button type="button" class="btn btn-primary w-full" @click="startBookingFromService(service.id)">
-                        Book Now
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -520,67 +633,116 @@
               <h3 class="card-title">💬 My Feedback & Reviews</h3>
             </div>
             <div class="card-body">
-              <div v-if="customerData.feedback.length === 0" class="empty-state">
-                <div class="empty-state-icon">💬</div>
-                <div class="empty-state-text">No feedback yet. Book and complete a service to leave feedback!</div>
-              </div>
-              <div v-for="feedback in customerData.feedback" :key="feedback.id" style="margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border)">
-                <div style="margin-bottom: 8px">
-                  <div style="font-weight: 600">{{ feedback.service }}</div>
-                  <div class="text-muted" style="font-size: 12px">with {{ feedback.staff }} • {{ feedback.date }}</div>
-                </div>
-                <div style="font-size: 16px; margin-bottom: 8px">{{ '⭐'.repeat(feedback.rating) }}</div>
-                <div class="text-muted">{{ feedback.comment }}</div>
+              <!-- Tab Navigation -->
+              <div style="display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 0">
+                <button
+                  @click="appointmentsTab = 'pending'"
+                  :style="{
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: appointmentsTab === 'pending' ? 'var(--gold)' : 'var(--text-muted)',
+                    borderBottom: appointmentsTab === 'pending' ? '3px solid var(--gold)' : 'none',
+                    transition: 'all 0.2s'
+                  }"
+                >
+                  📝 Pending Reviews ({{ pendingReviews.length }})
+                </button>
+                <button
+                  @click="appointmentsTab = 'reviewed'"
+                  :style="{
+                    padding: '12px 16px',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: appointmentsTab === 'reviewed' ? 'var(--gold)' : 'var(--text-muted)',
+                    borderBottom: appointmentsTab === 'reviewed' ? '3px solid var(--gold)' : 'none',
+                    transition: 'all 0.2s'
+                  }"
+                >
+                  ⭐ My Reviews ({{ reviewedAppointments.length }})
+                </button>
               </div>
 
-              <div style="margin-top: 24px; padding-top: 24px; border-top: 2px solid var(--border)">
-                <h4 style="margin-bottom: 16px">Leave Feedback on an Appointment</h4>
-                <div class="form-group">
-                  <label for="feedback-service">Select Appointment *</label>
-                  <select 
-                    id="feedback-service"
-                    v-model="feedbackForm.appointmentId" 
-                    class="form-input"
-                  >
-                    <option value="">Choose an appointment</option>
-                    <option v-for="appt in customerData.appointmentHistory" :key="appt.id" :value="appt.id">
-                      {{ appt.service }} with {{ appt.staff }} - {{ appt.date }}
-                    </option>
-                  </select>
+              <!-- PENDING REVIEWS TAB -->
+              <div v-if="appointmentsTab === 'pending'">
+                <div v-if="loadingPendingReviews" style="text-align: center; padding: 20px; color: var(--text-muted)">
+                  <p>Loading pending reviews...</p>
                 </div>
-
-                <div class="form-group">
-                  <label for="feedback-rating">Rating *</label>
-                  <div style="display: flex; gap: 8px; margin-top: 8px">
-                    <button 
-                      v-for="star in 5" 
-                      :key="star"
-                      type="button"
-                      @click="feedbackForm.rating = star"
-                      style="background: none; border: none; font-size: 32px; cursor: pointer; opacity: feedbackForm.rating >= star ? 1 : 0.3; transition: opacity 0.2s"
-                    >
-                      ⭐
-                    </button>
+                <div v-else-if="pendingReviewsError" class="error-message" style="margin-bottom: 16px">
+                  {{ pendingReviewsError }}
+                </div>
+                <div v-else-if="pendingReviews.length === 0" class="empty-state">
+                  <div class="empty-state-icon">📝</div>
+                  <div class="empty-state-text">No pending reviews</div>
+                  <p style="color: var(--text-muted); margin-top: 8px">All completed appointments have been reviewed!</p>
+                </div>
+                <div v-else>
+                  <div style="display: grid; gap: 12px">
+                    <div v-for="review in pendingReviews" :key="review.appointment_id" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold)">
+                      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
+                        <div>
+                          <div style="font-weight: 600; font-size: 16px">{{ review.services.join(', ') }}</div>
+                          <div class="text-muted" style="font-size: 13px; margin-top: 4px">with {{ review.staff_name }}</div>
+                        </div>
+                        <span class="badge badge-gold" style="padding: 6px 12px">Review Needed</span>
+                      </div>
+                      <div class="text-muted" style="font-size: 12px; margin-bottom: 12px">
+                        {{ new Date(review.datetime).toLocaleDateString() }} at {{ new Date(review.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
+                      </div>
+                      <button class="btn btn-primary" style="width: 100%" @click="openReviewModal(review)">
+                        Add Rating & Review
+                      </button>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div class="form-group">
-                  <label for="feedback-comment">Your Feedback</label>
-                  <textarea 
-                    id="feedback-comment"
-                    v-model="feedbackForm.comment" 
-                    placeholder="Share your experience..."
-                    class="form-input"
-                    style="resize: vertical; min-height: 100px"
-                  ></textarea>
+              <!-- REVIEWED APPOINTMENTS TAB -->
+              <div v-if="appointmentsTab === 'reviewed'">
+                <div v-if="loadingReviewedAppointments" style="text-align: center; padding: 20px; color: var(--text-muted)">
+                  <p>Loading reviewed appointments...</p>
                 </div>
-
-                <div v-if="feedbackError" class="error-message">{{ feedbackError }}</div>
-                <div v-if="feedbackSuccess" class="success-message">{{ feedbackSuccess }}</div>
-
-                <button type="button" @click="handleSubmitFeedback" class="btn btn-primary" style="margin-top: 12px">
-                  Submit Feedback
-                </button>
+                <div v-else-if="reviewedAppointmentsError" class="error-message" style="margin-bottom: 16px">
+                  {{ reviewedAppointmentsError }}
+                </div>
+                <div v-else-if="reviewedAppointments.length === 0" class="empty-state">
+                  <div class="empty-state-icon">⭐</div>
+                  <div class="empty-state-text">No reviews yet</div>
+                  <p style="color: var(--text-muted); margin-top: 8px">Complete an appointment to leave a review</p>
+                </div>
+                <div v-else>
+                  <div style="display: grid; gap: 16px">
+                    <div v-for="review in reviewedAppointments" :key="review.appointment_id" style="padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: white">
+                      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
+                        <div>
+                          <div style="font-weight: 600; font-size: 16px">{{ review.services.join(', ') }}</div>
+                          <div class="text-muted" style="font-size: 13px; margin-top: 4px">with {{ review.staff_name }}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px">
+                          <span style="letter-spacing: 1px">
+                            <span v-for="i in 5" :key="i" :style="{ color: i <= (review.rating || 0) ? 'var(--gold)' : 'var(--border)', fontSize: '16px' }">⭐</span>
+                          </span>
+                          <span style="font-size: 14px; font-weight: 600; color: var(--gold)">{{ review.rating }}</span>
+                        </div>
+                      </div>
+                      <div class="text-muted" style="font-size: 12px; margin-bottom: 12px">
+                        {{ new Date(review.datetime).toLocaleDateString() }}
+                      </div>
+                      <div v-if="review.review" style="padding: 12px; background: var(--light-bg); border-radius: var(--radius); font-size: 14px; color: var(--charcoal)">
+                        "{{ review.review }}"
+                      </div>
+                      <div v-else style="padding: 12px; background: var(--light-bg); border-radius: var(--radius); font-size: 14px; color: var(--text-muted); font-style: italic">
+                        No review text provided
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -694,6 +856,75 @@
     </div>
   </div>
 
+  <!-- Review Rating Modal -->
+  <div v-if="showReviewModal" class="modal-overlay" @click="showReviewModal = false">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h3 class="modal-title">⭐ Rate & Review</h3>
+        <button class="modal-close" @click="showReviewModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <div v-if="selectedPendingReview">
+          <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
+            <div style="font-weight: 600; margin-bottom: 4px">{{ selectedPendingReview.services.join(', ') }}</div>
+            <div class="text-muted" style="font-size: 12px">
+              with {{ selectedPendingReview.staff_name }} • {{ new Date(selectedPendingReview.datetime).toLocaleDateString() }}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label style="margin-bottom: 12px">Rating *</label>
+            <div style="display: flex; gap: 12px; margin-top: 12px">
+              <button 
+                v-for="star in 5" 
+                :key="star"
+                type="button"
+                @click="reviewFormData.rating = star"
+                :style="{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '40px',
+                  cursor: 'pointer',
+                  opacity: reviewFormData.rating >= star ? 1 : 0.3,
+                  transition: 'opacity 0.2s',
+                  transform: reviewFormData.rating >= star ? 'scale(1.1)' : 'scale(1)'
+                }"
+              >
+                ⭐
+              </button>
+            </div>
+            <div v-if="reviewFormData.rating > 0" style="margin-top: 8px; text-align: center; font-weight: 600; color: var(--gold)">
+              {{ reviewFormData.rating }} out of 5 stars
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="review-text">Your Review (Optional)</label>
+            <textarea 
+              id="review-text"
+              v-model="reviewFormData.review" 
+              placeholder="Share your experience with this service..."
+              class="form-input"
+              style="resize: vertical; min-height: 100px"
+            ></textarea>
+          </div>
+
+          <div v-if="reviewSubmitError" class="error-message">{{ reviewSubmitError }}</div>
+          <div v-if="reviewSubmitSuccess" class="success-message">{{ reviewSubmitSuccess }}</div>
+
+          <div style="display: flex; gap: 12px; margin-top: 20px">
+            <button type="button" class="btn btn-outline" style="flex: 1" @click="showReviewModal = false">
+              Cancel
+            </button>
+            <button type="button" class="btn btn-primary" style="flex: 1" @click="submitReview">
+              Submit Review
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Appointment Details Modal -->
   <div v-if="showAppointmentDetailsModal" class="modal-overlay" @click="showAppointmentDetailsModal = false">
     <div class="modal-content" @click.stop>
@@ -706,14 +937,70 @@
           <p>Loading appointment details...</p>
         </div>
         <div v-else-if="selectedAppointment">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <div v-if="editingAppointmentId" style="margin-bottom: 20px;">
+            <!-- EDIT MODE -->
+            <form @submit.prevent="handleEditAppointmentSubmit">
+              <div class="form-group">
+                <label>Select Services</label>
+                <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 250px; overflow-y: auto">
+                  <div v-for="service in customerData.availableServices" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+                    <input 
+                      :id="'edit-service-' + service.id"
+                      type="checkbox" 
+                      :value="service.id" 
+                      v-model="editAppointmentForm.serviceIds"
+                      style="margin-right: 8px; width: 18px; height: 18px; cursor: pointer"
+                    />
+                    <label :for="'edit-service-' + service.id" style="cursor: pointer; flex: 1; margin: 0">
+                      {{ service.name }} - ₹{{ service.price }} ({{ service.duration }} min)
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="edit-stylist">Stylist (Optional)</label>
+                <select 
+                  id="edit-stylist"
+                  v-model="editAppointmentForm.staffId" 
+                  class="form-input"
+                >
+                  <option value="">Choose a stylist</option>
+                  <option v-for="staff in availableStylists" :key="staff.id" :value="staff.id">
+                    {{ staff.name }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="edit-datetime">Date & Time</label>
+                <input 
+                  id="edit-datetime"
+                  v-model="editAppointmentForm.datetime" 
+                  type="datetime-local" 
+                  class="form-input"
+                />
+              </div>
+
+              <div style="display: flex; gap: 12px; margin-top: 20px">
+                <button type="button" class="btn btn-outline" @click="editingAppointmentId = null; showAppointmentDetailsModal = false" style="flex: 1">
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" style="flex: 1">
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+          <div v-else style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <!-- VIEW MODE -->
             <div class="detail-item">
               <label class="detail-label">Service</label>
-              <div class="detail-value">{{ selectedAppointment.service }}</div>
+              <div class="detail-value">{{ selectedAppointment.service || selectedAppointment.service_name }}</div>
             </div>
             <div class="detail-item">
               <label class="detail-label">Staff Member</label>
-              <div class="detail-value">{{ selectedAppointment.staff }}</div>
+              <div class="detail-value">{{ selectedAppointment.staff || selectedAppointment.staff_name }}</div>
             </div>
             <div class="detail-item">
               <label class="detail-label">Date & Time</label>
@@ -734,11 +1021,11 @@
               </div>
             </div>
           </div>
-          <div style="margin-top: 12px;">
+          <div v-if="!editingAppointmentId" style="margin-top: 12px;">
             <label class="detail-label">Rating</label>
             <div style="display: flex; align-items: center; gap: 6px;">
               <span style="letter-spacing: 1px;">
-                <span v-for="i in 5" :key="i" :style="{ color: i <= selectedAppointment.rating ? 'var(--gold)' : 'var(--border)', fontSize: '14px' }">⭐</span>
+                <span v-for="i in 5" :key="i" :style="{ color: i <= (selectedAppointment.rating || 0) ? 'var(--gold)' : 'var(--border)', fontSize: '14px' }">⭐</span>
               </span>
               <span style="font-size: 14px; font-weight: 600; color: var(--gold);">{{ selectedAppointment.rating || 'Not rated' }}</span>
             </div>
@@ -746,8 +1033,11 @@
         </div>
       </div>
       <div style="display: flex; gap: 12px; margin-top: 20px;">
-        <button type="button" class="btn btn-outline" @click="showAppointmentDetailsModal = false" style="flex: 1;">
+        <button type="button" class="btn btn-outline" @click="editingAppointmentId = null; showAppointmentDetailsModal = false" style="flex: 1;">
           Close
+        </button>
+        <button v-if="!editingAppointmentId && selectedAppointment && selectedAppointment.status !== 'Completed'" type="button" class="btn btn-primary" @click="startEditAppointment(selectedAppointment)" style="flex: 1;">
+          ✏️ Edit
         </button>
       </div>
     </div>
@@ -755,9 +1045,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/appStore";
+import { apiClient } from "../api/apiClient";
 
 const router = useRouter();
 const appStore = useAppStore();
@@ -771,6 +1062,12 @@ const showProfileEditModal = ref(false);
 const showAppointmentDetailsModal = ref(false);
 const selectedAppointment = ref(null);
 const loadingAppointmentDetails = ref(false);
+const editingAppointmentId = ref(null);
+const editAppointmentForm = ref({
+  staffId: "",
+  serviceIds: [],
+  datetime: ""
+});
 const profileForm = ref({
   name: "",
   email: "",
@@ -795,6 +1092,11 @@ const bookingForm = ref({
 const bookingError = ref("");
 const bookingSuccess = ref("");
 
+// Services from backend
+const availableServicesData = ref([]);
+const loadingServices = ref(false);
+const servicesError = ref("");
+
 // Feedback form state
 const feedbackForm = ref({
   appointmentId: "",
@@ -803,6 +1105,33 @@ const feedbackForm = ref({
 });
 const feedbackError = ref("");
 const feedbackSuccess = ref("");
+
+// Summary data state
+const summaryData = ref({
+  customer_type: "",
+  upcoming_appointments_count: 0,
+  past_appointments_count: 0,
+  available_rewards: 0
+});
+const loadingSummary = ref(false);
+
+// Pending reviews state
+const pendingReviews = ref([]);
+const loadingPendingReviews = ref(false);
+const pendingReviewsError = ref("");
+const showReviewModal = ref(false);
+const selectedPendingReview = ref(null);
+const reviewFormData = ref({
+  rating: 0,
+  review: ""
+});
+const reviewSubmitError = ref("");
+const reviewSubmitSuccess = ref("");
+
+// Reviewed appointments state
+const reviewedAppointments = ref([]);
+const loadingReviewedAppointments = ref(false);
+const reviewedAppointmentsError = ref("");
 
 // Chat state
 const chatInput = ref("");
@@ -813,18 +1142,28 @@ const chatMessages = ref([
 // Filter state
 const appointmentHistoryFilter = ref("");
 const selectedServiceCategory = ref(null);
+const appointmentsTab = ref("upcoming"); // "upcoming" or "history"
+const upcomingAppointmentsData = ref([]);
+const upcomingAppointmentsError = ref("");
+const loadingUpcomingAppointments = ref(false);
+const historyAppointmentsData = ref([]);
+const historyAppointmentsError = ref("");
+const loadingHistoryAppointments = ref(false);
 
-// Mock data
-const customerData = {
-  name: "John Anderson",
-  email: "john@example.com",
-  phone: "+233 123 456 789",
-  address: "123 Main Street, Accra",
-  dob: "1992-05-20",
-  memberSince: "2024-01-15",
-  membershipStatus: "Gold",
-  totalSpent: 1250,
-  preferredServices: [1, 4, 6], // IDs of preferred services
+// Mock data with real customer name from appStore
+const customerData = computed(() => {
+  const username = appStore.user?.username;
+  const customer = appStore.data.customers.find(c => c.customerType); // Find a customer or use first
+  return {
+    name: customer?.name || "John Anderson",
+    email: customer?.email || "john@example.com",
+    phone: customer?.phone || "+233 123 456 789",
+    address: customer?.address || "123 Main Street, Accra",
+    dob: customer?.dob || "1992-05-20",
+    memberSince: "2024-01-15",
+    membershipStatus: customer?.customerType === "VIP" ? "Gold" : "Silver",
+    totalSpent: customer?.totalSpent || 1250,
+    preferredServices: [1, 4, 6],
   todayStats: {
     upcomingAppointments: 1,
     totalAppointments: 12,
@@ -880,64 +1219,7 @@ const customerData = {
       rating: 4,
     },
   ],
-  availableServices: [
-    {
-      id: 1,
-      name: "Hair Styling",
-      category: "Hair",
-      description: "Professional hair styling",
-      price: 50,
-      duration: 60,
-    },
-    {
-      id: 2,
-      name: "Manicure",
-      category: "Nails",
-      description: "Full manicure service",
-      price: 30,
-      duration: 45,
-    },
-    {
-      id: 3,
-      name: "Pedicure",
-      category: "Nails",
-      description: "Complete pedicure treatment",
-      price: 35,
-      duration: 45,
-    },
-    {
-      id: 4,
-      name: "Facial Treatment",
-      category: "Skin Care",
-      description: "Deep cleansing facial",
-      price: 70,
-      duration: 60,
-    },
-    {
-      id: 5,
-      name: "Massage Therapy",
-      category: "Wellness",
-      description: "Relaxing full body massage",
-      price: 80,
-      duration: 60,
-    },
-    {
-      id: 6,
-      name: "Spa Package",
-      category: "Wellness",
-      description: "Complete spa experience",
-      price: 120,
-      duration: 120,
-    },
-    {
-      id: 7,
-      name: "Bridal Package",
-      category: "Special Events",
-      description: "Complete bridal makeup and styling",
-      price: 250,
-      duration: 180,
-    },
-  ],
+  availableServices: availableServicesData.value,
   feedback: [
     {
       id: 1,
@@ -956,18 +1238,59 @@ const customerData = {
       comment: "Great work! The nails look perfect."
     }
   ]
-};
+  };
+});
 
-const preferredServiceIds = ref([...customerData.preferredServices]);
+const preferredServiceIds = ref([...customerData.value.preferredServices]);
 
 // Available stylists
-const availableStylists = ref([
-  { id: 1, name: "Sarah Johnson", rating: 4.8, skills: "Hair Styling, Coloring" },
-  { id: 2, name: "Emma Davis", rating: 4.6, skills: "Manicure, Pedicure" },
-  { id: 3, name: "Lisa Chen", rating: 4.9, skills: "Facial Treatment, Massage" },
-  { id: 4, name: "Priya Nair", rating: 4.7, skills: "Hair Styling, Pedicure" },
-  { id: 5, name: "Amara Osei", rating: 4.8, skills: "Spa Package, Massage Therapy" },
-]);
+const availableStylists = ref([]);
+
+// Fetch staff from backend
+const fetchAvailableStaff = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated - cannot fetch staff");
+    availableStylists.value = [];
+    return;
+  }
+
+  try {
+    console.log("Fetching staff with token...");
+    const response = await fetch(`${API_BASE_URL}/api/staff`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    console.log("Staff fetch response status:", response.status);
+    
+    if (response.ok) {
+      const staffList = await response.json();
+      console.log("Staff list received:", staffList);
+      
+      if (Array.isArray(staffList)) {
+        availableStylists.value = staffList.map(staff => ({
+          id: staff.staff_id,
+          name: staff.staff_name,
+          skills: staff.staff_skills || "General Services"
+        }));
+        console.log("Available stylists mapped:", availableStylists.value);
+      } else {
+        console.error("Staff response is not an array:", staffList);
+      }
+    } else {
+      const errorData = await response.json();
+      console.error("Failed to fetch staff:", response.status, errorData);
+    }
+  } catch (error) {
+    console.error("Error fetching staff:", error);
+    availableStylists.value = [];
+  }
+};
 
 // Available time slots
 const availableTimes = computed(() => {
@@ -982,7 +1305,7 @@ const availableTimes = computed(() => {
 // Preferred services list
 const preferredServicesList = computed(() => {
   const selectedIds = preferredServiceIds.value.map((id) => Number(id));
-  return customerData.availableServices.filter(service => 
+  return customerData.value.availableServices.filter(service => 
     selectedIds.includes(Number(service.id))
   );
 });
@@ -995,13 +1318,13 @@ const getTodayDate = computed(() => {
 
 // Helper function to check if customer is VIP
 const isVIPCustomer = () => {
-  return customerData.membershipStatus === "Platinum" || customerData.membershipStatus === "Gold";
+  return customerData.value.membershipStatus === "Platinum" || customerData.value.membershipStatus === "Gold";
 };
 
 // Helper function to check if booking is for bridal package
 const hasbridalPackageSelected = () => {
   return bookingForm.value.serviceIds.some(serviceId => {
-    const service = customerData.availableServices.find(s => s.id === parseInt(serviceId));
+    const service = customerData.value.availableServices.find(s => s.id === parseInt(serviceId));
     return service && service.name === "Bridal Package";
   });
 };
@@ -1015,7 +1338,7 @@ const minBookingDate = computed(() => {
   if (hasbridalPackageSelected()) {
     minDate.setMonth(minDate.getMonth() + 1); // 1 month for bridal package
   } else {
-    minDate.setDate(minDate.getDate() + 1); // Tomorrow for normal services
+    minDate.setDate(minDate.getDate()); // Allow booking today for normal services
   }
   
   return minDate.toISOString().split('T')[0];
@@ -1077,21 +1400,30 @@ const filteredAppointmentHistory = computed(() => {
   );
 });
 
+// Filtered history appointments from API
+const filteredHistoryAppointments = computed(() => {
+  if (!appointmentHistoryFilter.value.trim()) return historyAppointmentsData.value;
+  return historyAppointmentsData.value.filter(appt =>
+    appt.service.toLowerCase().includes(appointmentHistoryFilter.value.toLowerCase()) ||
+    appt.staff.toLowerCase().includes(appointmentHistoryFilter.value.toLowerCase())
+  );
+});
+
 // Service categories
 const serviceCategories = computed(() => {
-  const categories = [...new Set(customerData.availableServices.map(s => s.category))];
+  const categories = [...new Set(availableServicesData.value.map(s => s.category))];
   return categories.sort();
 });
 
 // Filtered services by category
 const filteredServices = computed(() => {
-  if (!selectedServiceCategory.value) return customerData.availableServices;
-  return customerData.availableServices.filter(s => s.category === selectedServiceCategory.value);
+  if (!selectedServiceCategory.value) return availableServicesData.value;
+  return availableServicesData.value.filter(s => s.category === selectedServiceCategory.value);
 });
 
 // Get services by category
 const getServicesByCategory = (category) => {
-  return customerData.availableServices.filter(s => s.category === category);
+  return availableServicesData.value.filter(s => s.category === category);
 };
 
 const getStatusBadgeClass = (status) => {
@@ -1112,19 +1444,14 @@ const viewAppointmentDetails = async (appointmentId) => {
   loadingAppointmentDetails.value = true;
 
   try {
-    // Check if appointment exists in local data first
-    const appointment = customerData.appointmentHistory.find(a => a.id === appointmentId);
+    // Check if appointment exists in history data first
+    let appointment = historyAppointmentsData.value.find(a => a.id === appointmentId);
     
     if (appointment) {
-      // In a real scenario, you would fetch from backend like this:
-      // const response = await fetch(`/api/appointments/${appointmentId}`);
-      // const data = await response.json();
-      // selectedAppointment.value = data;
-      
-      // For now, using the local data with additional enriched details
       selectedAppointment.value = {
         ...appointment,
-        time: appointment.time || '10:00 AM',
+        service: appointment.service || appointment.service_name,
+        staff: appointment.staff || appointment.staff_name,
         duration: 60 // This would come from backend
       };
     } else {
@@ -1239,83 +1566,6 @@ const startBookingFromService = (serviceId) => {
   currentView.value = 'book-appointment';
 };
 
-const handleBookAppointment = () => {
-  bookingError.value = "";
-  bookingSuccess.value = "";
-
-  if (bookingForm.value.serviceIds.length === 0) {
-    bookingError.value = "Please select at least one service";
-    return;
-  }
-
-  if (!bookingForm.value.staffId) {
-    bookingError.value = "Please select a stylist";
-    return;
-  }
-
-  if (!bookingForm.value.date) {
-    bookingError.value = "Please select a date";
-    return;
-  }
-
-  if (!bookingForm.value.time) {
-    bookingError.value = "Please select a time";
-    return;
-  }
-
-  // Validate booking date is within allowed range
-  const selectedDate = new Date(bookingForm.value.date);
-  const minDate = new Date(minBookingDate.value);
-  const maxDate = new Date(maxBookingDate.value);
-
-  if (selectedDate < minDate || selectedDate > maxDate) {
-    if (hasbridalPackageSelected()) {
-      bookingError.value = `Bridal Package must be booked 1 to 6 months in advance`;
-    } else {
-      const daysWindow = isVIPCustomer() ? 5 : 2;
-      bookingError.value = `Please select a date from tomorrow onwards for ${daysWindow} days`;
-    }
-    return;
-  }
-
-  // Find staff name
-  const staff = availableStylists.value.find(s => s.id === parseInt(bookingForm.value.staffId));
-  
-  // Get service names and total price
-  const services = bookingForm.value.serviceIds.map(serviceId => {
-    const service = customerData.availableServices.find(s => s.id === parseInt(serviceId));
-    return service;
-  });
-  
-  const serviceNames = services.map(s => s.name).join(", ");
-  const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
-
-  // Create new appointment
-  const newAppointment = {
-    id: Math.max(...customerData.upcomingAppointments.map(a => a.id || 0), 0) + 1,
-    service: serviceNames,
-    staff: staff.name,
-    date: bookingForm.value.date,
-    time: bookingForm.value.time,
-    price: `₹ ${totalPrice}`,
-    status: "confirmed"
-  };
-
-  customerData.upcomingAppointments.push(newAppointment);
-  bookingSuccess.value = `Appointment booked successfully with ${staff.name} on ${bookingForm.value.date} at ${bookingForm.value.time}!`;
-
-  setTimeout(() => {
-    bookingForm.value = {
-      serviceIds: [],
-      staffId: "",
-      date: "",
-      time: ""
-    };
-    bookingSuccess.value = "";
-    currentView.value = "dashboard";
-  }, 2000);
-};
-
 const handleSubmitFeedback = () => {
   feedbackError.value = "";
   feedbackSuccess.value = "";
@@ -1407,6 +1657,376 @@ const getReviewForBooking = (appointmentId) => {
     const appt = customerData.appointmentHistory.find(a => a.id === appointmentId);
     return f.service === appt?.service && f.staff === appt?.staff;
   });
+};
+
+// Fetch upcoming appointments from API
+const fetchUpcomingAppointments = async () => {
+  const token = localStorage.getItem("authToken");
+  
+  // Don't attempt to fetch if token is missing
+  if (!token) {
+    console.warn("No authentication token found");
+    return;
+  }
+  
+  loadingUpcomingAppointments.value = true;
+  upcomingAppointmentsError.value = "";
+  
+  try {
+    const data = await apiClient.get("/api/customer-upcoming-appointments");
+    console.log("Raw customer upcoming appointments:", data);
+    // Transform API data to match frontend format
+    upcomingAppointmentsData.value = data.map(appt => ({
+      id: appt.appointment_id,
+      service_name: appt.service_name || appt.service_desc || "Service",
+      staff_name: appt.staff_name,
+      datetime: appt.datetime,
+      price: appt.price,
+      status: appt.status,
+      // Extract date and time from ISO datetime
+      date: appt.datetime ? appt.datetime.split('T')[0] : '',
+      time: appt.datetime ? appt.datetime.split('T')[1]?.substring(0, 5) : ''
+    }));
+    console.log("Mapped upcoming appointments:", upcomingAppointmentsData.value);
+  } catch (error) {
+    console.error("Error fetching upcoming appointments:", error);
+    upcomingAppointmentsError.value = "Failed to load upcoming appointments";
+  } finally {
+    loadingUpcomingAppointments.value = false;
+  }
+};
+
+// Fetch past appointments from API
+const fetchHistoryAppointments = async () => {
+  const token = localStorage.getItem("authToken");
+  
+  if (!token) {
+    console.warn("No authentication token found");
+    return;
+  }
+  
+  loadingHistoryAppointments.value = true;
+  historyAppointmentsError.value = "";
+  
+  try {
+    const data = await apiClient.get("/api/customer-history-appointments");
+    console.log("Raw customer history appointments:", data);
+    // Transform API data to match frontend format
+    historyAppointmentsData.value = data.map(appt => ({
+      id: appt.appointment_id,
+      service: appt.service_name || appt.service_desc || "Service",
+      staff: appt.staff_name,
+      datetime: appt.datetime,
+      price: appt.price,
+      status: appt.status,
+      rating: appt.rating || 0,
+      date: appt.datetime ? appt.datetime.split('T')[0] : '',
+      time: appt.datetime ? appt.datetime.split('T')[1]?.substring(0, 5) : ''
+    }));
+    console.log("Mapped history appointments:", historyAppointmentsData.value);
+  } catch (error) {
+    console.error("Error fetching history appointments:", error);
+    historyAppointmentsError.value = "Failed to load appointment history";
+  } finally {
+    loadingHistoryAppointments.value = false;
+  }
+};
+
+// Fetch appointments on component mount
+// Fetch services from backend
+const fetchServices = async () => {
+  loadingServices.value = true;
+  servicesError.value = "";
+  
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      servicesError.value = "Please log in to view services";
+      availableServicesData.value = [];
+      loadingServices.value = false;
+      return;
+    }
+    
+    const response = await apiClient.get("/api/service");
+    
+    if (!response || response.length === 0) {
+      servicesError.value = "No services available at the moment. Please check back later.";
+      availableServicesData.value = [];
+    } else {
+      // Transform backend data to match frontend structure
+      availableServicesData.value = response.map(service => ({
+        id: service.service_id,
+        name: service.service_desc,
+        category: service.service_category,
+        price: service.service_price,
+        duration: service.service_duration,
+        description: service.service_desc
+      }));
+      servicesError.value = "";
+    }
+  } catch (error) {
+    console.error("Error fetching services:", error);
+    servicesError.value = `Failed to load services: ${error.message || "Unknown error"}`;
+    availableServicesData.value = [];
+  } finally {
+    loadingServices.value = false;
+  }
+};
+
+// Fetch customer summary data
+const fetchCustomerSummary = async () => {
+  const token = localStorage.getItem("authToken");
+  
+  if (!token) {
+    console.warn("No authentication token found");
+    return;
+  }
+  
+  loadingSummary.value = true;
+  
+  try {
+    const data = await apiClient.get("/api/customer-summary");
+    summaryData.value = data;
+    console.log("Customer summary data:", data);
+  } catch (error) {
+    console.error("Error fetching customer summary:", error);
+  } finally {
+    loadingSummary.value = false;
+  }
+};
+
+// Fetch pending reviews (appointments that need feedback)
+const fetchPendingReviews = async () => {
+  const token = localStorage.getItem("authToken");
+  
+  if (!token) {
+    console.warn("No authentication token found");
+    return;
+  }
+  
+  loadingPendingReviews.value = true;
+  pendingReviewsError.value = "";
+  
+  try {
+    const data = await apiClient.get("/api/customer-review");
+    pendingReviews.value = data;
+    console.log("Pending reviews:", data);
+  } catch (error) {
+    console.error("Error fetching pending reviews:", error);
+    pendingReviewsError.value = "Failed to load pending reviews";
+  } finally {
+    loadingPendingReviews.value = false;
+  }
+};
+
+// Fetch reviewed appointments
+const fetchReviewedAppointments = async () => {
+  const token = localStorage.getItem("authToken");
+  
+  if (!token) {
+    console.warn("No authentication token found");
+    return;
+  }
+  
+  loadingReviewedAppointments.value = true;
+  reviewedAppointmentsError.value = "";
+  
+  try {
+    const data = await apiClient.get("/api/customer-reviewed-appointments");
+    reviewedAppointments.value = data;
+    console.log("Reviewed appointments:", data);
+  } catch (error) {
+    console.error("Error fetching reviewed appointments:", error);
+    reviewedAppointmentsError.value = "Failed to load reviewed appointments";
+  } finally {
+    loadingReviewedAppointments.value = false;
+  }
+};
+
+// Submit review/rating for an appointment
+const submitReview = async () => {
+  if (!selectedPendingReview.value) {
+    reviewSubmitError.value = "Please select an appointment";
+    return;
+  }
+
+  if (reviewFormData.value.rating === 0) {
+    reviewSubmitError.value = "Please provide a rating";
+    return;
+  }
+
+  reviewSubmitError.value = "";
+  reviewSubmitSuccess.value = "";
+
+  try {
+    const payload = {
+      appointment_id: selectedPendingReview.value.appointment_id,
+      rating: reviewFormData.value.rating,
+      review: reviewFormData.value.review || ""
+    };
+
+    await apiClient.post("/api/customer-reviewed-appointments", payload);
+
+    reviewSubmitSuccess.value = "Review submitted successfully!";
+    
+    // Reset form
+    reviewFormData.value = {
+      rating: 0,
+      review: ""
+    };
+    selectedPendingReview.value = null;
+    showReviewModal.value = false;
+
+    // Refresh pending and reviewed appointments
+    setTimeout(() => {
+      fetchPendingReviews();
+      fetchReviewedAppointments();
+    }, 1500);
+  } catch (error) {
+    console.error("Error submitting review:", error);
+    reviewSubmitError.value = error.message || "Failed to submit review";
+  }
+};
+
+// Open review modal for a pending appointment
+const openReviewModal = (pendingReview) => {
+  selectedPendingReview.value = pendingReview;
+  reviewFormData.value = {
+    rating: 0,
+    review: ""
+  };
+  reviewSubmitError.value = "";
+  reviewSubmitSuccess.value = "";
+  showReviewModal.value = true;
+};
+
+onMounted(() => {
+  fetchServices();
+  fetchUpcomingAppointments();
+  fetchHistoryAppointments();
+  fetchCustomerSummary();
+  fetchPendingReviews();
+  fetchReviewedAppointments();
+  fetchAvailableStaff();
+});
+
+// Book appointment API using apiClient
+const handleBookAppointment = async () => {
+  bookingError.value = "";
+  bookingSuccess.value = "";
+
+  if (bookingForm.value.serviceIds.length === 0) {
+    bookingError.value = "Please select at least one service";
+    return;
+  }
+
+  if (!bookingForm.value.date) {
+    bookingError.value = "Please select a date";
+    return;
+  }
+
+  if (!bookingForm.value.time) {
+    bookingError.value = "Please select a time";
+    return;
+  }
+
+  try {
+    // Combine date and time into ISO datetime string
+    const dateTime = `${bookingForm.value.date}T${bookingForm.value.time}:00`;
+    
+    const payload = {
+      service_ids: bookingForm.value.serviceIds.map(id => parseInt(id)),
+      appointment_datetime: dateTime
+    };
+    
+    if (bookingForm.value.staffId) {
+      payload.staff_id = parseInt(bookingForm.value.staffId);
+    }
+    
+    const response = await apiClient.post("/api/customer-upcoming-appointments", payload);
+    
+    bookingSuccess.value = "Appointment booked successfully!";
+    
+    // Reset form and refresh appointments
+    bookingForm.value = {
+      serviceIds: [],
+      staffId: "",
+      date: "",
+      time: ""
+    };
+    
+    // Refresh upcoming appointments
+    setTimeout(() => {
+      fetchUpcomingAppointments();
+      fetchAvailableStaff();
+      currentView.value = "appointments";
+      appointmentsTab.value = "upcoming";
+    }, 1500);
+  } catch (error) {
+    console.error("Error booking appointment:", error);
+    bookingError.value = error.message || "Failed to book appointment";
+  }
+};
+
+// Edit appointment
+const startEditAppointment = (appt) => {
+  editingAppointmentId.value = appt.id;
+  editAppointmentForm.value = {
+    staffId: appt.staff_id || "",
+    serviceIds: appt.service_ids || [],
+    datetime: appt.datetime || `${appt.date}T${appt.time}:00`
+  };
+  showAppointmentDetailsModal.value = true;
+};
+
+// Update appointment handler
+const handleEditAppointmentSubmit = async () => {
+  if (!editingAppointmentId.value) return;
+  
+  try {
+    const dateTime = editAppointmentForm.value.datetime;
+    
+    const payload = {};
+    if (editAppointmentForm.value.staffId) {
+      payload.staff_id = parseInt(editAppointmentForm.value.staffId);
+    }
+    if (editAppointmentForm.value.serviceIds.length > 0) {
+      payload.service_ids = editAppointmentForm.value.serviceIds.map(id => parseInt(id));
+    }
+    if (editAppointmentForm.value.datetime) {
+      payload.appointment_datetime = dateTime;
+    }
+    
+    const response = await apiClient.put(`/api/customer-upcoming-appointments/${editingAppointmentId.value}`, payload);
+    
+    // Refresh appointments
+    await fetchUpcomingAppointments();
+    selectedAppointment.value = null;
+    editingAppointmentId.value = null;
+    showAppointmentDetailsModal.value = false;
+    
+    alert("Appointment updated successfully!");
+  } catch (error) {
+    console.error("Error editing appointment:", error);
+    alert("Failed to edit appointment: " + error.message);
+  }
+};
+
+// Cancel appointment
+const handleCancelAppointment = async (appointmentId) => {
+  if (!confirm("Are you sure you want to cancel this appointment?")) return;
+  
+  try {
+    const response = await apiClient.delete(`/api/customer-upcoming-appointments/${appointmentId}`);
+    
+    // Refresh appointments
+    await fetchUpcomingAppointments();
+    
+    alert("Appointment cancelled successfully!");
+  } catch (error) {
+    console.error("Error canceling appointment:", error);
+    alert("Failed to cancel appointment: " + error.message);
+  }
 };
 </script>
 

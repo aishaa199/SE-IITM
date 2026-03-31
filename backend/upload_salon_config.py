@@ -35,7 +35,7 @@ def upload_salon_config():
                 "from_date": datetime(2026, 1, 1)
             },
             {
-                "param_name": "POINTS_FOR_REDUMPTION", 
+                "param_name": "VIP_POINTS_FOR_REDUMPTION", 
                 "param_value": "500", 
                 "from_date": datetime(2026, 1, 1)
             },

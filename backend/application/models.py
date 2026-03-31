@@ -77,6 +77,7 @@ class Customer(db.Model):
     customer_type = db.Column(db.String(50), nullable=False)
     customer_preferences = db.Column(db.String(255), nullable=True)
     customer_available_rewards = db.Column(db.Integer, nullable=False, default=0) #Available reward points. This will be calculated and updated at the time of customer or manager booking appointments.
+    total_spend = db.Column(db.Float, nullable=False, default=0.0)
 
     user = db.relationship('User', backref=db.backref('customer_profile', uselist=False))
 
@@ -113,6 +114,9 @@ class Appointment(db.Model):
     customer = db.relationship('Customer', backref=db.backref('appointments', lazy=True))
     staff = db.relationship('Staff', backref=db.backref('appointments', lazy=True))
     services = db.relationship('Service', secondary=appointment_services, backref=db.backref('appointments', lazy=True))
+    status = db.Column(db.Integer, nullable=False, default=0) # 0: Booked, 1: Completed, 2: No-show, 3: Cancelled, 4: Rescheduled, 5.Invoiced
+    feedback_given = db.Column(db.Boolean, default=False) # Flag to track if feedback is given for the appointment, can be used to prompt customers for reviews after appointment completion
+
 
 
 class Invoice(db.Model):
@@ -121,15 +125,21 @@ class Invoice(db.Model):
     invoice_date = db.Column(db.Date, nullable=False, default=db.func.current_date())
     customer_id = db.Column(db.Integer, db.ForeignKey('customer_master.customer_id'), nullable=False)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
+    service_ids = db.Column(db.String(255), nullable=False)
     other_charges = db.Column(db.Float, nullable=True)
     rewards_earned = db.Column(db.Integer, nullable=False, default=0)
     rewards_utilized = db.Column(db.Integer, nullable=False, default=0)
+    current_reward_points = db.Column(db.Integer, nullable=False, default=0)
     invoice_amount = db.Column(db.Float, nullable=False)
-    total_charges = db.Column(db.Float, nullable=False)
+    total_invoice_amount = db.Column(db.Float, nullable=False)
+    payable_invoice_amount = db.Column(db.Float, nullable=False)
+    status = db.Column(db.Integer, nullable=False, default=0) # 0: Pending, 1: Invoiced, 2: Sent
+    appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.appointment_id'), nullable=True)
 
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('invoices', lazy=True))
     staff = db.relationship('Staff', backref=db.backref('invoices', lazy=True))
+    appointment = db.relationship('Appointment', backref=db.backref('invoice', uselist=False))
     # Note: As an invoice is usually for a completed appointment, 
     # you might want to link to Appointment directly or handle service listing in the view/logic.
 
@@ -138,14 +148,17 @@ class InventoryTransaction(db.Model):
     __tablename__ = 'inventory_transactions'
     txn_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     product_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'), nullable=False)
-    staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
+    staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # Changed back to user.id to support both staff and manager IDs
+    service_id = db.Column(db.Integer, db.ForeignKey('service_master.service_id'), nullable=True) # Optional link to service
     txn_type = db.Column(db.Integer, nullable=False) #0 for ordering, 1 for replenishment, will bw populated based on the role - staff (ordering) or mana7ger (replenishment)
     quantity = db.Column(db.Integer, nullable=False)
     date_of_txn = db.Column(db.DateTime, nullable=False)
 
     # Relationships
     product = db.relationship('Product', backref=db.backref('transactions', lazy=True))
-    staff = db.relationship('Staff', backref=db.backref('inventory_transactions', lazy=True))
+    service = db.relationship('Service', backref=db.backref('inventory_transactions', lazy=True))
+    staff = db.relationship('Staff', primaryjoin="InventoryTransaction.staff_id == Staff.staff_id", foreign_keys=[staff_id], backref=db.backref('inventory_transactions', overlaps="inventory_transactions,manager", lazy=True))
+    manager = db.relationship('Manager', primaryjoin="InventoryTransaction.staff_id == Manager.manager_id", foreign_keys=[staff_id], backref=db.backref('inventory_transactions', overlaps="inventory_transactions,staff", lazy=True), overlaps="inventory_transactions,staff")
 
 
 class StaffAttendance(db.Model):
@@ -163,7 +176,9 @@ class CustomerReview(db.Model):
     review_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer_master.customer_id'), nullable=False)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
-    invoice_number = db.Column(db.Integer, db.ForeignKey('invoices.invoice_number'), nullable=False)
+    service_ids = db.Column(db.String(255), nullable=False)
+    apppointment_id = db.Column(db.Integer, db.ForeignKey('appointments.appointment_id'), nullable=False)
+    invoice_number = db.Column(db.Integer, db.ForeignKey('invoices.invoice_number'), nullable=True) # made nullable
     rating = db.Column(db.Integer, nullable=False) # rating 1-5 given by customer for the service experience
     review = db.Column(db.String(255), nullable=True)
 
@@ -184,7 +199,7 @@ class Finance(db.Model):
     net_profit = db.Column(db.Float, nullable=True)
 
 
-class Manager(db.Model, UserMixin):
+class Manager(db.Model):
     __tablename__ = 'manager_master'
     manager_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True)
     manager_name = db.Column(db.String(100), nullable=False)
@@ -194,6 +209,7 @@ class Manager(db.Model, UserMixin):
     manager_role = db.Column(db.String(50), nullable=False, default='Manager')
     manager_dob = db.Column(db.DateTime, nullable=False)
     manager_doj = db.Column(db.DateTime, nullable=False)
+    branch_name = db.Column(db.String(100), nullable=False)
 
     user = db.relationship('User', backref=db.backref('manager_profile', uselist=False))
 
@@ -215,6 +231,7 @@ class CustomerReward(db.Model):
     credit_points = db.Column(db.Integer, nullable=False)
     expiry_date = db.Column(db.DateTime, nullable=False) # to be calculated after adding the time duration from the salon_config table
     valid_flg = db.Column(db.Boolean, default=True) # to check if the reward points are still valid based on the expiry date
+    utilized_flg = db.Column(db.Boolean, default=False) # to check if the reward points are already utilized
 
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('reward_profile', uselist=False))
@@ -227,3 +244,19 @@ class SalonConfig(db.Model):
     param_value = db.Column(db.String(255), nullable=False)
     from_date = db.Column(db.DateTime, nullable=False)
     to_date = db.Column(db.DateTime, nullable=True)
+
+class Order(db.Model):
+    __tablename__ = 'orders'
+    order_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'), nullable=False)
+    order_quantity = db.Column(db.Integer, nullable=False)
+    order_cost = db.Column(db.Float, nullable=False, default=0.0)
+    order_date = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+    order_replenishment_date = db.Column(db.DateTime, nullable=True)
+    reason_for_order = db.Column(db.String(255), nullable=True)
+    supplier_name = db.Column(db.Text, nullable=False)
+    supplier_email = db.Column(db.String(120), nullable=False)
+    status = db.Column(db.Integer, default=0) # 0 for Pending, 1 for Processed, 2 for Cancelled
+
+    # Relationship
+    product = db.relationship('Product', backref=db.backref('orders', lazy=True))
