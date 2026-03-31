@@ -25,8 +25,12 @@ def create_app():
         from application.resources import api as restful_api
         app.register_blueprint(views.main)
         restful_api.init_app(app)
-        db.create_all()
-        seed_initial_data()
+
+        # Check if database exists before creating and seeding
+        db_path = os.path.join(app.instance_path, 'sm_devdb.db')
+        if not os.path.exists(db_path):
+            db.create_all()
+            seed_initial_data()
         
     return app
 

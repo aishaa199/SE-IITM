@@ -348,25 +348,62 @@ paths:
                 items:
                   $ref: '#/components/schemas/Staff'
 
+  /api/manager-staff-attendance:
+    get:
+      summary: Get all staff attendance records for a specific date (Managers only)
+      tags:
+        - Staff
+      security:
+        - tokenAuth: []
+      parameters:
+        - name: date
+          in: query
+          description: Date in YYYY-MM-DD format. Defaults to today.
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: List of attendance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffAttendance'
+        '400':
+          description: Invalid date format
+        '404':
+          description: No attendance records found
+
   /api/staff-attendance:
     get:
-      summary: Get attendance records
+      summary: Get attendance records for the current month for the logged-in staff
       tags:
         - Staff
       security:
         - tokenAuth: []
       responses:
         '200':
-          description: Attendance list
+          description: Attendance list for the current month
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/StaffAttendance'
     post:
-      summary: Mark current staff as present
+      summary: Mark attendance for the logged-in staff for today
       tags:
         - Staff
       security:
         - tokenAuth: []
       responses:
         '201':
-          description: Attendance marked
+          description: Attendance marked successfully
+        '400':
+          description: Attendance already marked for today
 
   /api/service:
     get:
@@ -620,6 +657,13 @@ components:
         staff_email: {type: string}
         staff_cumulative_rating: {type: number}
         is_present_today: {type: boolean}
+
+    StaffAttendance:
+      type: object
+      properties:
+        register_id: {type: integer}
+        staff_id: {type: integer}
+        register_datetime: {type: string, format: date-time}
 
     Service:
       type: object

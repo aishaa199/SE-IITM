@@ -1367,62 +1367,53 @@ staff_attendance_fields = {
     'register_datetime': fields.String,
 }
 
-class StaffAttendanceResource(Resource):
-################################## Get Staff Attendance  ##############################
+class ManagerStaffAttendance(Resource):
+################################## Get Staff Attendance for Manager ##############################
     @auth_required("token")
-    def get(self, staff_id=None):
-        # Determine target user role
-        user_roles = [r.name for r in current_user.roles] if current_user else []
+    @roles_required("manager")
+    def get(self):
+        date_str = request.args.get('date') # Format: YYYY-MM-DD
         
-        # Determine if we should treat this as a Manager request or a Staff request
-        # If user is a manager, they get date-based access to all staff
-        if "manager" in user_roles:
-            date_str = request.args.get('date') # Format: YYYY-MM-DD
-            
-            if date_str:
-                # 1. Manager selecting a particular date
-                try:
-                    target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-                except ValueError:
-                    return {"message": "Invalid date format. Use YYYY-MM-DD."}, 400
-            else:
-                # 2. Manager default: Today
-                target_date = date.today()
-
-            start_of_day = datetime.combine(target_date, datetime.min.time())
-            end_of_day = datetime.combine(target_date, datetime.max.time())
-            
-            records = StaffAttendance.query.filter(
-                StaffAttendance.register_datetime >= start_of_day,
-                StaffAttendance.register_datetime <= end_of_day
-            ).all()
-
-            if not records:
-                return {"message": f"No attendance records found for {target_date}"}, 404
-
-        # If user is a staff (and NOT a manager, or we specifically want staff behavior)
-        elif "staff" in user_roles:
-            # 3. Particular staff (current_user.id) fetching for current month
-            target_staff_id = current_user.id
-            today = date.today()
-            
-            records = StaffAttendance.query.filter(
-                StaffAttendance.staff_id == target_staff_id,
-                db.extract('month', StaffAttendance.register_datetime) == today.month,
-                db.extract('year', StaffAttendance.register_datetime) == today.year
-            ).all()
-
-            if not records:
-                return {"message": f"No attendance records found for current month for you"}, 404
+        if date_str:
+            # 1. Manager selecting a particular date
+            try:
+                target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except ValueError:
+                return {"message": "Invalid date format. Use YYYY-MM-DD."}, 400
         else:
-            return {"message": "Unauthorized role"}, 403
+            # 2. Manager default: Today
+            target_date = date.today()
+
+        start_of_day = datetime.combine(target_date, datetime.min.time())
+        end_of_day = datetime.combine(target_date, datetime.max.time())
+        
+        records = StaffAttendance.query.filter(
+            StaffAttendance.register_datetime >= start_of_day,
+            StaffAttendance.register_datetime <= end_of_day
+        ).all()
+
+        if not records:
+            return {"message": f"No attendance records found for {target_date}"}, 404
 
         return marshal(records, staff_attendance_fields)
 
+class StaffAttendanceResource(Resource):
+################################## Get Staff Attendance for Staff ##############################
+    @auth_required("token")
+    @roles_required("staff")
+    def get(self):
+        # Particular staff (current_user.id) fetching for current month
+        target_staff_id = current_user.id
+        today = date.today()
+        
+        records = StaffAttendance.query.filter(
+            StaffAttendance.staff_id == target_staff_id,
+            db.extract('month', StaffAttendance.register_datetime) == today.month,
+            db.extract('year', StaffAttendance.register_datetime) == today.year
+        ).all()
+
         if not records:
-                return {"message": f"No attendance records found for current month"}, 404
-        else:
-            return {"message": "Unauthorized role"}, 403
+            return {"message": f"No attendance records found for current month for you"}, 404
 
         return marshal(records, staff_attendance_fields)
 
@@ -2472,7 +2463,8 @@ api.add_resource(ServiceResource, '/service', '/service/<int:service_id>')
 api.add_resource(AppointmentResource, '/appointment', '/appointment/<int:appointment_id>')
 api.add_resource(SalonConfigResource, '/salon-config', '/salon-config/<int:setting_id>')
 api.add_resource(StaffAppointmentResource, '/staff-appointments')
-api.add_resource(StaffAttendanceResource, '/staff-attendance', '/staff-attendance/<int:staff_id>')
+api.add_resource(ManagerStaffAttendance, '/manager-staff-attendance')
+api.add_resource(StaffAttendanceResource, '/staff-attendance')
 api.add_resource(AppointmentHistoryCleanup, '/cleanup-appointments')
 api.add_resource(SalonDailyAppointmentCountResource, '/daily-appointment-count')
 api.add_resource(CustomerUpcomingAppointmentsResource, '/customer-upcoming-appointments')
