@@ -1,0 +1,128 @@
+import json
+import pytest
+from application.models import db, Product
+
+def test_change_password_success(client, auth_header_owner):
+    """Test http://127.0.0.1:5000/api/change-password Put - Success"""
+    data = {
+        "current_password": "password",
+        "new_password": "new_password123",
+        "confirm_password": "new_password123"
+    }
+    response = client.put('/api/change-password', 
+                          data=json.dumps(data), 
+                          headers=auth_header_owner,
+                          content_type='application/json')
+    assert response.status_code == 200
+    assert response.json['message'] == "Password changed successfully"
+
+def test_change_password_mismatch(client, auth_header_owner):
+    """Test http://127.0.0.1:5000/api/change-password Put - Mismatch"""
+    data = {
+        "current_password": "password",
+        "new_password": "new_password123",
+        "confirm_password": "different_password"
+    }
+    response = client.put('/api/change-password', 
+                          data=json.dumps(data), 
+                          headers=auth_header_owner,
+                          content_type='application/json')
+    assert response.status_code == 400
+    assert response.json['message'] == "New password and confirm password do not match"
+
+def test_add_product_success(client, auth_header_manager):
+    """Test http://127.0.0.1:5000/api/product Post - Success"""
+    data = {
+        "product_name": "Shampoo",
+        "product_category": "Haircare",
+        "price": 15.5,
+        "minimum_stock": 5,
+        "stock_quantity": 20,
+        "supplier_name": "Dove",
+        "supplier_contact": "9876543210",
+        "supplier_email": "dove@test.com"
+    }
+    response = client.post('/api/product', 
+                           data=json.dumps(data), 
+                           headers=auth_header_manager, 
+                           content_type='application/json')
+    assert response.status_code == 201
+    assert response.json['message'] == "Product added successfully"
+    assert "product_id" in response.json
+
+def test_get_products(client, auth_header_manager):
+    """Test http://127.0.0.1:5000/api/product Get - Success"""
+    response = client.get('/api/product', headers=auth_header_manager)
+    assert response.status_code == 200
+    assert isinstance(response.json, list)
+
+def test_update_product_success(client, auth_header_manager):
+    """Test http://127.0.0.1:5000/api/product Put - Success"""
+    # Create a product first
+    product = Product(
+        product_desc="Old Name",
+        product_category_name="Haircare",
+        product_price=10.0,
+        product_min_qoh=5,
+        product_curr_qoh=10,
+        product_supplier_name="Supplier",
+        product_supplier_contact="1234567890",
+        product_supplier_email="supplier@test.com"
+    )
+    db.session.add(product)
+    db.session.commit()
+    
+    data = {"product_name": "New Name", "price": 12.0}
+    response = client.put(f'/api/product/{product.product_id}', 
+                          data=json.dumps(data), 
+                          headers=auth_header_manager, 
+                          content_type='application/json')
+    assert response.status_code == 200
+    assert response.json['message'] == "Product updated successfully"
+
+def test_delete_product_success(client, auth_header_manager):
+    """Test http://127.0.0.1:5000/api/product Delete - Success"""
+    # Create a product first
+    product = Product(
+        product_desc="To be deleted",
+        product_category_name="Haircare",
+        product_price=10.0,
+        product_min_qoh=5,
+        product_curr_qoh=10,
+        product_supplier_name="Supplier",
+        product_supplier_contact="1234567890",
+        product_supplier_email="supplier@test.com"
+    )
+    db.session.add(product)
+    db.session.commit()
+    
+    response = client.delete(f'/api/product/{product.product_id}', headers=auth_header_manager)
+    assert response.status_code == 200
+    assert response.json['message'] == "Product deleted successfully"
+
+def test_staff_inventory_usage(client, auth_header_manager):
+    """Test Case 7 & 8: Staff records usage and views personal transactions."""
+    # 8. POST - Record Usage (auto-assigns txn_type 0)
+    data = {"product_id": 1, "service_id": 1, "quantity": 1}
+    response = client.post('/api/inventory-transaction', json=data, headers=auth_header_manager)
+    assert response.status_code == 201
+
+def test_manager_inventory_replenish(client, auth_header_manager):
+    """Test Case 9 & 10 from Batch 5: Manager adds stock and views transactions."""
+    # 10. POST - Record Replenishment
+    data = {"product_id": 1, "quantity": 100}
+    response = client.post('/api/inventory-transaction', json=data, headers=auth_header_manager)
+    assert response.status_code == 201
+    
+    # 9. GET - Fetch All (Manager View)
+    response = client.get('/api/inventory-transaction', headers=auth_header_manager)
+    assert response.status_code == 200
+    assert isinstance(response.json, list)
+
+def test_get_salon_config(client, auth_header_manager):
+    """Test Case 1 from Batch 5: Fetch salon configuration."""
+    response = client.get('/api/salon-config', headers=auth_header_manager)
+    assert response.status_code == 200
+    assert isinstance(response.json, list)
+
+
