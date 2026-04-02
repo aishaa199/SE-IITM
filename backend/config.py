@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 # Project root = folder containing this config.py
@@ -21,6 +22,7 @@ class Config(object):
     SECURITY_RECOVERABLE = False
     # SECURITY_USER_IDENTITY_ATTRIBUTES = ('username', )
     SECURITY_USERNAME_ENABLE = True
+    ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 
 class DevelopmentConfig(Config):

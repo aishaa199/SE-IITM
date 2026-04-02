@@ -722,6 +722,8 @@ manager_fields = {
     'branch_name': fields.String
 }
 
+
+
 ################################## Manager API ############################################
 class ManagerResource(Resource):
 ################################## Fetch Manager ############################################
