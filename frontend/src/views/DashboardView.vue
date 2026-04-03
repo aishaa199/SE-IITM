@@ -142,6 +142,124 @@
       <div class="page-content">
         <!-- DASHBOARD VIEW -->
         <div v-if="currentView === 'dashboard'" class="fade-in">
+
+          <!-- AI Daily Briefing Card -->
+          <div v-if="!briefingDismissed" style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #8B6914 0%, #C9A96E 60%, #b8945a 100%); box-shadow: 0 4px 20px rgba(139,105,20,0.35); border: 1px solid rgba(255,220,140,0.3);">
+
+            <!-- Loading state -->
+            <div v-if="briefingLoading" style="padding: 32px; text-align: center; color: #1A1A1A;">
+              <div style="font-size: 30px; margin-bottom: 10px;">✨</div>
+              <div style="font-size: 14px; opacity: 0.7;">Generating your AI briefing…</div>
+            </div>
+
+            <!-- Error state -->
+            <div v-else-if="briefingError" style="padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; color: #1A1A1A;">
+              <span style="font-size: 14px; opacity: 0.8;">⚠️ {{ briefingError }}</span>
+              <div style="display: flex; gap: 8px;">
+                <button @click="fetchBriefing()" style="background: rgba(26,26,26,0.12); border: 1px solid rgba(26,26,26,0.25); color: #1A1A1A; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">Retry</button>
+                <button @click="briefingDismissed = true" style="background: transparent; border: none; color: rgba(26,26,26,0.5); cursor: pointer; font-size: 18px; line-height: 1;">✕</button>
+              </div>
+            </div>
+
+            <!-- Briefing content -->
+            <div v-else-if="briefingData" style="padding: 24px; color: #1A1A1A;">
+              <!-- Header row -->
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+                <div>
+                  <div style="font-size: 20px; font-weight: 700; margin-bottom: 4px; color: #1A1A1A;">{{ briefingData.greeting }}</div>
+                  <div style="font-size: 14px; color: #2D2D2D; opacity: 0.8;">{{ briefingData.summary }}</div>
+                </div>
+                <div style="display: flex; gap: 8px; flex-shrink: 0; margin-left: 16px;">
+                  <button @click="fetchBriefing()" title="Refresh briefing" style="background: rgba(26,26,26,0.1); border: 1px solid rgba(26,26,26,0.2); color: #1A1A1A; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center;">↻</button>
+                  <button @click="briefingDismissed = true" title="Dismiss" style="background: rgba(26,26,26,0.1); border: 1px solid rgba(26,26,26,0.2); color: #1A1A1A; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center;">✕</button>
+                </div>
+              </div>
+
+              <!-- Divider -->
+              <div style="height: 1px; background: rgba(26,26,26,0.15); margin-bottom: 18px;"></div>
+
+              <!-- Insights + Recommendations columns -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                  <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #4A4A4A; margin-bottom: 10px;">Key Insights</div>
+                  <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                    <li v-for="(insight, i) in briefingData.insights" :key="'ins-' + i" style="font-size: 13px; padding-left: 18px; position: relative; color: #1A1A1A; line-height: 1.45;">
+                      <span style="position: absolute; left: 0; color: #4A3000; font-size: 16px; line-height: 1;">•</span>{{ insight }}
+                    </li>
+                  </ul>
+                </div>
+                <div>
+                  <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #4A4A4A; margin-bottom: 10px;">Recommendations</div>
+                  <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
+                    <li v-for="(rec, i) in briefingData.recommendations" :key="'rec-' + i" style="font-size: 13px; padding-left: 18px; position: relative; color: #1A1A1A; line-height: 1.45;">
+                      <span style="position: absolute; left: 0; color: #2D5A27; font-size: 14px; line-height: 1.1;">→</span>{{ rec }}
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div v-if="briefingData.ai_error" style="margin-top: 14px; font-size: 11px; color: rgba(26,26,26,0.4);">Note: AI unavailable — showing data-driven fallback.</div>
+            </div>
+
+            <!-- Initial state (no data yet, not loading) -->
+            <div v-else style="padding: 28px; text-align: center; color: #1A1A1A;">
+              <div style="font-size: 28px; margin-bottom: 10px;">🤖</div>
+              <div style="font-size: 14px; opacity: 0.7; margin-bottom: 16px;">Get your AI-powered daily briefing</div>
+              <button @click="fetchBriefing()" style="background: rgba(26,26,26,0.12); border: 1px solid rgba(26,26,26,0.25); color: #1A1A1A; padding: 8px 22px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">Generate Briefing</button>
+            </div>
+          </div>
+          <!-- End AI Daily Briefing Card -->
+
+          <!-- AI Task Checklist Card -->
+          <div style="margin-bottom: 24px; background: white; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">✅</span>
+                <span style="font-weight: 700; font-size: 15px; color: var(--charcoal);">Today's AI Tasks</span>
+                <span v-if="managerTasks.length > 0" style="background: var(--gold); color: white; border-radius: 10px; padding: 1px 8px; font-size: 11px; font-weight: 600;">{{ pendingTasks.length }} left</span>
+              </div>
+              <button @click="generateManagerTasks" :disabled="tasksLoading" class="generate-tasks-btn">
+                <span v-if="tasksLoading">⏳ Generating…</span>
+                <span v-else>✨ Generate Tasks</span>
+              </button>
+            </div>
+
+            <div style="padding: 16px 20px;">
+              <!-- Error state -->
+              <div v-if="tasksError" style="color: #e53e3e; font-size: 13px; padding: 6px 0;">⚠️ {{ tasksError }}</div>
+
+              <!-- Empty state -->
+              <div v-else-if="managerTasks.length === 0 && !tasksLoading" style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 14px 0;">
+                Ask the chatbot <strong>"Create a task checklist for today"</strong> or click <em>Generate Tasks</em> above.
+              </div>
+
+              <!-- Pending tasks -->
+              <div v-if="pendingTasks.length > 0">
+                <div class="task-section-label">Pending</div>
+                <div v-for="task in pendingTasks" :key="task.task_id" class="task-item" @click="toggleTask(task)">
+                  <span class="task-checkbox pending-cb">☐</span>
+                  <div class="task-info">
+                    <span class="task-description">{{ task.task_description }}</span>
+                    <span :class="['task-badge', 'badge-' + task.task_section]">{{ task.task_section }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Completed tasks -->
+              <div v-if="completedTasks.length > 0" :style="pendingTasks.length > 0 ? 'margin-top: 16px;' : ''">
+                <div class="task-section-label">Completed</div>
+                <div v-for="task in completedTasks" :key="task.task_id" class="task-item completed-task" @click="toggleTask(task)">
+                  <span class="task-checkbox completed-cb">☑</span>
+                  <div class="task-info">
+                    <span class="task-description" style="text-decoration: line-through; color: var(--text-muted);">{{ task.task_description }}</span>
+                    <span :class="['task-badge', 'badge-' + task.task_section]">{{ task.task_section }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- End AI Task Checklist Card -->
+
           <!-- Quick Stats -->
           <div class="stat-grid">
             <div class="stat-card">
@@ -3005,12 +3123,25 @@ const financeAuthenticated = ref(false);
 const reportsAuthenticated = ref(false);
 const pendingFinancialView = ref(null); // Track which view user tried to access
 
+// AI Daily Briefing state
+const briefingData = ref(null);
+const briefingLoading = ref(false);
+const briefingError = ref(null);
+const briefingDismissed = ref(false);
+
 // AI Assistant state
 const showAIAssistant = ref(false);
 const aiMessages = ref([
-  { type: 'assistant', text: 'Hi! I\'m your AI Assistant. I\'m here to help you manage appointments, customers, services, staff, packages, and resolve any issues. How can I assist you today?' }
+  { type: 'assistant', text: 'Hi! I\'m your AI Assistant. I\'m here to help you manage appointments, customers, services, staff, packages, and resolve any issues. Try asking me to "Create a task checklist for today"!' }
 ]);
 const aiUserInput = ref('');
+
+// Manager Task Checklist state
+const managerTasks = ref([]);
+const tasksLoading = ref(false);
+const tasksError = ref(null);
+const pendingTasks = computed(() => managerTasks.value.filter(t => t.status === 'pending'));
+const completedTasks = computed(() => managerTasks.value.filter(t => t.status === 'completed'));
 
 // Booking form state
 const bookingForm = ref({
@@ -6003,19 +6134,115 @@ const verifyReportsPassword = async () => {
   }
 };
 
+// Fetch today's tasks for the current manager
+const fetchManagerTasks = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) return;
+  try {
+    const response = await fetch(`${API_BASE_URL}/ai/manager-tasks`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token,
+      },
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    managerTasks.value = data.tasks || [];
+  } catch (err) {
+    console.error("Failed to fetch manager tasks:", err);
+  }
+};
+
+// Call backend to generate AI tasks and persist them
+const generateManagerTasks = async () => {
+  tasksLoading.value = true;
+  tasksError.value = null;
+  const token = localStorage.getItem("authToken");
+  if (!token) { tasksLoading.value = false; return; }
+  try {
+    const response = await fetch(`${API_BASE_URL}/ai/generate-manager-tasks`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) {
+      const err = await response.json();
+      throw new Error(err.message || 'Failed to generate tasks');
+    }
+    const data = await response.json();
+    managerTasks.value = data.tasks || [];
+  } catch (err) {
+    tasksError.value = err.message || 'Failed to generate tasks. Please try again.';
+  } finally {
+    tasksLoading.value = false;
+  }
+};
+
+// Toggle a task between pending and completed
+const toggleTask = async (task) => {
+  const token = localStorage.getItem("authToken");
+  if (!token) return;
+  const newStatus = task.status === 'pending' ? 'completed' : 'pending';
+  try {
+    const response = await fetch(`${API_BASE_URL}/tasks/${task.task_id}`, {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status: newStatus }),
+    });
+    if (!response.ok) throw new Error('Failed to update task');
+    task.status = newStatus;
+  } catch (err) {
+    console.error('Failed to toggle task:', err);
+  }
+};
+
 // AI Assistant handler
 const sendAIMessage = () => {
   if (!aiUserInput.value.trim()) return;
 
-  // Add user message
   aiMessages.value.push({ type: 'user', text: aiUserInput.value });
-
   const userMessage = aiUserInput.value.toLowerCase();
   aiUserInput.value = '';
 
-  // Simulate AI responses based on keywords
-  let assistantResponse = '';
+  const scrollChat = () => {
+    setTimeout(() => {
+      const chatBox = document.querySelector('.ai-chat-messages');
+      if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+    }, 0);
+  };
 
+  // Task checklist — async path
+  if (
+    userMessage.includes('checklist') ||
+    userMessage.includes('task') ||
+    userMessage.includes('todo') ||
+    userMessage.includes('to do') ||
+    userMessage.includes('what should i') ||
+    userMessage.includes('tasks for today') ||
+    userMessage.includes('tasks today')
+  ) {
+    aiMessages.value.push({ type: 'assistant', text: 'Generating your AI-powered task checklist based on today\'s salon data…' });
+    scrollChat();
+    generateManagerTasks().then(() => {
+      const count = managerTasks.value.length;
+      const reply = count > 0
+        ? `Done! I've created ${count} priority tasks for today. Check the task checklist on your dashboard above!`
+        : (tasksError.value || 'Could not generate tasks. Please try again.');
+      aiMessages.value.push({ type: 'assistant', text: reply });
+      scrollChat();
+    });
+    return;
+  }
+
+  // Static keyword responses
+  let assistantResponse = '';
   if (userMessage.includes('appointment') || userMessage.includes('booking')) {
     assistantResponse = 'I see you\'re asking about appointments. You can manage appointments in the "Appointments" section. You can create new appointments, edit existing ones, or view them by date. What would you like to do?';
   } else if (userMessage.includes('customer')) {
@@ -6035,24 +6262,18 @@ const sendAIMessage = () => {
   } else if (userMessage.includes('issue') || userMessage.includes('problem') || userMessage.includes('error')) {
     assistantResponse = 'I\'m sorry you\'re experiencing an issue. Please describe the problem in detail, and I\'ll help you troubleshoot. Is it related to appointments, customers, services, staff, inventory, or invoices?';
   } else if (userMessage.includes('help')) {
-    assistantResponse = 'I\'m here to help! I can assist you with:\n• Managing appointments & bookings\n• Customer information & preferences\n• Creating & managing services\n• Staff management & scheduling\n• Service packages\n• Inventory & product management\n• Invoices & billing\n• Finance & reports\n\nWhat would you like help with?';
+    assistantResponse = 'I\'m here to help! I can assist you with:\n• Managing appointments & bookings\n• Customer information & preferences\n• Creating & managing services\n• Staff management & scheduling\n• Inventory & product management\n• Invoices & billing\n• Finance & reports\n• Generating a daily task checklist (just ask!)\n\nWhat would you like help with?';
   } else if (userMessage.includes('hello') || userMessage.includes('hi')) {
-    assistantResponse = 'Hello! I\'m your AI Assistant for the Manager Dashboard. How can I help you today? Feel free to ask about appointments, customers, services, staff, packages, inventory, or any other concerns.';
+    assistantResponse = 'Hello! I\'m your AI Assistant for the Manager Dashboard. How can I help you today? Feel free to ask about appointments, customers, services, staff, inventory, or say "Create a task checklist for today"!';
   } else if (userMessage.includes('overview') || userMessage.includes('stats') || userMessage.includes('dashboard')) {
     assistantResponse = 'The Dashboard Overview shows you key metrics: Today\'s appointments, available staff, low stock items, and pending orders. This gives you a quick snapshot of your business for the day.';
   } else {
-    assistantResponse = 'That\'s a great question! I can help with appointment management, customer details, service creation, staff management, packages, inventory, invoices, and financial reports. How would you like me to assist you?';
+    assistantResponse = 'That\'s a great question! I can help with appointment management, customer details, service creation, staff management, inventory, invoices, and financial reports. You can also ask me to "Create a task checklist for today"!';
   }
 
-  // Add assistant response after a small delay
   setTimeout(() => {
     aiMessages.value.push({ type: 'assistant', text: assistantResponse });
-    
-    // Auto-scroll to bottom
-    setTimeout(() => {
-      const chatBox = document.querySelector('.ai-chat-messages');
-      if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
-    }, 0);
+    scrollChat();
   }, 500);
 };
 
@@ -7107,8 +7328,34 @@ const formatDate = (dateStr) => {
   return date.toLocaleDateString();
 };
 
+const fetchBriefing = async () => {
+  briefingLoading.value = true;
+  briefingError.value = null;
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+    const response = await fetch(`${API_BASE_URL}/ai/daily-briefing`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token,
+      },
+    });
+    if (!response.ok) throw new Error("Request failed");
+    briefingData.value = await response.json();
+  } catch (err) {
+    briefingError.value = "Could not load AI briefing.";
+    console.error("Briefing fetch error:", err);
+  } finally {
+    briefingLoading.value = false;
+  }
+};
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  // Fetch AI daily briefing
+  fetchBriefing();
+  // Fetch today's AI tasks
+  fetchManagerTasks();
   // Fetch products, customers, staff, and services from API on component mount
   fetchProducts();
   fetchCustomers();
@@ -7739,5 +7986,80 @@ onUnmounted(() => {
     max-width: 90%;
   }
 }
+
+/* ── Task Checklist ─────────────────────────────────────── */
+.generate-tasks-btn {
+  background: var(--gold);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+.generate-tasks-btn:hover { background: var(--gold-dark); }
+.generate-tasks-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.task-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+  margin-bottom: 6px;
+}
+.task-item:hover { background: var(--light-bg); }
+.task-item.completed-task { opacity: 0.65; }
+
+.task-checkbox {
+  font-size: 18px;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+.pending-cb  { color: var(--gold-dark); }
+.completed-cb { color: #38a169; }
+
+.task-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.task-description {
+  font-size: 13px;
+  color: var(--charcoal);
+  line-height: 1.4;
+}
+
+.task-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  width: fit-content;
+  background: #e8e0d5;
+  color: var(--text-muted);
+}
+.badge-appointments { background: #ebf4ff; color: #2b6cb0; }
+.badge-inventory    { background: #fff3cd; color: #856404; }
+.badge-feedback     { background: #fce8e8; color: #c53030; }
+.badge-staff        { background: #e6f4ea; color: #276749; }
+.badge-general      { background: #e8e0d5; color: var(--text-muted); }
 </style>
 

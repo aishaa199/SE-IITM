@@ -5,9 +5,9 @@ from collections import Counter
 from flask import Blueprint, request, jsonify, current_app
 from flask_restful import Api, Resource
 from flask_security import auth_required, roles_accepted, current_user, verify_password, hash_password
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from werkzeug.security import check_password_hash
-from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, CustomerReview, db, Role
+from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, CustomerReview, db, Role, Manager, ManagerTask, StaffAttendance
 from .sec import datastore
 
 main = Blueprint('main', __name__)
@@ -365,4 +365,233 @@ def daily_briefing():
             "ai_error": str(e),
         }
         return jsonify(fallback)
+
+
+##############################################################################
+# AI Manager Task Checklist
+##############################################################################
+
+def get_task_dashboard_data():
+    """Gather salon operational data for AI task generation."""
+    today = date.today()
+    today_start = datetime.combine(today, datetime.min.time())
+    today_end = datetime.combine(today, datetime.max.time())
+    tomorrow = today + timedelta(days=1)
+    tomorrow_start = datetime.combine(tomorrow, datetime.min.time())
+    tomorrow_end = datetime.combine(tomorrow, datetime.max.time())
+
+    # Today's appointments
+    today_appts = Appointment.query.filter(
+        Appointment.appointment_datetime >= today_start,
+        Appointment.appointment_datetime <= today_end
+    ).all()
+    appointment_count = len(today_appts)
+
+    # Peak hour
+    hour_counts = Counter(a.appointment_datetime.hour for a in today_appts)
+    if hour_counts:
+        peak_hour = max(hour_counts, key=hour_counts.get)
+        def fmt_hour(h):
+            if h == 0:    return "12 AM"
+            elif h < 12:  return f"{h} AM"
+            elif h == 12: return "12 PM"
+            else:         return f"{h - 12} PM"
+        peak_hours = f"{fmt_hour(peak_hour)} – {fmt_hour(peak_hour + 1)}"
+    else:
+        peak_hours = "N/A"
+
+    # Low-stock items
+    low_stock = Product.query.filter_by(product_low_stock_alert=True).all()
+    inventory_alerts = [p.product_desc for p in low_stock]
+
+    # Pending feedback (completed appointments, no review yet)
+    pending_feedback = Appointment.query.filter(
+        Appointment.status == 1,
+        Appointment.feedback_given == False
+    ).count()
+
+    # Tomorrow's unconfirmed (status=0 Booked) appointments
+    tomorrow_unconfirmed = Appointment.query.filter(
+        Appointment.appointment_datetime >= tomorrow_start,
+        Appointment.appointment_datetime <= tomorrow_end,
+        Appointment.status == 0
+    ).count()
+
+    # Staff absent today
+    present_ids = {row[0] for row in db.session.query(StaffAttendance.staff_id).filter(
+        StaffAttendance.register_datetime >= today_start,
+        StaffAttendance.register_datetime <= today_end
+    ).distinct().all()}
+    total_staff = Staff.query.count()
+    absent_count = max(0, total_staff - len(present_ids))
+
+    return {
+        'appointments_today': appointment_count,
+        'peak_hours': peak_hours,
+        'inventory_alerts': inventory_alerts,
+        'pending_feedback': pending_feedback,
+        'tomorrow_unconfirmed': tomorrow_unconfirmed,
+        'staff_absent_count': absent_count,
+    }
+
+
+def call_claude_for_tasks(data, manager_name):
+    """Call Claude API and return a list of task dicts."""
+    api_key = current_app.config.get('ANTHROPIC_API_KEY', '')
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY is not configured")
+
+    client = anthropic.Anthropic(api_key=api_key)
+    inventory_text = ", ".join(data['inventory_alerts']) if data['inventory_alerts'] else "None"
+
+    prompt = f"""You are an AI assistant helping a salon manager organize daily tasks.
+
+Manager Name: {manager_name}
+
+Salon Data:
+- Appointments Today: {data['appointments_today']}
+- Peak Hours: {data['peak_hours']}
+- Low-Stock Inventory Items: {inventory_text}
+- Pending Customer Feedback: {data['pending_feedback']}
+- Unconfirmed Appointments Tomorrow: {data['tomorrow_unconfirmed']}
+- Staff Absent Today: {data['staff_absent_count']}
+
+Generate a checklist of the most important tasks the manager should complete today.
+
+Rules:
+- Maximum 6 tasks
+- Each task must be short and actionable (under 12 words)
+- Focus only on items where the data indicates an actual issue
+- Tasks must relate to salon operations
+
+Return ONLY valid JSON, no markdown, no extra text:
+{{
+  "tasks": [
+    {{"task": "Prepare staff for peak hours", "section": "appointments"}},
+    {{"task": "Restock Hair Serum inventory", "section": "inventory"}}
+  ]
+}}
+
+Valid section values: appointments, inventory, feedback, staff, general"""
+
+    message = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=512,
+        messages=[{"role": "user", "content": prompt}]
+    )
+
+    response_text = message.content[0].text.strip()
+    if response_text.startswith("```"):
+        response_text = response_text.split("```")[1]
+        if response_text.startswith("json"):
+            response_text = response_text[4:]
+    parsed = json.loads(response_text.strip())
+    return parsed.get('tasks', [])
+
+
+@main.route('/ai/generate-manager-tasks', methods=['POST'])
+@auth_required()
+@roles_accepted('manager')
+def generate_manager_tasks():
+    manager = current_user.manager_profile
+    if not manager:
+        return jsonify({"message": "Manager profile not found"}), 404
+
+    manager_name = manager.manager_name.split()[0]
+    manager_id = manager.manager_id
+
+    data = get_task_dashboard_data()
+
+    try:
+        tasks = call_claude_for_tasks(data, manager_name)
+    except Exception as e:
+        return jsonify({"message": f"AI generation failed: {str(e)}"}), 500
+
+    # Replace today's tasks for this manager
+    today_start = datetime.combine(date.today(), datetime.min.time())
+    ManagerTask.query.filter(
+        ManagerTask.manager_id == manager_id,
+        ManagerTask.created_at >= today_start
+    ).delete(synchronize_session=False)
+
+    new_tasks = []
+    for t in tasks:
+        task = ManagerTask(
+            manager_id=manager_id,
+            task_description=t.get('task', ''),
+            task_section=t.get('section', 'general'),
+            status='pending'
+        )
+        db.session.add(task)
+        new_tasks.append(task)
+
+    db.session.commit()
+
+    return jsonify({
+        "tasks": [
+            {
+                "task_id": task.task_id,
+                "task_description": task.task_description,
+                "task_section": task.task_section,
+                "status": task.status,
+                "created_at": task.created_at.isoformat()
+            }
+            for task in new_tasks
+        ]
+    })
+
+
+@main.route('/ai/manager-tasks', methods=['GET'])
+@auth_required()
+@roles_accepted('manager')
+def get_manager_tasks():
+    manager = current_user.manager_profile
+    if not manager:
+        return jsonify({"tasks": []})
+
+    today_start = datetime.combine(date.today(), datetime.min.time())
+    tasks = ManagerTask.query.filter(
+        ManagerTask.manager_id == manager.manager_id,
+        ManagerTask.created_at >= today_start
+    ).order_by(ManagerTask.task_id).all()
+
+    return jsonify({
+        "tasks": [
+            {
+                "task_id": t.task_id,
+                "task_description": t.task_description,
+                "task_section": t.task_section,
+                "status": t.status,
+                "created_at": t.created_at.isoformat()
+            }
+            for t in tasks
+        ]
+    })
+
+
+@main.route('/tasks/<int:task_id>', methods=['PATCH'])
+@auth_required()
+@roles_accepted('manager')
+def update_task_status(task_id):
+    task = ManagerTask.query.get(task_id)
+    if not task:
+        return jsonify({"message": "Task not found"}), 404
+
+    # Verify ownership
+    manager = current_user.manager_profile
+    if not manager or task.manager_id != manager.manager_id:
+        return jsonify({"message": "Forbidden"}), 403
+
+    data = request.get_json()
+    new_status = data.get('status')
+    if new_status not in ('pending', 'completed'):
+        return jsonify({"message": "Invalid status. Use 'pending' or 'completed'"}), 400
+
+    task.status = new_status
+    db.session.commit()
+
+    return jsonify({
+        "task_id": task.task_id,
+        "status": task.status
+    })
 

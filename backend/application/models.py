@@ -245,6 +245,18 @@ class SalonConfig(db.Model):
     from_date = db.Column(db.DateTime, nullable=False)
     to_date = db.Column(db.DateTime, nullable=True)
 
+class ManagerTask(db.Model):
+    __tablename__ = 'manager_tasks'
+    task_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    manager_id = db.Column(db.Integer, db.ForeignKey('manager_master.manager_id'), nullable=False)
+    task_description = db.Column(db.String(255), nullable=False)
+    task_section = db.Column(db.String(50), nullable=False, default='general')
+    status = db.Column(db.String(20), nullable=False, default='pending')  # pending / completed
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+
+    manager = db.relationship('Manager', backref=db.backref('tasks', lazy=True))
+
+
 class Order(db.Model):
     __tablename__ = 'orders'
     order_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
