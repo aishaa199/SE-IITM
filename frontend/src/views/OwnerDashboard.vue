@@ -26,7 +26,7 @@
           :class="['nav-item', { active: currentView === 'reports' }]"
           @click="currentView = 'reports'"
         >
-          <span class="nav-icon">📄</span> Download Reports
+          <span class="nav-icon">📊</span> Reports & Analytics
         </div>
         <div
           :class="['nav-item', { active: currentView === 'profile' }]"
@@ -412,57 +412,216 @@
 
         <!-- REPORTS VIEW -->
         <div v-if="currentView === 'reports'" class="fade-in">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Download Reports</h3>
-            </div>
-            <div class="card-body">
-              <!-- Reports Grid -->
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px">
-                <div class="report-item">
-                  <div class="report-icon">📊</div>
-                  <div class="report-title">Sales Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Total sales and revenue summary</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
-                </div>
 
-                <div class="report-item">
-                  <div class="report-icon">📅</div>
-                  <div class="report-title">Bookings Report</div>
-                  <div class="text-muted" style="margin: 8px 0">All appointments and bookings</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
-                </div>
-
-                <div class="report-item">
-                  <div class="report-icon">👥</div>
-                  <div class="report-title">Staff Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Staff performance and attendance</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
-                </div>
-
-                <div class="report-item">
-                  <div class="report-icon">📦</div>
-                  <div class="report-title">Inventory Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Stock levels and movements</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
-                </div>
-
-                <div class="report-item">
-                  <div class="report-icon">💰</div>
-                  <div class="report-title">Financial Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Revenue and expenses summary</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
-                </div>
-
-                <div class="report-item">
-                  <div class="report-icon">⭐</div>
-                  <div class="report-title">Feedback Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Customer reviews and ratings</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
+          <!-- ── Analytics drill-down panel ─────────────────────────── -->
+          <template v-if="ownerAnalyticsView">
+            <!-- Header -->
+            <div class="card" style="margin-bottom: 16px;">
+              <div class="card-body" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <button class="btn btn-outline" style="font-size: 13px; padding: 6px 14px;" @click="closeOwnerAnalytics">
+                  ← Back
+                </button>
+                <span style="font-size: 22px;">{{ ownerAnalyticsView.icon }}</span>
+                <div>
+                  <div style="font-weight: 700; font-size: 16px; color: #2D2D2D;">{{ ownerAnalyticsView.title }}</div>
+                  <div style="font-size: 12px; color: #8B7355;">{{ ownerAnalyticsView.periodLabel }}</div>
                 </div>
               </div>
             </div>
-          </div>
+
+            <!-- Loading / Error -->
+            <div v-if="ownerAnalyticsLoading" style="text-align: center; padding: 48px; color: #8B7355; font-size: 14px;">
+              Loading analytics…
+            </div>
+            <div v-else-if="ownerAnalyticsError" style="text-align: center; padding: 32px; color: #e53e3e; font-size: 14px;">
+              ⚠️ {{ ownerAnalyticsError }}
+            </div>
+
+            <!-- Charts -->
+            <template v-else-if="ownerAnalyticsData">
+              <!-- Summary stat -->
+              <div class="card" style="margin-bottom: 16px;">
+                <div class="card-body" style="display: flex; gap: 24px; flex-wrap: wrap;">
+                  <div v-if="ownerAnalyticsData.total !== undefined">
+                    <div style="font-size: 11px; color: #8B7355; text-transform: uppercase; letter-spacing: 0.5px;">Total</div>
+                    <div style="font-size: 28px; font-weight: 800; color: #2D2D2D;">{{ ownerAnalyticsData.total }}</div>
+                  </div>
+                  <div v-if="ownerAnalyticsData.total_revenue !== undefined">
+                    <div style="font-size: 11px; color: #8B7355; text-transform: uppercase; letter-spacing: 0.5px;">Revenue</div>
+                    <div style="font-size: 28px; font-weight: 800; color: #22c55e;">₹{{ ownerAnalyticsData.total_revenue?.toLocaleString('en-IN') }}</div>
+                  </div>
+                  <div v-if="ownerAnalyticsData.avg_rating !== undefined">
+                    <div style="font-size: 11px; color: #8B7355; text-transform: uppercase; letter-spacing: 0.5px;">Avg Rating</div>
+                    <div style="font-size: 28px; font-weight: 800; color: #d4af37;">{{ ownerAnalyticsData.avg_rating }} ★</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Chart grid -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                <!-- Appointments -->
+                <template v-if="ownerAnalyticsView.type === 'appointments'">
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Appointments Over Time</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartLine" style="max-height: 220px;"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Top Services</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartBar" style="max-height: 220px;"></canvas></div>
+                  </div>
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Status Breakdown</h3></div>
+                    <div class="card-body" style="padding: 12px; display: flex; justify-content: center;"><canvas ref="ownerChartPie" style="max-height: 260px; max-width: 380px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Sales -->
+                <template v-else-if="ownerAnalyticsView.type === 'sales'">
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Revenue Over Time (INR)</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartLine" style="max-height: 220px;"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Revenue by Service</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartBar" style="max-height: 220px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Staff -->
+                <template v-else-if="ownerAnalyticsView.type === 'staff'">
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Appointments per Staff</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartBar" style="max-height: 240px;"></canvas></div>
+                  </div>
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Staff Ratings</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartLine" style="max-height: 200px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Inventory -->
+                <template v-else-if="ownerAnalyticsView.type === 'inventory'">
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Stock Levels</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartBar" style="max-height: 260px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Feedback -->
+                <template v-else-if="ownerAnalyticsView.type === 'feedback'">
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Ratings Distribution</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartBar" style="max-height: 220px;"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Sentiment Breakdown</h3></div>
+                    <div class="card-body" style="padding: 12px; display: flex; justify-content: center;"><canvas ref="ownerChartPie" style="max-height: 220px; max-width: 280px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Financial -->
+                <template v-else-if="ownerAnalyticsView.type === 'financial'">
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Monthly Revenue vs Profit</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartLine" style="max-height: 240px;"></canvas></div>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Download row -->
+              <div class="card">
+                <div class="card-body" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                  <button v-if="ownerAnalyticsView.hasCsv" class="btn btn-outline" @click="ownerDownloadReport(ownerAnalyticsView.reportId, 'csv')">
+                    📥 Download CSV
+                  </button>
+                  <button v-if="ownerAnalyticsView.hasPdf" class="btn btn-primary" @click="ownerDownloadReport(ownerAnalyticsView.reportId, 'pdf')">
+                    📄 Download PDF
+                  </button>
+                </div>
+              </div>
+            </template>
+          </template>
+
+          <!-- ── Reports list (default) ──────────────────────────────── -->
+          <template v-else>
+            <div class="card">
+              <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="card-title">📄 Shared Reports from Manager</h3>
+                <button class="btn btn-outline" style="font-size: 12px; padding: 5px 14px;" @click="fetchOwnerReports">
+                  ↻ Refresh
+                </button>
+              </div>
+              <div class="card-body">
+                <!-- Loading -->
+                <div v-if="ownerReportsLoading" style="text-align: center; padding: 32px; color: #8B7355;">
+                  Loading reports…
+                </div>
+
+                <!-- Empty -->
+                <div v-else-if="ownerReports.length === 0" style="text-align: center; padding: 32px;">
+                  <div style="font-size: 40px; margin-bottom: 12px;">📭</div>
+                  <div style="color: #8B7355; font-size: 14px;">No reports shared by the manager yet.</div>
+                  <div style="color: #8B7355; font-size: 12px; margin-top: 6px;">Reports appear here when the manager clicks "Send to Owner" in the Reports section.</div>
+                </div>
+
+                <!-- Reports list -->
+                <div v-else>
+                  <div
+                    v-for="report in ownerReports"
+                    :key="report.id"
+                    style="display: flex; align-items: center; gap: 14px; padding: 12px 10px; border-radius: 8px; border: 1px solid #e8e0d5; margin-bottom: 8px; background: white; transition: background 0.15s;"
+                    @mouseenter="$event.currentTarget.style.background='#f9f5f0'"
+                    @mouseleave="$event.currentTarget.style.background='white'"
+                  >
+                    <div style="font-size: 26px; flex-shrink: 0;">
+                      {{ ownerReportIcons[report.report_type] || '📄' }}
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-weight: 700; font-size: 14px; color: #2D2D2D;">
+                        {{ report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1) }} Report
+                        <span style="margin-left: 6px; font-size: 10px; background: #e6f4ea; color: #276749; padding: 1px 8px; border-radius: 10px; font-weight: 600;">Shared</span>
+                      </div>
+                      <div style="font-size: 12px; color: #8B7355; margin-top: 3px;">
+                        {{ ownerPeriodLabels[report.time_period] || report.time_period }}
+                        &bull;
+                        {{ new Date(report.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) }}
+                      </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                      <button
+                        class="btn btn-primary"
+                        style="font-size: 12px; padding: 5px 12px;"
+                        @click="openOwnerAnalytics(report)"
+                      >
+                        📊 View Analytics
+                      </button>
+                      <button
+                        v-if="report.has_csv"
+                        class="btn btn-outline"
+                        style="font-size: 12px; padding: 5px 12px;"
+                        @click="ownerDownloadReport(report.id, 'csv')"
+                      >
+                        📥 CSV
+                      </button>
+                      <button
+                        v-if="report.has_pdf"
+                        class="btn btn-outline"
+                        style="font-size: 12px; padding: 5px 12px;"
+                        @click="ownerDownloadReport(report.id, 'pdf')"
+                      >
+                        📄 PDF
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Error -->
+                <div v-if="ownerReportsError" style="color: #e53e3e; font-size: 13px; margin-top: 8px;">
+                  ⚠️ {{ ownerReportsError }}
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
 
         <!-- PROFILE VIEW -->
@@ -682,7 +841,9 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { Chart, registerables } from 'chart.js';
+Chart.register(...registerables);
 import { useRouter } from 'vue-router';
 import { useAppStore } from '@/stores/appStore';
 
@@ -778,6 +939,174 @@ export default {
       appStore.logout();
       router.push('/');
     };
+
+    // ── Shared Reports ──────────────────────────────────────────────────────
+    const ownerReports        = ref([]);
+    const ownerReportsLoading = ref(false);
+    const ownerReportsError   = ref('');
+
+    const ownerReportIcons = {
+      sales: '📊', appointments: '📅', staff: '👥',
+      inventory: '📦', financial: '💰', feedback: '⭐',
+    };
+    const ownerPeriodLabels = {
+      daily: 'Today', yesterday: 'Yesterday', weekly: 'This Week',
+      monthly: 'This Month', custom: 'Custom Range',
+    };
+
+    const fetchOwnerReports = async () => {
+      ownerReportsLoading.value = true;
+      ownerReportsError.value   = '';
+      const token = localStorage.getItem('authToken');
+      if (!token) { ownerReportsLoading.value = false; return; }
+      try {
+        const res = await fetch(`${API_BASE_URL}/reports`, {
+          headers: { Authorization: `Bearer ${token}`, 'Authentication-Token': token },
+        });
+        if (!res.ok) throw new Error('Failed to load reports');
+        ownerReports.value = await res.json();
+      } catch (err) {
+        ownerReportsError.value = err.message || 'Could not load reports.';
+      } finally {
+        ownerReportsLoading.value = false;
+      }
+    };
+
+    const ownerDownloadReport = async (reportId, format) => {
+      const token = localStorage.getItem('authToken');
+      try {
+        const res = await fetch(`${API_BASE_URL}/reports/${reportId}/download?format=${format}`, {
+          headers: { Authorization: `Bearer ${token}`, 'Authentication-Token': token },
+        });
+        if (!res.ok) throw new Error('Download failed');
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `report_${reportId}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      } catch (err) {
+        ownerReportsError.value = err.message || 'Download failed.';
+      }
+    };
+
+    // ── Owner Analytics View ────────────────────────────────────────────────
+    const ownerAnalyticsView    = ref(null);   // { type, title, icon, periodLabel }
+    const ownerAnalyticsData    = ref(null);
+    const ownerAnalyticsLoading = ref(false);
+    const ownerAnalyticsError   = ref('');
+
+    // Chart.js canvas refs
+    const ownerChartLine = ref(null);
+    const ownerChartBar  = ref(null);
+    const ownerChartPie  = ref(null);
+    let _ownerLineInst = null, _ownerBarInst = null, _ownerPieInst = null;
+
+    const OWNER_CHART_COLORS = [
+      '#d4af37','#8B6914','#3b82f6','#22c55e','#f59e0b',
+      '#ef4444','#a855f7','#06b6d4','#ec4899','#84cc16',
+    ];
+
+    const _ownerDestroyCharts = () => {
+      if (_ownerLineInst) { _ownerLineInst.destroy(); _ownerLineInst = null; }
+      if (_ownerBarInst)  { _ownerBarInst.destroy();  _ownerBarInst  = null; }
+      if (_ownerPieInst)  { _ownerPieInst.destroy();  _ownerPieInst  = null; }
+    };
+
+    const _ownerRenderCharts = () => {
+      _ownerDestroyCharts();
+      if (!ownerAnalyticsData.value || !ownerAnalyticsView.value) return;
+      const type = ownerAnalyticsView.value.type;
+      const data = ownerAnalyticsData.value;
+      const def  = { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } };
+
+      if (type === 'appointments') {
+        if (ownerChartLine.value && data.by_day?.length)
+          _ownerLineInst = new Chart(ownerChartLine.value, { type: 'line', data: { labels: data.by_day.map(d => d.date), datasets: [{ label: 'Appointments', data: data.by_day.map(d => d.count), borderColor: '#d4af37', backgroundColor: 'rgba(212,175,55,0.15)', tension: 0.35, fill: true, pointRadius: 4 }] }, options: { ...def, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+        if (ownerChartBar.value && data.top_services?.length)
+          _ownerBarInst = new Chart(ownerChartBar.value, { type: 'bar', data: { labels: data.top_services.map(s => s.name), datasets: [{ label: 'Bookings', data: data.top_services.map(s => s.count), backgroundColor: OWNER_CHART_COLORS }] }, options: { ...def, plugins: { ...def.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+        if (ownerChartPie.value && data.by_status?.length)
+          _ownerPieInst = new Chart(ownerChartPie.value, { type: 'pie', data: { labels: data.by_status.map(s => s.name), datasets: [{ data: data.by_status.map(s => s.value), backgroundColor: OWNER_CHART_COLORS }] }, options: def });
+
+      } else if (type === 'sales') {
+        if (ownerChartLine.value && data.by_day?.length)
+          _ownerLineInst = new Chart(ownerChartLine.value, { type: 'line', data: { labels: data.by_day.map(d => d.date), datasets: [{ label: 'Revenue (INR)', data: data.by_day.map(d => d.revenue), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.12)', tension: 0.35, fill: true, pointRadius: 4 }] }, options: { ...def, scales: { y: { beginAtZero: true } } } });
+        if (ownerChartBar.value && data.by_service?.length)
+          _ownerBarInst = new Chart(ownerChartBar.value, { type: 'bar', data: { labels: data.by_service.map(s => s.name), datasets: [{ label: 'Revenue (INR)', data: data.by_service.map(s => s.revenue), backgroundColor: OWNER_CHART_COLORS }] }, options: { ...def, plugins: { ...def.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+
+      } else if (type === 'staff') {
+        if (ownerChartBar.value && data.staff?.length)
+          _ownerBarInst = new Chart(ownerChartBar.value, { type: 'bar', data: { labels: data.staff.map(s => s.name), datasets: [{ label: 'Total', data: data.staff.map(s => s.total), backgroundColor: 'rgba(212,175,55,0.7)' }, { label: 'Completed', data: data.staff.map(s => s.completed), backgroundColor: 'rgba(34,197,94,0.7)' }] }, options: { ...def, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+        if (ownerChartLine.value && data.staff?.length)
+          _ownerLineInst = new Chart(ownerChartLine.value, { type: 'bar', data: { labels: data.staff.map(s => s.name), datasets: [{ label: 'Avg Rating', data: data.staff.map(s => s.rating), backgroundColor: OWNER_CHART_COLORS, borderRadius: 6 }] }, options: { ...def, plugins: { ...def.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true, max: 5, ticks: { stepSize: 1 } } } } });
+
+      } else if (type === 'inventory') {
+        if (ownerChartBar.value && data.items?.length)
+          _ownerBarInst = new Chart(ownerChartBar.value, { type: 'bar', data: { labels: data.items.map(i => i.name), datasets: [{ label: 'Current Stock', data: data.items.map(i => i.current), backgroundColor: 'rgba(59,130,246,0.7)' }, { label: 'Min Required', data: data.items.map(i => i.minimum), backgroundColor: 'rgba(239,68,68,0.6)' }] }, options: { ...def, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+
+      } else if (type === 'feedback') {
+        if (ownerChartBar.value && data.by_rating?.length)
+          _ownerBarInst = new Chart(ownerChartBar.value, { type: 'bar', data: { labels: data.by_rating.map(r => `${r.rating} Star${r.rating !== 1 ? 's' : ''}`), datasets: [{ label: 'Reviews', data: data.by_rating.map(r => r.count), backgroundColor: ['#ef4444','#f97316','#f59e0b','#84cc16','#22c55e'] }] }, options: { ...def, plugins: { ...def.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+        if (ownerChartPie.value && data.sentiment?.length)
+          _ownerPieInst = new Chart(ownerChartPie.value, { type: 'doughnut', data: { labels: data.sentiment.map(s => s.name), datasets: [{ data: data.sentiment.map(s => s.value), backgroundColor: ['#22c55e','#f59e0b','#ef4444'] }] }, options: def });
+
+      } else if (type === 'financial') {
+        if (ownerChartLine.value && data.months?.length)
+          _ownerLineInst = new Chart(ownerChartLine.value, { type: 'line', data: { labels: data.months.map(m => m.month), datasets: [{ label: 'Revenue', data: data.months.map(m => m.revenue), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', tension: 0.35, fill: true }, { label: 'Cost', data: data.months.map(m => m.cost), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.07)', tension: 0.35 }, { label: 'Profit', data: data.months.map(m => m.profit), borderColor: '#d4af37', backgroundColor: 'rgba(212,175,55,0.12)', tension: 0.35, fill: true }] }, options: { ...def, scales: { y: { beginAtZero: true } } } });
+      }
+    };
+
+    watch(ownerAnalyticsData, () => { nextTick(_ownerRenderCharts); });
+
+    const OWNER_PERIOD_LABELS = {
+      daily: 'Today', yesterday: 'Yesterday', weekly: 'This Week',
+      monthly: 'This Month', custom: 'Custom Range',
+    };
+
+    const openOwnerAnalytics = async (report) => {
+      _ownerDestroyCharts();
+      ownerAnalyticsView.value = {
+        type:        report.report_type,
+        title:       report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1) + ' Report',
+        icon:        ownerReportIcons[report.report_type] || '📄',
+        periodLabel: OWNER_PERIOD_LABELS[report.time_period] || report.time_period,
+        reportId:    report.id,
+        hasCsv:      report.has_csv,
+        hasPdf:      report.has_pdf,
+      };
+      ownerAnalyticsData.value    = null;
+      ownerAnalyticsLoading.value = true;
+      ownerAnalyticsError.value   = '';
+      const token = localStorage.getItem('authToken');
+      try {
+        const params = new URLSearchParams({ type: report.report_type, period: report.time_period });
+        const res = await fetch(`${API_BASE_URL}/reports/analytics?${params}`, {
+          headers: { Authorization: `Bearer ${token}`, 'Authentication-Token': token },
+        });
+        if (!res.ok) throw new Error('Analytics fetch failed');
+        ownerAnalyticsData.value = await res.json();
+      } catch (err) {
+        ownerAnalyticsError.value = err.message || 'Failed to load analytics.';
+      } finally {
+        ownerAnalyticsLoading.value = false;
+      }
+    };
+
+    const closeOwnerAnalytics = () => {
+      _ownerDestroyCharts();
+      ownerAnalyticsView.value = null;
+      ownerAnalyticsData.value = null;
+      ownerAnalyticsError.value = '';
+    };
+
+    onUnmounted(_ownerDestroyCharts);
+
+    onMounted(() => {
+      fetchOwnerReports();
+    });
 
     // Manager management
     const managers = ref([]);
@@ -1002,7 +1331,23 @@ export default {
       passwordForm,
       passwordError,
       passwordSuccess,
-      handleChangePassword
+      handleChangePassword,
+      ownerReports,
+      ownerReportsLoading,
+      ownerReportsError,
+      ownerReportIcons,
+      ownerPeriodLabels,
+      fetchOwnerReports,
+      ownerDownloadReport,
+      ownerAnalyticsView,
+      ownerAnalyticsData,
+      ownerAnalyticsLoading,
+      ownerAnalyticsError,
+      ownerChartLine,
+      ownerChartBar,
+      ownerChartPie,
+      openOwnerAnalytics,
+      closeOwnerAnalytics,
     };
   }
 };

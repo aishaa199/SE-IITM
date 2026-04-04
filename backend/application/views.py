@@ -2,12 +2,13 @@ import anthropic
 import json
 from collections import Counter
 
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_restful import Api, Resource
 from flask_security import auth_required, roles_accepted, current_user, verify_password, hash_password
+from sqlalchemy import func
 from datetime import datetime, date, timedelta
 from werkzeug.security import check_password_hash
-from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, CustomerReview, db, Role, Manager, ManagerTask, StaffAttendance
+from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, CustomerReview, db, Role, Manager, ManagerTask, StaffAttendance, ReportRecord, InventoryTransaction, Finance
 from .sec import datastore
 
 main = Blueprint('main', __name__)
@@ -595,3 +596,427 @@ def update_task_status(task_id):
         "status": task.status
     })
 
+
+
+##############################################################################
+# AI Report Generation
+##############################################################################
+
+VALID_REPORT_TYPES  = {'sales', 'appointments', 'staff', 'inventory', 'financial', 'feedback'}
+VALID_TIME_PERIODS  = {'daily', 'yesterday', 'weekly', 'monthly', 'custom'}
+
+
+def _call_claude_report_intent(message):
+    """Ask Claude to classify the report type and time period from a free-text request."""
+    api_key = current_app.config.get('ANTHROPIC_API_KEY', '')
+    if not api_key:
+        raise ValueError("ANTHROPIC_API_KEY is not configured")
+
+    client = anthropic.Anthropic(api_key=api_key)
+    prompt = f"""You are an assistant helping a salon manager generate operational reports.
+
+Manager request: "{message}"
+
+Identify the report type and time period.
+
+Supported report types: sales, appointments, staff, inventory, financial, feedback
+Supported time periods: daily, yesterday, weekly, monthly, custom
+
+If time_period is custom, extract start_date and end_date from the message (format YYYY-MM-DD).
+If you cannot determine the report type, set report_type to null.
+
+Return ONLY valid JSON, no markdown:
+{{
+  "report_type": "staff",
+  "time_period": "weekly",
+  "custom_start": null,
+  "custom_end": null
+}}"""
+
+    msg = client.messages.create(
+        model="claude-haiku-4-5-20251001",
+        max_tokens=256,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    text = msg.content[0].text.strip()
+    if text.startswith("```"):
+        text = text.split("```")[1]
+        if text.startswith("json"):
+            text = text[4:]
+    return json.loads(text.strip())
+
+
+@main.route('/ai/report-intent', methods=['POST'])
+@auth_required()
+@roles_accepted('manager', 'owner')
+def report_intent():
+    data = request.get_json()
+    message = (data.get('message') or '').strip()
+    if not message:
+        return jsonify({"message": "No message provided"}), 400
+
+    try:
+        result = _call_claude_report_intent(message)
+    except Exception as e:
+        return jsonify({"message": f"AI classification failed: {str(e)}"}), 500
+
+    report_type  = result.get('report_type')
+    time_period  = result.get('time_period', 'monthly')
+    custom_start = result.get('custom_start')
+    custom_end   = result.get('custom_end')
+
+    if report_type not in VALID_REPORT_TYPES:
+        return jsonify({
+            "report_type": None,
+            "message": (
+                "Please specify the type of report you need: "
+                "sales, staff, appointments, inventory, financial, or feedback."
+            )
+        }), 422
+
+    if time_period not in VALID_TIME_PERIODS:
+        time_period = 'monthly'
+
+    return jsonify({
+        "report_type":  report_type,
+        "time_period":  time_period,
+        "custom_start": custom_start,
+        "custom_end":   custom_end,
+    })
+
+
+def _reports_dir():
+    """Absolute path to the /reports/ folder next to main.py."""
+    import os
+    return os.path.join(current_app.root_path, '..', 'reports')
+
+
+def _save_report_file(file_obj, filename):
+    """Write BytesIO to disk, return the saved absolute path."""
+    import os
+    folder = _reports_dir()
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, filename)
+    with open(path, 'wb') as f:
+        f.write(file_obj.read())
+    file_obj.seek(0)   # rewind for send_file
+    return path
+
+
+def _upsert_report_record(report_type, time_period, user_id, pdf_path=None, csv_path=None):
+    """
+    Find or create today's ReportRecord for this (type, period, user).
+    Returns the record after commit.
+    """
+    today_start = datetime.combine(date.today(), datetime.min.time())
+    rec = ReportRecord.query.filter(
+        ReportRecord.report_type  == report_type,
+        ReportRecord.time_period  == time_period,
+        ReportRecord.generated_by == user_id,
+        ReportRecord.created_at   >= today_start,
+    ).first()
+
+    if rec is None:
+        rec = ReportRecord(
+            report_type=report_type,
+            time_period=time_period,
+            generated_by=user_id,
+        )
+        db.session.add(rec)
+
+    if pdf_path:
+        rec.pdf_path = pdf_path
+    if csv_path:
+        rec.csv_path = csv_path
+
+    db.session.commit()
+    return rec
+
+
+@main.route('/generate-report', methods=['POST'])
+@auth_required()
+@roles_accepted('manager', 'owner')
+def generate_report_endpoint():
+    from .report_generators import generate_report
+
+    data         = request.get_json()
+    report_type  = (data.get('report_type') or '').strip().lower()
+    time_period  = (data.get('time_period') or 'monthly').strip().lower()
+    file_format  = (data.get('format') or 'csv').strip().lower()
+    custom_start = data.get('custom_start')
+    custom_end   = data.get('custom_end')
+
+    if report_type not in VALID_REPORT_TYPES:
+        return jsonify({"message": f"Invalid report type: {report_type}"}), 400
+    if file_format not in ('csv', 'pdf'):
+        return jsonify({"message": "Format must be 'csv' or 'pdf'"}), 400
+
+    try:
+        file_obj, filename, mimetype = generate_report(
+            report_type, time_period, file_format, custom_start, custom_end
+        )
+        saved_path = _save_report_file(file_obj, filename)
+    except Exception as e:
+        return jsonify({"message": f"Report generation failed: {str(e)}"}), 500
+
+    try:
+        kwargs = {'pdf_path': saved_path} if file_format == 'pdf' else {'csv_path': saved_path}
+        _upsert_report_record(report_type, time_period, current_user.id, **kwargs)
+    except Exception:
+        pass   # non-fatal — file still downloads even if DB write fails
+
+    return send_file(
+        file_obj,
+        mimetype=mimetype,
+        as_attachment=True,
+        download_name=filename,
+    )
+
+
+@main.route('/reports', methods=['GET'])
+@auth_required()
+@roles_accepted('manager', 'owner')
+def list_reports():
+    role_names = [r.name for r in current_user.roles]
+    if 'owner' in role_names:
+        records = ReportRecord.query.filter_by(shared_with_owner=True).order_by(ReportRecord.created_at.desc()).all()
+    else:
+        records = ReportRecord.query.filter_by(generated_by=current_user.id).order_by(ReportRecord.created_at.desc()).all()
+
+    return jsonify([{
+        'id':          r.id,
+        'report_type': r.report_type,
+        'time_period': r.time_period,
+        'created_at':  r.created_at.isoformat(),
+        'has_pdf':     bool(r.pdf_path),
+        'has_csv':     bool(r.csv_path),
+        'shared':      r.shared_with_owner,
+    } for r in records])
+
+
+@main.route('/reports/<int:report_id>/download', methods=['GET'])
+@auth_required()
+@roles_accepted('manager', 'owner')
+def download_saved_report(report_id):
+    import os
+    fmt = request.args.get('format', 'csv').lower()
+    rec = ReportRecord.query.get(report_id)
+    if not rec:
+        return jsonify({"message": "Report not found"}), 404
+
+    role_names = [r.name for r in current_user.roles]
+    if 'owner' not in role_names and rec.generated_by != current_user.id:
+        return jsonify({"message": "Forbidden"}), 403
+
+    path = rec.pdf_path if fmt == 'pdf' else rec.csv_path
+    if not path or not os.path.isfile(path):
+        return jsonify({"message": "File not found on disk"}), 404
+
+    mimetype = 'application/pdf' if fmt == 'pdf' else 'text/csv'
+    return send_file(path, mimetype=mimetype, as_attachment=True,
+                     download_name=os.path.basename(path))
+
+
+@main.route('/reports/<int:report_id>/share', methods=['POST'])
+@auth_required()
+@roles_accepted('manager')
+def share_report_with_owner(report_id):
+    rec = ReportRecord.query.get(report_id)
+    if not rec:
+        return jsonify({"message": "Report not found"}), 404
+    if rec.generated_by != current_user.id:
+        return jsonify({"message": "Forbidden"}), 403
+
+    rec.shared_with_owner = True
+    db.session.commit()
+    return jsonify({"message": "Report shared with owner", "id": rec.id})
+
+
+@main.route('/reports/generate-and-share', methods=['POST'])
+@auth_required()
+@roles_accepted('manager')
+def generate_and_share_report():
+    """Silently generate both PDF + CSV, save to disk, upsert DB record, share with owner."""
+    from .report_generators import generate_report
+    data        = request.get_json(silent=True) or {}
+    report_type = data.get('report_type', 'appointments').lower()
+    time_period = data.get('time_period', 'monthly').lower()
+    custom_start = data.get('custom_start')
+    custom_end   = data.get('custom_end')
+
+    try:
+        csv_obj, csv_filename, _ = generate_report(report_type, time_period, 'csv', custom_start, custom_end)
+        pdf_obj, pdf_filename, _ = generate_report(report_type, time_period, 'pdf', custom_start, custom_end)
+    except Exception as e:
+        return jsonify({"message": f"Report generation failed: {e}"}), 500
+
+    csv_path = _save_report_file(csv_obj, csv_filename)
+    pdf_path = _save_report_file(pdf_obj, pdf_filename)
+
+    rec = _upsert_report_record(report_type, time_period, current_user.id, csv_path=csv_path, pdf_path=pdf_path)
+    rec.shared_with_owner = True
+    db.session.commit()
+
+    return jsonify({"message": "Report generated and shared with owner", "id": rec.id})
+
+
+@main.route('/reports/analytics', methods=['GET'])
+@auth_required()
+@roles_accepted('manager', 'owner')
+def report_analytics():
+    """Return chart-ready JSON for a given report type and time period."""
+    from collections import Counter as _Counter
+    report_type = request.args.get('type', 'appointments').lower()
+    time_period = request.args.get('period', 'monthly').lower()
+    custom_start = request.args.get('custom_start')
+    custom_end   = request.args.get('custom_end')
+
+    from .report_generators import get_date_range
+    start, end, label = get_date_range(time_period, custom_start, custom_end)
+
+    STATUS_MAP = {0: 'Booked', 1: 'Completed', 2: 'No-show', 3: 'Cancelled', 4: 'Rescheduled', 5: 'Invoiced'}
+
+    if report_type == 'appointments':
+        appts = Appointment.query.filter(
+            Appointment.appointment_datetime >= start,
+            Appointment.appointment_datetime <= end,
+        ).all()
+
+        by_status = _Counter(STATUS_MAP.get(a.status, 'Unknown') for a in appts)
+        by_day = _Counter(a.appointment_datetime.strftime('%Y-%m-%d') for a in appts)
+        service_counts = _Counter()
+        for a in appts:
+            for s in a.services:
+                service_counts[s.service_desc] += 1
+
+        return jsonify({
+            'label':        label,
+            'total':        len(appts),
+            'by_status':    [{'name': k, 'value': v} for k, v in sorted(by_status.items())],
+            'by_day':       [{'date': d, 'count': c} for d, c in sorted(by_day.items())],
+            'top_services': [{'name': k, 'count': v} for k, v in service_counts.most_common(8)],
+        })
+
+    elif report_type == 'sales':
+        invoices = Invoice.query.filter(
+            Invoice.invoice_date >= start.date(),
+            Invoice.invoice_date <= end.date(),
+        ).all()
+
+        by_day = {}
+        svc_revenue = _Counter()
+        for inv in invoices:
+            d = inv.invoice_date.strftime('%Y-%m-%d')
+            by_day[d] = by_day.get(d, 0) + float(inv.payable_invoice_amount)
+            svc_ids = [s.strip() for s in (inv.service_ids or '').split(',') if s.strip().isdigit()]
+            svc_objs = Service.query.filter(Service.service_id.in_(svc_ids)).all() if svc_ids else []
+            for svc in svc_objs:
+                svc_revenue[svc.service_desc] += float(inv.payable_invoice_amount) / max(len(svc_objs), 1)
+
+        total = sum(float(i.payable_invoice_amount) for i in invoices)
+
+        return jsonify({
+            'label':         label,
+            'total_revenue': round(total, 2),
+            'invoice_count': len(invoices),
+            'by_day':        [{'date': d, 'revenue': round(v, 2)} for d, v in sorted(by_day.items())],
+            'by_service':    [{'name': k, 'revenue': round(v, 2)} for k, v in svc_revenue.most_common(8)],
+        })
+
+    elif report_type == 'staff':
+        all_staff = Staff.query.all()
+        staff_data = []
+        for s in all_staff:
+            total = Appointment.query.filter(
+                Appointment.staff_id == s.staff_id,
+                Appointment.appointment_datetime >= start,
+                Appointment.appointment_datetime <= end,
+            ).count()
+            completed = Appointment.query.filter(
+                Appointment.staff_id == s.staff_id,
+                Appointment.appointment_datetime >= start,
+                Appointment.appointment_datetime <= end,
+                Appointment.status == 1,
+            ).count()
+            att_days = db.session.query(
+                func.count(func.distinct(func.date(StaffAttendance.register_datetime)))
+            ).filter(
+                StaffAttendance.staff_id == s.staff_id,
+                StaffAttendance.register_datetime >= start,
+                StaffAttendance.register_datetime <= end,
+            ).scalar() or 0
+
+            staff_data.append({
+                'name':            s.staff_name,
+                'total':           total,
+                'completed':       completed,
+                'attendance_days': att_days,
+                'rating':          round(s.staff_cumulative_rating, 1) if s.staff_cumulative_rating else 0,
+            })
+
+        return jsonify({'label': label, 'staff': staff_data})
+
+    elif report_type == 'inventory':
+        products = Product.query.all()
+        items = []
+        for p in products:
+            used = db.session.query(func.sum(InventoryTransaction.quantity)).filter(
+                InventoryTransaction.product_id == p.product_id,
+                InventoryTransaction.txn_type == 0,
+                InventoryTransaction.date_of_txn >= start,
+                InventoryTransaction.date_of_txn <= end,
+            ).scalar() or 0
+            items.append({
+                'name':      p.product_desc,
+                'current':   p.product_curr_qoh,
+                'minimum':   p.product_min_qoh,
+                'low_stock': p.product_low_stock_alert,
+                'used':      used,
+            })
+        low_count = sum(1 for i in items if i['low_stock'])
+        return jsonify({'label': label, 'items': items, 'low_stock_count': low_count})
+
+    elif report_type == 'feedback':
+        reviews = (
+            db.session.query(CustomerReview)
+            .join(Appointment, CustomerReview.apppointment_id == Appointment.appointment_id)
+            .filter(
+                Appointment.appointment_datetime >= start,
+                Appointment.appointment_datetime <= end,
+            ).all()
+        )
+        by_rating = _Counter(r.rating for r in reviews)
+        avg = round(sum(r.rating for r in reviews) / len(reviews), 2) if reviews else 0
+        positive = sum(1 for r in reviews if r.rating >= 4)
+        neutral  = sum(1 for r in reviews if r.rating == 3)
+        negative = sum(1 for r in reviews if r.rating <= 2)
+
+        return jsonify({
+            'label':    label,
+            'total':    len(reviews),
+            'average':  avg,
+            'by_rating': [{'rating': k, 'count': v} for k, v in sorted(by_rating.items())],
+            'sentiment': [
+                {'name': 'Positive', 'value': positive},
+                {'name': 'Neutral',  'value': neutral},
+                {'name': 'Negative', 'value': negative},
+            ],
+        })
+
+    elif report_type == 'financial':
+        records = Finance.query.filter(
+            Finance.reporting_month >= start,
+            Finance.reporting_month <= end,
+        ).order_by(Finance.reporting_month).all()
+        return jsonify({
+            'label': label,
+            'months': [{
+                'month':   r.reporting_month.strftime('%b %Y'),
+                'revenue': float(r.total_revenue),
+                'cost':    float(r.product_cost),
+                'salary':  float(r.staff_salary),
+                'profit':  float(r.net_profit) if r.net_profit else 0,
+            } for r in records],
+        })
+
+    return jsonify({"message": f"Unknown report type: {report_type}"}), 400

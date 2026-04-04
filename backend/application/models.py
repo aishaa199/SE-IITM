@@ -245,6 +245,20 @@ class SalonConfig(db.Model):
     from_date = db.Column(db.DateTime, nullable=False)
     to_date = db.Column(db.DateTime, nullable=True)
 
+class ReportRecord(db.Model):
+    __tablename__ = 'reports'
+    id            = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    report_type   = db.Column(db.String(50), nullable=False)
+    time_period   = db.Column(db.String(50), nullable=False)
+    generated_by  = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at    = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+    pdf_path      = db.Column(db.String(512), nullable=True)
+    csv_path      = db.Column(db.String(512), nullable=True)
+    shared_with_owner = db.Column(db.Boolean, default=False)
+
+    generator = db.relationship('User', backref=db.backref('reports', lazy=True))
+
+
 class ManagerTask(db.Model):
     __tablename__ = 'manager_tasks'
     task_id = db.Column(db.Integer, primary_key=True, autoincrement=True)

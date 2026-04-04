@@ -40,3 +40,4 @@ Werkzeug==3.1.6
 WTForms==3.2.1
 anthropic==0.88.0
 python-dotenv==1.0.1
+fpdf2==2.8.3

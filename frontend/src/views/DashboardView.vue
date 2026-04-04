@@ -2245,52 +2245,258 @@
 
         <!-- REPORTS VIEW -->
         <div v-if="currentView === 'reports'" class="fade-in">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Download Reports</h3>
+
+          <!-- Analytics View (shown when a report type is selected) -->
+          <div v-if="analyticsView">
+            <!-- Back + header row -->
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+              <button class="btn btn-outline" style="padding: 6px 14px; font-size: 13px;" @click="analyticsView = null">
+                ← Back to Reports
+              </button>
+              <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--charcoal);">
+                {{ REPORT_ICONS[analyticsView.type] }} {{ analyticsView.title }} — {{ analyticsView.periodLabel }}
+              </h2>
             </div>
-            <div class="card-body">
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px">
-                <div class="report-item">
-                  <div class="report-icon">📊</div>
-                  <div class="report-title">Sales Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Total sales and revenue summary</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
+
+            <!-- Loading -->
+            <div v-if="analyticsLoading" style="text-align: center; padding: 40px; color: var(--text-muted);">
+              <div style="font-size: 36px; margin-bottom: 12px;">📊</div>
+              <div>Loading analytics…</div>
+            </div>
+
+            <!-- Error -->
+            <div v-else-if="analyticsError" class="card" style="padding: 20px; color: #e53e3e;">
+              ⚠️ {{ analyticsError }}
+            </div>
+
+            <template v-else-if="analyticsData">
+              <!-- Summary stat cards -->
+              <div class="stat-grid" style="margin-bottom: 20px;">
+                <template v-if="analyticsView.type === 'appointments'">
+                  <div class="stat-card"><div class="stat-icon">📅</div><div class="stat-value">{{ analyticsData.total }}</div><div class="stat-label">Total Appointments</div></div>
+                  <div class="stat-card" v-for="s in analyticsData.by_status" :key="s.name"><div class="stat-icon">{{ s.name === 'Completed' ? '✅' : s.name === 'Cancelled' ? '❌' : '📌' }}</div><div class="stat-value">{{ s.value }}</div><div class="stat-label">{{ s.name }}</div></div>
+                </template>
+                <template v-else-if="analyticsView.type === 'sales'">
+                  <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">₹{{ analyticsData.total_revenue?.toLocaleString() }}</div><div class="stat-label">Total Revenue</div></div>
+                  <div class="stat-card"><div class="stat-icon">🧾</div><div class="stat-value">{{ analyticsData.invoice_count }}</div><div class="stat-label">Invoices</div></div>
+                  <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-value">₹{{ analyticsData.invoice_count ? Math.round(analyticsData.total_revenue / analyticsData.invoice_count).toLocaleString() : 0 }}</div><div class="stat-label">Avg per Invoice</div></div>
+                </template>
+                <template v-else-if="analyticsView.type === 'inventory'">
+                  <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-value">{{ analyticsData.items?.length }}</div><div class="stat-label">Total Products</div></div>
+                  <div class="stat-card"><div class="stat-icon">⚠️</div><div class="stat-value">{{ analyticsData.low_stock_count }}</div><div class="stat-label">Low Stock Alerts</div></div>
+                </template>
+                <template v-else-if="analyticsView.type === 'feedback'">
+                  <div class="stat-card"><div class="stat-icon">⭐</div><div class="stat-value">{{ analyticsData.average }}</div><div class="stat-label">Avg Rating</div></div>
+                  <div class="stat-card"><div class="stat-icon">📝</div><div class="stat-value">{{ analyticsData.total }}</div><div class="stat-label">Total Reviews</div></div>
+                  <div class="stat-card" v-for="s in analyticsData.sentiment" :key="s.name"><div class="stat-icon">{{ s.name === 'Positive' ? '😊' : s.name === 'Neutral' ? '😐' : '😞' }}</div><div class="stat-value">{{ s.value }}</div><div class="stat-label">{{ s.name }}</div></div>
+                </template>
+              </div>
+
+              <!-- Charts grid -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                <!-- Appointments: line chart by day + pie by status -->
+                <template v-if="analyticsView.type === 'appointments'">
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Appointments Over Time</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="chartLine" style="max-height: 220px;"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Top Services</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="chartBar" style="max-height: 220px;"></canvas></div>
+                  </div>
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Status Breakdown</h3></div>
+                    <div class="card-body" style="padding: 12px; display: flex; justify-content: center;"><canvas ref="chartPie" style="max-height: 260px; max-width: 380px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Sales: revenue line + service bar -->
+                <template v-else-if="analyticsView.type === 'sales'">
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Revenue Over Time (INR)</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="chartLine" style="max-height: 220px;"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Revenue by Service</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="chartBar" style="max-height: 220px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Staff: bar chart -->
+                <template v-else-if="analyticsView.type === 'staff'">
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Appointments per Staff</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="chartBar" style="max-height: 240px;"></canvas></div>
+                  </div>
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Staff Ratings</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="chartLine" style="max-height: 200px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Inventory: bar chart current vs min -->
+                <template v-else-if="analyticsView.type === 'inventory'">
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Stock Levels</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="chartBar" style="max-height: 260px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Feedback: rating bar + sentiment pie -->
+                <template v-else-if="analyticsView.type === 'feedback'">
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Ratings Distribution</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="chartBar" style="max-height: 220px;"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Sentiment Breakdown</h3></div>
+                    <div class="card-body" style="padding: 12px; display: flex; justify-content: center;"><canvas ref="chartPie" style="max-height: 220px; max-width: 280px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Financial: revenue vs profit line -->
+                <template v-else-if="analyticsView.type === 'financial'">
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Monthly Revenue vs Profit</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="chartLine" style="max-height: 240px;"></canvas></div>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Download + Share row -->
+              <div class="card">
+                <div class="card-body" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                  <button class="btn btn-primary" @click="downloadFromAnalytics('csv')" :disabled="quickLoading">
+                    📥 Download CSV
+                  </button>
+                  <button class="btn btn-primary" @click="downloadFromAnalytics('pdf')" :disabled="quickLoading">
+                    📄 Download PDF
+                  </button>
+                  <button
+                    class="btn btn-outline"
+                    @click="shareAnalyticsReport()"
+                    :disabled="analyticsView.shared || analyticsView.sharing"
+                    style="margin-left: auto;"
+                  >
+                    {{ analyticsView.shared ? '✓ Shared with Owner' : analyticsView.sharing ? '⏳ Sharing...' : '📤 Send to Owner' }}
+                  </button>
+                  <span v-if="shareMessage" style="font-size: 12px; color: #276749;">{{ shareMessage }}</span>
+                </div>
+              </div>
+            </template>
+          </div>
+
+          <!-- Reports list view (default) -->
+          <div v-else>
+            <!-- ① AI Report Generator -->
+            <div class="card" style="margin-bottom: 20px;">
+              <div class="card-header" style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">🤖</span>
+                <h3 class="card-title" style="margin: 0;">AI Report Generator</h3>
+              </div>
+              <div class="card-body">
+                <p class="text-muted" style="font-size: 13px; margin-bottom: 12px;">
+                  Describe the report you need in plain English and the AI will generate it instantly.
+                </p>
+                <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                  <input
+                    v-model="reportChatInput"
+                    type="text"
+                    class="form-input"
+                    placeholder='e.g. "Generate weekly staff report" or "Monthly sales CSV"'
+                    style="flex: 1; font-size: 13px;"
+                    :disabled="reportChatLoading"
+                    @keyup.enter="sendReportChatRequest"
+                  />
+                  <select v-model="reportChatFormat" class="form-input" style="width: 90px; font-size: 13px;">
+                    <option value="csv">CSV</option>
+                    <option value="pdf">PDF</option>
+                  </select>
+                  <button class="btn btn-primary" @click="sendReportChatRequest" :disabled="reportChatLoading || !reportChatInput.trim()" style="white-space: nowrap;">
+                    <span v-if="reportChatLoading">⏳ Generating…</span>
+                    <span v-else>✨ Generate</span>
+                  </button>
+                </div>
+                <div v-if="reportChatMessage" :class="['report-ai-msg', reportChatError ? 'report-ai-msg--error' : 'report-ai-msg--success']">
+                  {{ reportChatMessage }}
+                </div>
+              </div>
+            </div>
+
+            <!-- ② Report Cards Grid -->
+            <div class="card" style="margin-bottom: 20px;">
+              <div class="card-header">
+                <h3 class="card-title">View & Export Reports</h3>
+              </div>
+              <div class="card-body">
+                <!-- Period selector -->
+                <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center;">
+                  <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Period:</label>
+                  <select v-model="quickPeriod" class="form-input" style="font-size: 13px; width: 160px;">
+                    <option value="daily">Today</option>
+                    <option value="yesterday">Yesterday</option>
+                    <option value="weekly">This Week</option>
+                    <option value="monthly">This Month</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
+                  <template v-if="quickPeriod === 'custom'">
+                    <input v-model="quickCustomStart" type="date" class="form-input" style="font-size: 13px; width: 150px;" />
+                    <span style="color: var(--text-muted); font-size: 13px;">to</span>
+                    <input v-model="quickCustomEnd" type="date" class="form-input" style="font-size: 13px; width: 150px;" />
+                  </template>
                 </div>
 
-                <div class="report-item">
-                  <div class="report-icon">📅</div>
-                  <div class="report-title">Appointments Report</div>
-                  <div class="text-muted" style="margin: 8px 0">All appointments and schedules</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px;">
+                  <div v-for="rt in reportTypes" :key="rt.type" class="report-card">
+                    <div class="report-card-icon">{{ rt.icon }}</div>
+                    <div class="report-card-title">{{ rt.label }}</div>
+                    <div class="report-card-desc">{{ rt.desc }}</div>
+                    <div class="report-card-actions">
+                      <button class="btn btn-outline" style="font-size: 12px; flex: 1;" @click="openAnalyticsView(rt)">
+                        📊 View Analytics
+                      </button>
+                      <button class="btn btn-primary" style="font-size: 12px;" :disabled="quickLoading" @click="quickGenerateReportFor(rt.type, 'csv')">
+                        CSV
+                      </button>
+                      <button class="btn btn-primary" style="font-size: 12px;" :disabled="quickLoading" @click="quickGenerateReportFor(rt.type, 'pdf')">
+                        PDF
+                      </button>
+                    </div>
+                  </div>
                 </div>
+                <div v-if="quickError" style="color: #e53e3e; font-size: 12px; margin-top: 10px;">⚠️ {{ quickError }}</div>
+              </div>
+            </div>
 
-                <div class="report-item">
-                  <div class="report-icon">👥</div>
-                  <div class="report-title">Staff Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Staff performance and attendance</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
+            <!-- ③ Saved & Shared Reports -->
+            <div class="card">
+              <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="card-title">Saved Reports</h3>
+                <button class="btn btn-outline" style="font-size: 12px; padding: 5px 12px;" @click="fetchSavedReports">↻ Refresh</button>
+              </div>
+              <div class="card-body">
+                <div v-if="savedReports.length === 0" class="empty-state">
+                  <div class="empty-state-icon">📄</div>
+                  <div class="empty-state-text">No saved reports yet. Generate one above to see it here.</div>
                 </div>
-
-                <div class="report-item">
-                  <div class="report-icon">📦</div>
-                  <div class="report-title">Inventory Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Stock levels and movements</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
-                </div>
-
-                <div class="report-item">
-                  <div class="report-icon">💰</div>
-                  <div class="report-title">Financial Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Revenue and expenses summary</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
-                </div>
-
-                <div class="report-item">
-                  <div class="report-icon">⭐</div>
-                  <div class="report-title">Feedback Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Customer reviews and ratings</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
+                <div v-else>
+                  <div v-for="report in savedReports" :key="report.id" class="gen-report-item">
+                    <div style="font-size: 22px;">{{ REPORT_ICONS[report.report_type] || '📄' }}</div>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-weight: 600; font-size: 14px; color: var(--charcoal);">
+                        {{ report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1) }} Report
+                        <span v-if="report.shared" style="margin-left: 6px; font-size: 10px; background: #e6f4ea; color: #276749; padding: 1px 7px; border-radius: 10px; font-weight: 600;">Shared</span>
+                      </div>
+                      <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                        {{ REPORT_PERIOD_LABELS[report.time_period] || report.time_period }} &bull; {{ new Date(report.created_at).toLocaleDateString() }}
+                      </div>
+                    </div>
+                    <div style="display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap;">
+                      <button v-if="report.has_csv" class="btn btn-outline" style="font-size: 11px; padding: 4px 10px;" @click="downloadSavedReport(report.id, 'csv')">CSV</button>
+                      <button v-if="report.has_pdf" class="btn btn-outline" style="font-size: 11px; padding: 4px 10px;" @click="downloadSavedReport(report.id, 'pdf')">PDF</button>
+                      <button v-if="!report.shared" class="btn btn-primary" style="font-size: 11px; padding: 4px 10px;" @click="shareReportWithOwner(report.id, report)">📤 Share</button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -3084,7 +3290,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
+import { Chart, registerables } from 'chart.js';
+Chart.register(...registerables);
 import { useRouter } from "vue-router";
 import { useAppStore } from "@/stores/appStore";
 
@@ -3142,6 +3350,64 @@ const tasksLoading = ref(false);
 const tasksError = ref(null);
 const pendingTasks = computed(() => managerTasks.value.filter(t => t.status === 'pending'));
 const completedTasks = computed(() => managerTasks.value.filter(t => t.status === 'completed'));
+
+// ── Report Generation state ────────────────────────────────────────────────
+// AI chat path
+const reportChatInput   = ref('');
+const reportChatFormat  = ref('csv');
+const reportChatLoading = ref(false);
+const reportChatMessage = ref('');
+const reportChatError   = ref(false);
+
+// Quick-generate path
+const quickType        = ref('sales');
+const quickPeriod      = ref('monthly');
+const quickFormat      = ref('csv');
+const quickCustomStart = ref('');
+const quickCustomEnd   = ref('');
+const quickLoading     = ref(false);
+const quickError       = ref('');
+
+// Session report history (blobs kept in memory)
+const generatedReports = ref([]);
+const _reportBlobs     = new Map();  // id → Blob
+
+const REPORT_ICONS = {
+  sales: '📊', appointments: '📅', staff: '👥',
+  inventory: '📦', financial: '💰', feedback: '⭐',
+};
+const REPORT_PERIOD_LABELS = {
+  daily: 'Today', yesterday: 'Yesterday', weekly: 'This Week',
+  monthly: 'This Month', custom: 'Custom Range',
+};
+
+// Report type catalogue shown in the cards grid
+const reportTypes = [
+  { type: 'sales',        icon: '📊', label: 'Sales Report',        desc: 'Total revenue, invoices & top services'          },
+  { type: 'appointments', icon: '📅', label: 'Appointments Report',  desc: 'Booking trends, status breakdown & top services' },
+  { type: 'staff',        icon: '👥', label: 'Staff Report',         desc: 'Performance, attendance & ratings'               },
+  { type: 'inventory',    icon: '📦', label: 'Inventory Report',     desc: 'Stock levels, usage & low-stock alerts'          },
+  { type: 'financial',    icon: '💰', label: 'Financial Report',     desc: 'Revenue, expenses & profit by month'             },
+  { type: 'feedback',     icon: '⭐', label: 'Feedback Report',      desc: 'Customer ratings & sentiment summary'            },
+];
+
+// ── Analytics view state ──────────────────────────────────────────────────
+const analyticsView    = ref(null);   // { type, title, icon, periodLabel, dbId, shared }
+const analyticsData    = ref(null);
+const analyticsLoading = ref(false);
+const analyticsError   = ref(null);
+const savedReports     = ref([]);
+const shareMessage     = ref('');
+
+// Chart.js canvas refs
+const chartLine = ref(null);
+const chartBar  = ref(null);
+const chartPie  = ref(null);
+
+// Keep Chart instances so we can destroy before re-render
+let _chartLineInst = null;
+let _chartBarInst  = null;
+let _chartPieInst  = null;
 
 // Booking form state
 const bookingForm = ref({
@@ -6134,6 +6400,525 @@ const verifyReportsPassword = async () => {
   }
 };
 
+// ── Report helpers ─────────────────────────────────────────────────────────
+
+/** Trigger a browser download from a Blob. */
+const _downloadBlob = (blob, filename) => {
+  const url = URL.createObjectURL(blob);
+  const a   = document.createElement('a');
+  a.href     = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+};
+
+/** Call the backend, get a Blob, add to session history, trigger download. */
+const _callGenerateReport = async (reportType, timePeriod, format, customStart, customEnd) => {
+  const token = localStorage.getItem("authToken");
+  const res = await fetch(`${API_BASE_URL}/generate-report`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Authentication-Token": token,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      report_type: reportType,
+      time_period: timePeriod,
+      format,
+      custom_start: customStart || null,
+      custom_end:   customEnd   || null,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || 'Report generation failed');
+  }
+  const blob     = await res.blob();
+  const filename = `${reportType}_report_${timePeriod}.${format}`;
+  const id       = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  _reportBlobs.set(id, { blob, filename });
+
+  generatedReports.value.unshift({
+    id,
+    title:       `${REPORT_ICONS[reportType] || '📄'} ${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`,
+    icon:        REPORT_ICONS[reportType] || '📄',
+    type:        reportType,
+    format,
+    periodLabel: REPORT_PERIOD_LABELS[timePeriod] || timePeriod,
+    generatedAt: new Date().toLocaleTimeString(),
+  });
+
+  _downloadBlob(blob, filename);
+};
+
+/** Re-download a previously generated report from the session blob store. */
+const reDownloadReport = (report) => {
+  const entry = _reportBlobs.get(report.id);
+  if (entry) _downloadBlob(entry.blob, entry.filename);
+};
+
+/** Called when manager sends a natural-language report request from the reports page. */
+const sendReportChatRequest = async () => {
+  const msg = reportChatInput.value.trim();
+  if (!msg || reportChatLoading.value) return;
+
+  reportChatLoading.value = true;
+  reportChatMessage.value = '';
+  reportChatError.value   = false;
+
+  const token = localStorage.getItem("authToken");
+  try {
+    // Step 1: AI intent classification
+    const intentRes = await fetch(`${API_BASE_URL}/ai/report-intent`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: msg }),
+    });
+    const intent = await intentRes.json();
+
+    if (!intentRes.ok || !intent.report_type) {
+      reportChatMessage.value = intent.message ||
+        'Please specify the report type: sales, staff, appointments, inventory, financial, or feedback.';
+      reportChatError.value = true;
+      return;
+    }
+
+    reportChatMessage.value = `Understood! Generating a ${intent.time_period} ${intent.report_type} report…`;
+
+    // Step 2: Generate report
+    await _callGenerateReport(
+      intent.report_type,
+      intent.time_period,
+      reportChatFormat.value,
+      intent.custom_start,
+      intent.custom_end,
+    );
+
+    reportChatMessage.value =
+      `Your ${intent.time_period} ${intent.report_type} report (${reportChatFormat.value.toUpperCase()}) is ready — check below or your Downloads folder!`;
+    reportChatInput.value = '';
+
+  } catch (err) {
+    reportChatMessage.value = err.message || 'Something went wrong. Please try again.';
+    reportChatError.value   = true;
+  } finally {
+    reportChatLoading.value = false;
+  }
+};
+
+/** Quick Generate button handler. */
+const quickGenerateReport = async () => {
+  quickError.value   = '';
+  quickLoading.value = true;
+
+  if (quickPeriod.value === 'custom' && (!quickCustomStart.value || !quickCustomEnd.value)) {
+    quickError.value   = 'Please select both a start and end date for the custom range.';
+    quickLoading.value = false;
+    return;
+  }
+
+  try {
+    await _callGenerateReport(
+      quickType.value,
+      quickPeriod.value,
+      quickFormat.value,
+      quickCustomStart.value,
+      quickCustomEnd.value,
+    );
+  } catch (err) {
+    quickError.value = err.message || 'Failed to generate report. Please try again.';
+  } finally {
+    quickLoading.value = false;
+  }
+};
+
+// ── Chatbot report trigger (from the floating assistant) ───────────────────
+const _triggerReportFromChat = async (userMessage) => {
+  const token = localStorage.getItem("authToken");
+  try {
+    const intentRes = await fetch(`${API_BASE_URL}/ai/report-intent`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ message: userMessage }),
+    });
+    const intent = await intentRes.json();
+
+    if (!intentRes.ok || !intent.report_type) {
+      return intent.message ||
+        'Please specify the report type: sales, staff, appointments, inventory, or feedback.';
+    }
+
+    await _callGenerateReport(
+      intent.report_type,
+      intent.time_period,
+      'csv',
+      intent.custom_start,
+      intent.custom_end,
+    );
+
+    return `Done! Your ${intent.time_period} ${intent.report_type} report (CSV) is downloading now. You can also find it in the Download Reports section.`;
+  } catch (err) {
+    return `Report generation failed: ${err.message || 'Please try again.'}`;
+  }
+};
+
+// ── Analytics helpers ──────────────────────────────────────────────────────
+
+/** Destroy existing Chart.js instances before re-rendering. */
+const _destroyCharts = () => {
+  if (_chartLineInst) { _chartLineInst.destroy(); _chartLineInst = null; }
+  if (_chartBarInst)  { _chartBarInst.destroy();  _chartBarInst  = null; }
+  if (_chartPieInst)  { _chartPieInst.destroy();  _chartPieInst  = null; }
+};
+
+const CHART_COLORS = [
+  '#d4af37','#8B6914','#3b82f6','#22c55e','#f59e0b',
+  '#ef4444','#a855f7','#06b6d4','#ec4899','#84cc16',
+];
+
+/** Render Chart.js charts based on current analyticsView.type and analyticsData. */
+const _renderCharts = () => {
+  _destroyCharts();
+  if (!analyticsData.value || !analyticsView.value) return;
+
+  const type = analyticsView.value.type;
+  const data = analyticsData.value;
+  const defaultOptions = { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } };
+
+  if (type === 'appointments') {
+    // Line: appointments by day
+    if (chartLine.value && data.by_day?.length) {
+      _chartLineInst = new Chart(chartLine.value, {
+        type: 'line',
+        data: {
+          labels: data.by_day.map(d => d.date),
+          datasets: [{ label: 'Appointments', data: data.by_day.map(d => d.count), borderColor: '#d4af37', backgroundColor: 'rgba(212,175,55,0.15)', tension: 0.35, fill: true, pointRadius: 4 }],
+        },
+        options: { ...defaultOptions, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+      });
+    }
+    // Bar: top services
+    if (chartBar.value && data.top_services?.length) {
+      _chartBarInst = new Chart(chartBar.value, {
+        type: 'bar',
+        data: {
+          labels: data.top_services.map(s => s.name),
+          datasets: [{ label: 'Bookings', data: data.top_services.map(s => s.count), backgroundColor: CHART_COLORS }],
+        },
+        options: { ...defaultOptions, plugins: { ...defaultOptions.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+      });
+    }
+    // Pie: status breakdown
+    if (chartPie.value && data.by_status?.length) {
+      _chartPieInst = new Chart(chartPie.value, {
+        type: 'pie',
+        data: {
+          labels: data.by_status.map(s => s.name),
+          datasets: [{ data: data.by_status.map(s => s.value), backgroundColor: CHART_COLORS }],
+        },
+        options: defaultOptions,
+      });
+    }
+  } else if (type === 'sales') {
+    // Line: revenue over time
+    if (chartLine.value && data.by_day?.length) {
+      _chartLineInst = new Chart(chartLine.value, {
+        type: 'line',
+        data: {
+          labels: data.by_day.map(d => d.date),
+          datasets: [{ label: 'Revenue (INR)', data: data.by_day.map(d => d.revenue), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.12)', tension: 0.35, fill: true, pointRadius: 4 }],
+        },
+        options: { ...defaultOptions, scales: { y: { beginAtZero: true } } },
+      });
+    }
+    // Bar: revenue by service
+    if (chartBar.value && data.by_service?.length) {
+      _chartBarInst = new Chart(chartBar.value, {
+        type: 'bar',
+        data: {
+          labels: data.by_service.map(s => s.name),
+          datasets: [{ label: 'Revenue (INR)', data: data.by_service.map(s => s.revenue), backgroundColor: CHART_COLORS }],
+        },
+        options: { ...defaultOptions, plugins: { ...defaultOptions.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+      });
+    }
+  } else if (type === 'staff') {
+    // Bar: appointments per staff
+    if (chartBar.value && data.staff?.length) {
+      _chartBarInst = new Chart(chartBar.value, {
+        type: 'bar',
+        data: {
+          labels: data.staff.map(s => s.name),
+          datasets: [
+            { label: 'Total',     data: data.staff.map(s => s.total),     backgroundColor: 'rgba(212,175,55,0.7)' },
+            { label: 'Completed', data: data.staff.map(s => s.completed), backgroundColor: 'rgba(34,197,94,0.7)' },
+          ],
+        },
+        options: { ...defaultOptions, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+      });
+    }
+    // Line: ratings per staff
+    if (chartLine.value && data.staff?.length) {
+      _chartLineInst = new Chart(chartLine.value, {
+        type: 'bar',
+        data: {
+          labels: data.staff.map(s => s.name),
+          datasets: [{ label: 'Avg Rating', data: data.staff.map(s => s.rating), backgroundColor: CHART_COLORS, borderRadius: 6 }],
+        },
+        options: { ...defaultOptions, plugins: { ...defaultOptions.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true, max: 5, ticks: { stepSize: 1 } } } },
+      });
+    }
+  } else if (type === 'inventory') {
+    // Grouped bar: current stock vs minimum
+    if (chartBar.value && data.items?.length) {
+      _chartBarInst = new Chart(chartBar.value, {
+        type: 'bar',
+        data: {
+          labels: data.items.map(i => i.name),
+          datasets: [
+            { label: 'Current Stock', data: data.items.map(i => i.current), backgroundColor: 'rgba(59,130,246,0.7)' },
+            { label: 'Min Required',  data: data.items.map(i => i.minimum), backgroundColor: 'rgba(239,68,68,0.6)',  borderDash: [4, 4] },
+          ],
+        },
+        options: { ...defaultOptions, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+      });
+    }
+  } else if (type === 'feedback') {
+    // Bar: ratings distribution
+    if (chartBar.value && data.by_rating?.length) {
+      _chartBarInst = new Chart(chartBar.value, {
+        type: 'bar',
+        data: {
+          labels: data.by_rating.map(r => `${r.rating} Star${r.rating !== 1 ? 's' : ''}`),
+          datasets: [{ label: 'Reviews', data: data.by_rating.map(r => r.count), backgroundColor: ['#ef4444','#f97316','#f59e0b','#84cc16','#22c55e'] }],
+        },
+        options: { ...defaultOptions, plugins: { ...defaultOptions.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } },
+      });
+    }
+    // Pie: sentiment
+    if (chartPie.value && data.sentiment?.length) {
+      _chartPieInst = new Chart(chartPie.value, {
+        type: 'doughnut',
+        data: {
+          labels: data.sentiment.map(s => s.name),
+          datasets: [{ data: data.sentiment.map(s => s.value), backgroundColor: ['#22c55e','#f59e0b','#ef4444'] }],
+        },
+        options: defaultOptions,
+      });
+    }
+  } else if (type === 'financial') {
+    // Multi-line: revenue vs profit
+    if (chartLine.value && data.months?.length) {
+      _chartLineInst = new Chart(chartLine.value, {
+        type: 'line',
+        data: {
+          labels: data.months.map(m => m.month),
+          datasets: [
+            { label: 'Revenue',  data: data.months.map(m => m.revenue), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)',   tension: 0.35, fill: true },
+            { label: 'Cost',     data: data.months.map(m => m.cost),    borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.07)',   tension: 0.35 },
+            { label: 'Profit',   data: data.months.map(m => m.profit),  borderColor: '#d4af37', backgroundColor: 'rgba(212,175,55,0.12)',  tension: 0.35, fill: true },
+          ],
+        },
+        options: { ...defaultOptions, scales: { y: { beginAtZero: true } } },
+      });
+    }
+  }
+};
+
+// Watch analyticsData to re-render charts after Vue updates the DOM
+watch(analyticsData, () => {
+  nextTick(_renderCharts);
+});
+
+/** Open the analytics view for a given report type card. */
+const openAnalyticsView = async (rt) => {
+  analyticsView.value = {
+    type:        rt.type,
+    title:       rt.label,
+    icon:        rt.icon,
+    periodLabel: REPORT_PERIOD_LABELS[quickPeriod.value] || quickPeriod.value,
+    dbId:        null,
+    shared:      false,
+    sharing:     false,
+  };
+  analyticsData.value    = null;
+  analyticsLoading.value = true;
+  analyticsError.value   = null;
+  shareMessage.value     = '';
+
+  const token = localStorage.getItem("authToken");
+  try {
+    const params = new URLSearchParams({ type: rt.type, period: quickPeriod.value });
+    if (quickPeriod.value === 'custom' && quickCustomStart.value) params.append('custom_start', quickCustomStart.value);
+    if (quickPeriod.value === 'custom' && quickCustomEnd.value)   params.append('custom_end',   quickCustomEnd.value);
+
+    const res = await fetch(`${API_BASE_URL}/reports/analytics?${params}`, {
+      headers: { Authorization: `Bearer ${token}`, "Authentication-Token": token },
+    });
+    if (!res.ok) throw new Error('Analytics fetch failed');
+    analyticsData.value = await res.json();
+
+    // Try to link the most recent saved report of this type/period
+    const saved = savedReports.value.find(r => r.report_type === rt.type && r.time_period === quickPeriod.value);
+    if (saved) {
+      analyticsView.value.dbId   = saved.id;
+      analyticsView.value.shared = saved.shared;
+    }
+  } catch (err) {
+    analyticsError.value = err.message || 'Failed to load analytics.';
+  } finally {
+    analyticsLoading.value = false;
+  }
+};
+
+/** Generate a report for a specific type+format from the card grid (no analytics view). */
+const quickGenerateReportFor = async (reportType, format) => {
+  quickError.value   = '';
+  quickLoading.value = true;
+  try {
+    await _callGenerateReport(
+      reportType,
+      quickPeriod.value,
+      format,
+      quickCustomStart.value || null,
+      quickCustomEnd.value   || null,
+    );
+    await fetchSavedReports();
+  } catch (err) {
+    quickError.value = err.message || 'Failed to generate report.';
+  } finally {
+    quickLoading.value = false;
+  }
+};
+
+/** Download a report from the analytics view using current period settings. */
+const downloadFromAnalytics = async (format) => {
+  quickLoading.value = true;
+  quickError.value   = '';
+  try {
+    await _callGenerateReport(
+      analyticsView.value.type,
+      quickPeriod.value,
+      format,
+      quickCustomStart.value || null,
+      quickCustomEnd.value   || null,
+    );
+    await fetchSavedReports();
+    // Update the dbId link in analyticsView if a matching saved report now exists
+    const saved = savedReports.value.find(r => r.report_type === analyticsView.value.type && r.time_period === quickPeriod.value);
+    if (saved) {
+      analyticsView.value.dbId   = saved.id;
+      analyticsView.value.shared = saved.shared;
+    }
+  } catch (err) {
+    quickError.value = err.message || 'Failed to download report.';
+  } finally {
+    quickLoading.value = false;
+  }
+};
+
+/** Fetch the list of saved reports from the backend. */
+const fetchSavedReports = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) return;
+  try {
+    const res = await fetch(`${API_BASE_URL}/reports`, {
+      headers: { Authorization: `Bearer ${token}`, "Authentication-Token": token },
+    });
+    if (!res.ok) return;
+    savedReports.value = await res.json();
+  } catch (err) {
+    console.error('Failed to fetch saved reports:', err);
+  }
+};
+
+/** Download a previously saved report by ID from the backend. */
+const downloadSavedReport = async (reportId, format) => {
+  const token = localStorage.getItem("authToken");
+  try {
+    const res = await fetch(`${API_BASE_URL}/reports/${reportId}/download?format=${format}`, {
+      headers: { Authorization: `Bearer ${token}`, "Authentication-Token": token },
+    });
+    if (!res.ok) throw new Error('Download failed');
+    const blob     = await res.blob();
+    const filename = `report_${reportId}.${format}`;
+    _downloadBlob(blob, filename);
+  } catch (err) {
+    console.error('Download saved report error:', err);
+  }
+};
+
+/** Share a saved report (already in DB) with the owner. */
+const shareReportWithOwner = async (reportId, reportRef) => {
+  const token = localStorage.getItem("authToken");
+  shareMessage.value = '';
+  try {
+    const res = await fetch(`${API_BASE_URL}/reports/${reportId}/share`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, "Authentication-Token": token },
+    });
+    if (!res.ok) throw new Error('Share failed');
+    shareMessage.value = 'Report shared with owner successfully!';
+    if (reportRef) reportRef.shared = true;
+    if (analyticsView.value?.dbId === reportId) analyticsView.value.shared = true;
+    await fetchSavedReports();
+    setTimeout(() => { shareMessage.value = ''; }, 4000);
+  } catch (err) {
+    shareMessage.value = `Failed to share: ${err.message}`;
+  }
+};
+
+/** Generate both PDF + CSV silently and share with owner from the analytics view. */
+const shareAnalyticsReport = async () => {
+  if (!analyticsView.value) return;
+  const token = localStorage.getItem("authToken");
+  shareMessage.value = '';
+  analyticsView.value.sharing = true;
+  try {
+    const body = {
+      report_type:  analyticsView.value.type,
+      time_period:  quickPeriod.value,
+      custom_start: quickPeriod.value === 'custom' ? quickCustomStart.value : null,
+      custom_end:   quickPeriod.value === 'custom' ? quickCustomEnd.value   : null,
+    };
+    const res = await fetch(`${API_BASE_URL}/reports/generate-and-share`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        'Authentication-Token': token,
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Share failed');
+    }
+    const data = await res.json();
+    shareMessage.value = 'Report (PDF + CSV) shared with owner!';
+    analyticsView.value.shared = true;
+    analyticsView.value.dbId   = data.id;
+    await fetchSavedReports();
+    setTimeout(() => { shareMessage.value = ''; }, 4000);
+  } catch (err) {
+    shareMessage.value = `Failed to share: ${err.message}`;
+  } finally {
+    analyticsView.value.sharing = false;
+  }
+};
+
 // Fetch today's tasks for the current manager
 const fetchManagerTasks = async () => {
   const token = localStorage.getItem("authToken");
@@ -6218,6 +7003,23 @@ const sendAIMessage = () => {
     }, 0);
   };
 
+  // Report generation — async path (checked before task checklist)
+  const reportKeywords = [
+    'report', 'generate report', 'download report', 'sales report',
+    'staff report', 'appointment report', 'inventory report',
+    'financial report', 'feedback report', 'weekly report',
+    'monthly report', 'daily report', 'export', 'download csv', 'download pdf',
+  ];
+  if (reportKeywords.some(kw => userMessage.includes(kw))) {
+    aiMessages.value.push({ type: 'assistant', text: 'On it! Classifying your report request and generating the file…' });
+    scrollChat();
+    _triggerReportFromChat(userMessage).then(reply => {
+      aiMessages.value.push({ type: 'assistant', text: reply });
+      scrollChat();
+    });
+    return;
+  }
+
   // Task checklist — async path
   if (
     userMessage.includes('checklist') ||
@@ -6258,7 +7060,7 @@ const sendAIMessage = () => {
   } else if (userMessage.includes('invoice') || userMessage.includes('billing') || userMessage.includes('payment')) {
     assistantResponse = 'You can create and manage invoices in the Invoices section. Create invoices from completed appointments, track payment status, and send invoices to customers via email.';
   } else if (userMessage.includes('finance') || userMessage.includes('profit') || userMessage.includes('revenue')) {
-    assistantResponse = 'The Finance section (password protected) shows your total revenue, product costs, staff salaries, overhead, and net profit. Access it from the sidebar for a complete financial overview.';
+    assistantResponse = 'The Finance section (password protected) shows your total revenue, product costs, staff salaries, overhead, and net profit. Access it from the sidebar for a complete financial overview. You can also ask me to "Generate a monthly financial report" to download a PDF or CSV!';
   } else if (userMessage.includes('issue') || userMessage.includes('problem') || userMessage.includes('error')) {
     assistantResponse = 'I\'m sorry you\'re experiencing an issue. Please describe the problem in detail, and I\'ll help you troubleshoot. Is it related to appointments, customers, services, staff, inventory, or invoices?';
   } else if (userMessage.includes('help')) {
@@ -7356,6 +8158,8 @@ onMounted(() => {
   fetchBriefing();
   // Fetch today's AI tasks
   fetchManagerTasks();
+  // Fetch saved reports list
+  fetchSavedReports();
   // Fetch products, customers, staff, and services from API on component mount
   fetchProducts();
   fetchCustomers();
@@ -8061,5 +8865,103 @@ onUnmounted(() => {
 .badge-feedback     { background: #fce8e8; color: #c53030; }
 .badge-staff        { background: #e6f4ea; color: #276749; }
 .badge-general      { background: #e8e0d5; color: var(--text-muted); }
+
+/* ── Report Generation UI ───────────────────────────────────────────────── */
+.report-ai-msg {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  margin-top: 4px;
+}
+.report-ai-msg--success {
+  background: #f0fff4;
+  border: 1px solid #c6f6d5;
+  color: #276749;
+}
+.report-ai-msg--error {
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  color: #c53030;
+}
+
+.report-quick-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  align-items: flex-start;
+}
+@media (max-width: 900px) {
+  .report-quick-row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 560px) {
+  .report-quick-row { grid-template-columns: 1fr; }
+}
+
+.report-quick-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.report-quick-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.gen-report-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin-bottom: 8px;
+  transition: background 0.15s;
+}
+.gen-report-item:hover {
+  background: var(--light-bg);
+}
+.gen-report-item:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Report type cards ──────────────────────────────────────────────────── */
+.report-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 16px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: white;
+  transition: box-shadow 0.2s, border-color 0.2s;
+}
+.report-card:hover {
+  border-color: var(--gold);
+  box-shadow: 0 4px 16px rgba(212,175,55,0.15);
+}
+.report-card-icon {
+  font-size: 28px;
+}
+.report-card-title {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--charcoal);
+}
+.report-card-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  flex: 1;
+}
+.report-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
 </style>
 
