@@ -3,7 +3,9 @@ from main import app
 from application.models import db, Role
 
 @pytest.fixture(autouse=True)
-def bypass_auth(monkeypatch):
+def bypass_auth(monkeypatch,request):
+    if "no_auth_bypass" in request.node.keywords:
+        return
     def fake_decorator(*args, **kwargs):
         def wrapper(fn):
             return fn
@@ -22,6 +24,8 @@ def bypass_auth(monkeypatch):
 @pytest.fixture
 def app_fixture():
     app.config["TESTING"] = True
+    app.config["SECURITY_REDIRECT_BEHAVIOR"] = "spa"
+    app.config["SECURITY_UNAUTHORIZED_VIEW"] = None
     return app
 
 
@@ -61,3 +65,18 @@ def create_user():
         return user
 
     return _create_user
+
+@pytest.fixture
+def get_token(client, create_user):
+    def _get_token(username, password, role):
+        create_user(username, password, role)
+
+        res = client.post(f"/{role}-login", json={
+            "username": username,
+            "password": password
+        })
+
+        return res.get_json()["token"]
+
+    return _get_token
+

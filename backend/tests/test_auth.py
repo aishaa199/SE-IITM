@@ -178,3 +178,92 @@ def test_register_customer_duplicate_email(client):
     print(data)
 
     assert response.status_code == 400
+
+# ========================= TOKENS =========================
+@pytest.mark.no_auth_bypass
+def test_token_generation(client,create_user):
+    create_user("test_user", "test_pass", "customer")
+    res = client.post("/customer-login", json={
+        "username": "test_user",
+        "password": "test_pass"
+    })
+    assert res.status_code == 200
+    data = res.get_json()
+    assert "token" in data
+    assert data["token"] is not None
+    assert isinstance(data["token"], str)
+
+@pytest.mark.no_auth_bypass
+def test_no_token(client):
+    res = client.get("/api/customer-summary",
+    headers={"Accept": "application/json"})
+    assert res.status_code in (401, 403)
+
+@pytest.mark.no_auth_bypass
+def test_invalid_token(client):
+    headers = {"Authentication-Token": "fake_token_123",
+    "Accept": "application/json"}
+
+    res = client.get("/api/customer-summary", headers=headers)
+    assert res.status_code in (401, 403)
+
+from flask_security.utils import verify_password
+
+def test_password_hashing(client,create_user):
+    user = create_user("user1", "1234", "customer")
+
+    assert user.password != "1234"
+    assert verify_password("1234", user.password) is True
+    assert verify_password("wrong", user.password) is False
+
+@pytest.mark.no_auth_bypass
+def test_change_password(client, create_user):
+    create_user("user1", "1234", "customer")
+
+    login = client.post(
+        "/customer-login",
+        json={"username": "user1", "password": "1234"},
+        headers={
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        }
+    )
+
+    assert login.status_code == 200
+    token = login.get_json()["token"]
+
+    res = client.put(
+        "/api/change-password",
+        json={
+            "current_password": "1234",
+            "new_password": "abcd",
+            "confirm_password": "abcd"
+        },
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/json",
+            "Content-Type": "application/json"
+        }
+    )
+
+    assert res.status_code == 200
+@pytest.mark.no_auth_bypass
+def test_unauthorized_access_wrong_role(client, create_user):
+    create_user("cust1", "1234", "customer")
+
+    login = client.post("/customer-login", json={
+        "username": "cust1",
+        "password": "1234"
+    })
+
+    token = login.get_json()["token"]
+
+    res = client.get(
+        "/api/staff",
+        headers={
+            "Authentication-Token": token,
+            "Accept": "application/json"
+        }
+    )
+
+    assert res.status_code == 403
