@@ -163,30 +163,45 @@
 
             <!-- AI Assistant Chatbot -->
             <div class="card">
-              <div class="card-header">
-                <h3 class="card-title">🤖 AI Beauty Assistant</h3>
+              <div class="card-header" style="display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">🤖</span>
+                <h3 class="card-title" style="margin: 0;">AI Beauty Assistant</h3>
+                <span style="font-size: 11px; background: #e6f4ea; color: #276749; padding: 2px 8px; border-radius: 10px; font-weight: 600; margin-left: 4px;">AI Powered</span>
               </div>
-              <div class="card-body" style="display: flex; flex-direction: column; height: 450px">
-                <div class="chat-messages" style="flex: 1; overflow-y: auto; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border)">
+              <!-- Quick prompt chips -->
+              <div style="padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--border);">
+                <button v-for="chip in ['Recommend a service', 'My reward points', 'How to book?', 'Best for dry hair', 'Bridal packages']"
+                  :key="chip"
+                  @click="chatInput = chip; sendChatMessage()"
+                  style="font-size: 11px; padding: 3px 10px; border-radius: 12px; border: 1px solid var(--border); background: var(--light-bg); cursor: pointer; color: var(--charcoal);"
+                  :disabled="chatLoading"
+                >{{ chip }}</button>
+              </div>
+              <div class="card-body" style="display: flex; flex-direction: column; height: 400px">
+                <div class="chat-messages" ref="chatScrollEl" style="flex: 1; overflow-y: auto; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border)">
                   <div v-for="(msg, idx) in chatMessages" :key="idx" :class="['chat-message', msg.type]" style="margin-bottom: 12px">
                     <div :style="msg.type === 'user' ? { textAlign: 'right', paddingLeft: '40px' } : { textAlign: 'left', paddingRight: '40px' }">
-                      <div :style="msg.type === 'user' ? { background: 'var(--gold)', color: 'white' } : { background: 'var(--light-bg)', color: 'var(--charcoal)' }" style="padding: 8px 12px; border-radius: 8px; display: inline-block; max-width: 250px; word-wrap: break-word; text-align: left">
-                        {{ msg.text }}
+                      <div :style="msg.type === 'user' ? { background: 'var(--gold)', color: 'white' } : { background: 'var(--light-bg)', color: 'var(--charcoal)' }" style="padding: 8px 12px; border-radius: 8px; display: inline-block; max-width: 260px; word-wrap: break-word; text-align: left; white-space: pre-wrap;">
+                        <span v-if="msg.isTyping" style="letter-spacing: 2px; opacity: 0.6;">● ● ●</span>
+                        <span v-else>{{ msg.text }}</span>
                       </div>
                       <div class="text-muted" style="font-size: 11px; margin-top: 4px">{{ msg.time }}</div>
                     </div>
                   </div>
                 </div>
                 <div style="display: flex; gap: 8px">
-                  <input 
-                    v-model="chatInput" 
-                    type="text" 
-                    placeholder="Ask me about services..." 
+                  <input
+                    v-model="chatInput"
+                    type="text"
+                    placeholder="Ask about services, prices, stylists…"
                     class="form-input"
                     style="flex: 1"
                     @keyup.enter="sendChatMessage"
+                    :disabled="chatLoading"
                   />
-                  <button class="btn btn-primary" style="padding: 10px 16px" @click="sendChatMessage">Send</button>
+                  <button class="btn btn-primary" style="padding: 10px 16px" @click="sendChatMessage" :disabled="chatLoading">
+                    {{ chatLoading ? '…' : 'Send' }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -899,11 +914,60 @@
           </div>
 
           <div class="form-group">
-            <label for="review-text">Your Review (Optional)</label>
-            <textarea 
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label for="review-text" style="margin: 0;">Your Review (Optional)</label>
+              <button
+                type="button"
+                @click="showAiFeedbackPanel = !showAiFeedbackPanel; aiFeedbackError = ''"
+                style="font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--gold); background: #fffbea; color: #8B6914; cursor: pointer; font-weight: 600;"
+              >
+                ✨ {{ showAiFeedbackPanel ? 'Hide AI Writer' : 'Write with AI' }}
+              </button>
+            </div>
+
+            <!-- AI Feedback Writer Panel -->
+            <div v-if="showAiFeedbackPanel" style="background: #fffbea; border: 1px solid #f0d060; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
+              <div style="font-size: 13px; font-weight: 600; color: #8B6914; margin-bottom: 10px;">✨ Select topics your feedback covers:</div>
+              <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                <button
+                  v-for="kw in FEEDBACK_KEYWORDS"
+                  :key="kw"
+                  type="button"
+                  @click="toggleFeedbackKeyword(kw)"
+                  :style="{
+                    fontSize: '12px',
+                    padding: '5px 12px',
+                    borderRadius: '14px',
+                    border: aiFeedbackKeywords.includes(kw) ? '2px solid var(--gold)' : '1px solid #ddd',
+                    background: aiFeedbackKeywords.includes(kw) ? 'var(--gold)' : 'white',
+                    color: aiFeedbackKeywords.includes(kw) ? 'white' : 'var(--charcoal)',
+                    cursor: 'pointer',
+                    fontWeight: aiFeedbackKeywords.includes(kw) ? '600' : '400',
+                    transition: 'all 0.15s',
+                  }"
+                >{{ kw }}</button>
+              </div>
+              <textarea
+                v-model="aiFeedbackNote"
+                placeholder="Optional: Add a short personal note (e.g. 'waited 20 mins, coloring was great')"
+                style="width: 100%; border: 1px solid #ddd; border-radius: 6px; padding: 8px; font-size: 13px; resize: vertical; min-height: 60px; box-sizing: border-box;"
+              ></textarea>
+              <div v-if="aiFeedbackError" style="color: #e53e3e; font-size: 12px; margin-top: 6px;">{{ aiFeedbackError }}</div>
+              <button
+                type="button"
+                @click="generateAiFeedback"
+                :disabled="aiFeedbackLoading"
+                class="btn btn-primary"
+                style="margin-top: 10px; width: 100%; font-size: 13px;"
+              >
+                {{ aiFeedbackLoading ? '✨ Generating…' : '✨ Generate Feedback' }}
+              </button>
+            </div>
+
+            <textarea
               id="review-text"
-              v-model="reviewFormData.review" 
-              placeholder="Share your experience with this service..."
+              v-model="reviewFormData.review"
+              placeholder="Share your experience with this service…"
               class="form-input"
               style="resize: vertical; min-height: 100px"
             ></textarea>
@@ -1604,47 +1668,48 @@ const handleSubmitFeedback = () => {
   }, 1500);
 };
 
-const sendChatMessage = () => {
-  if (!chatInput.value.trim()) return;
+const chatLoading = ref(false);
 
-  // Add user message
-  chatMessages.value.push({
-    type: "user",
-    text: chatInput.value,
-    time: "Now"
-  });
+const sendChatMessage = async () => {
+  if (!chatInput.value.trim() || chatLoading.value) return;
 
-  const userMessage = chatInput.value.toLowerCase();
+  const userText = chatInput.value.trim();
   chatInput.value = "";
 
-  // Simulate AI response with RAG-like patterns
-  setTimeout(() => {
-    let response = "";
+  chatMessages.value.push({ type: "user", text: userText, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+  chatLoading.value = true;
+  // Typing indicator
+  chatMessages.value.push({ type: "bot", text: "...", time: "", isTyping: true });
 
-    if (userMessage.includes("price") || userMessage.includes("cost")) {
-      response = "Our services range from ₹30 for manicures to ₹120 for spa packages. Would you like details on a specific service?";
-    } else if (userMessage.includes("hair")) {
-      response = "We offer hair styling (₹50) and balayage services (₹220). Both are 60-120 minutes. Would you like to book?";
-    } else if (userMessage.includes("manicure") || userMessage.includes("nails")) {
-      response = "We have manicure (₹30, 45 min) and pedicure (₹35, 45 min) services available. Our stylists are highly rated!";
-    } else if (userMessage.includes("facial") || userMessage.includes("skin")) {
-      response = "Our facial treatment is ₹70 for 60 minutes. It includes deep cleansing and rejuvenation. Book now?";
-    } else if (userMessage.includes("available") || userMessage.includes("time") || userMessage.includes("appointment")) {
-      response = "We're available from 9:00 AM to 5:00 PM daily. You can book an appointment with any of our stylists. Would you like to proceed?";
-    } else if (userMessage.includes("stylist") || userMessage.includes("staff")) {
-      response = "We have experienced stylists including Sarah Johnson (4.8⭐), Emma Davis (4.6⭐), and Lisa Chen (4.9⭐). All are highly skilled!";
-    } else if (userMessage.includes("massage")) {
-      response = "Our massage therapy costs ₹80 for 60 minutes. It's perfect for relaxation and wellness. Would you like to book?";
-    } else {
-      response = "I can help you with service information, pricing, booking appointments, or anything about our beauty salon. What would you like to know?";
-    }
-
+  const token = localStorage.getItem("authToken");
+  try {
+    const res = await fetch(`${API_BASE_URL}/ai/customer-chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token,
+      },
+      body: JSON.stringify({ message: userText }),
+    });
+    const data = await res.json();
+    // Remove typing indicator
+    chatMessages.value = chatMessages.value.filter(m => !m.isTyping);
     chatMessages.value.push({
       type: "bot",
-      text: response,
-      time: "Now"
+      text: data.response || "Sorry, I couldn't process that. Please try again.",
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     });
-  }, 500);
+  } catch {
+    chatMessages.value = chatMessages.value.filter(m => !m.isTyping);
+    chatMessages.value.push({
+      type: "bot",
+      text: "I'm having trouble connecting right now. Please try again shortly.",
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    });
+  } finally {
+    chatLoading.value = false;
+  }
 };
 
 const logout = () => {
@@ -1891,13 +1956,69 @@ const submitReview = async () => {
 // Open review modal for a pending appointment
 const openReviewModal = (pendingReview) => {
   selectedPendingReview.value = pendingReview;
-  reviewFormData.value = {
-    rating: 0,
-    review: ""
-  };
+  reviewFormData.value = { rating: 0, review: "" };
   reviewSubmitError.value = "";
   reviewSubmitSuccess.value = "";
+  aiFeedbackKeywords.value = [];
+  aiFeedbackNote.value = "";
+  aiFeedbackLoading.value = false;
+  showAiFeedbackPanel.value = false;
   showReviewModal.value = true;
+};
+
+// ── AI Feedback Writer state ────────────────────────────────────────────────
+const FEEDBACK_KEYWORDS = [
+  "Service Quality", "Staff Behaviour", "Waiting Time",
+  "Cleanliness", "Pricing", "Overall Experience", "Product Quality", "Ambience",
+];
+const showAiFeedbackPanel = ref(false);
+const aiFeedbackKeywords  = ref([]);
+const aiFeedbackNote      = ref("");
+const aiFeedbackLoading   = ref(false);
+const aiFeedbackError     = ref("");
+
+const toggleFeedbackKeyword = (kw) => {
+  const idx = aiFeedbackKeywords.value.indexOf(kw);
+  if (idx === -1) aiFeedbackKeywords.value.push(kw);
+  else aiFeedbackKeywords.value.splice(idx, 1);
+};
+
+const generateAiFeedback = async () => {
+  if (!aiFeedbackKeywords.value.length && !aiFeedbackNote.value.trim()) {
+    aiFeedbackError.value = "Select at least one keyword or add a note.";
+    return;
+  }
+  aiFeedbackError.value = "";
+  aiFeedbackLoading.value = true;
+  const token = localStorage.getItem("authToken");
+  try {
+    const body = {
+      keywords: aiFeedbackKeywords.value,
+      customer_note: aiFeedbackNote.value.trim(),
+      service_name: selectedPendingReview.value?.services?.join(', ') || '',
+      staff_name: selectedPendingReview.value?.staff_name || '',
+    };
+    const res = await fetch(`${API_BASE_URL}/ai/generate-feedback`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token,
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (data.feedback_message) {
+      reviewFormData.value.review = data.feedback_message;
+      showAiFeedbackPanel.value = false;
+    } else {
+      aiFeedbackError.value = data.message || "AI generation failed.";
+    }
+  } catch {
+    aiFeedbackError.value = "Connection error. Please try again.";
+  } finally {
+    aiFeedbackLoading.value = false;
+  }
 };
 
 onMounted(() => {

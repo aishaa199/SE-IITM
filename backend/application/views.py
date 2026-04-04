@@ -685,6 +685,155 @@ def report_intent():
     })
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Customer AI endpoints
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _parse_json_response(raw_text):
+    """Safely extract first JSON object from Claude response text."""
+    import re
+    raw_text = raw_text.strip()
+    try:
+        return json.loads(raw_text)
+    except json.JSONDecodeError:
+        m = re.search(r'\{.*\}', raw_text, re.DOTALL)
+        if m:
+            try:
+                return json.loads(m.group())
+            except json.JSONDecodeError:
+                pass
+    return {}
+
+
+@main.route('/ai/generate-feedback', methods=['POST'])
+@auth_required()
+@roles_accepted('customer')
+def generate_customer_feedback():
+    """Generate structured salon feedback from keyword selections + optional note."""
+    data        = request.get_json(silent=True) or {}
+    keywords    = data.get('keywords', [])
+    note        = (data.get('customer_note') or '').strip()
+    service_name = (data.get('service_name') or 'salon service').strip()
+    staff_name   = (data.get('staff_name') or 'the staff').strip()
+
+    if not keywords and not note:
+        return jsonify({"message": "Provide at least one keyword or a note"}), 400
+
+    kw_str = ', '.join(keywords) if keywords else 'Overall Experience'
+    prompt = f"""You are helping a customer write short feedback for a salon visit.
+
+Service: {service_name}
+Attended by: {staff_name}
+Customer selected topics: {kw_str}
+Customer's own note: {note if note else 'None'}
+
+Write a polite, natural 2–3 sentence feedback message in first person.
+Rules:
+- Keep it under 80 words
+- If the note mentions negatives, include them constructively
+- Sound like a real customer, not a template
+- Do not use placeholders like [service] or [staff]
+
+Return ONLY valid JSON: {{"feedback_message": "..."}}"""
+
+    try:
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=256,
+            messages=[{'role': 'user', 'content': prompt}],
+        )
+        result = _parse_json_response(resp.content[0].text)
+        if 'feedback_message' not in result:
+            result = {'feedback_message': resp.content[0].text.strip()}
+    except Exception as e:
+        return jsonify({"message": f"AI generation failed: {str(e)}"}), 500
+
+    return jsonify(result)
+
+
+@main.route('/ai/customer-chat', methods=['POST'])
+@auth_required()
+@roles_accepted('customer')
+def customer_chat():
+    """
+    AI-powered customer assistant.
+    Handles: service recommendations, pricing queries, booking guidance,
+    general Q&A, and reward point information.
+    """
+    data    = request.get_json(silent=True) or {}
+    message = (data.get('message') or '').strip()
+    if not message:
+        return jsonify({"message": "Empty message"}), 400
+
+    # ── Fetch customer context ────────────────────────────────────────────────
+    customer = Customer.query.filter_by(customer_id=current_user.id).first()
+    reward_points = customer.customer_available_rewards if customer else 0
+    reward_discount = (reward_points // 500) * 25   # ₹25 per 500 pts
+
+    # ── All active services from DB ───────────────────────────────────────────
+    services = Service.query.filter_by(active_flg=True).all()
+    staff_list = Staff.query.all()
+
+    services_catalog = '\n'.join([
+        f"- {s.service_desc} | Category: {s.service_category} | ₹{int(s.service_price)} | {s.service_duration} min | Rating: {s.service_rating:.1f}★"
+        for s in services
+    ])
+
+    staff_catalog = '\n'.join([
+        f"- {s.staff_name} ({s.staff_role}) | Skills: {s.staff_skills} | Rating: {s.staff_cumulative_rating:.1f}★"
+        for s in staff_list[:10]
+    ])
+
+    # ── Single-pass Claude call ───────────────────────────────────────────────
+    prompt = f"""You are a warm, knowledgeable assistant for Glow Suite Beauty Salon.
+
+Customer message: "{message}"
+
+=== SALON SERVICES ===
+{services_catalog}
+
+=== AVAILABLE STAFF ===
+{staff_catalog}
+
+=== CUSTOMER ACCOUNT ===
+Reward Points: {reward_points} pts (= ₹{reward_discount} discount available)
+
+Instructions:
+1. If the customer asks about a service, give its exact price and duration from the list above.
+2. If the customer asks for a recommendation based on a concern (dry hair, tanning, etc.), suggest 2–3 relevant services with prices.
+3. If the customer asks about booking, tell them to use the "Book Appointment" tab on the left sidebar.
+4. If the customer asks about reward points or discounts, explain their balance.
+5. If the customer asks about stylists/staff, mention relevant staff by name and their speciality.
+6. Keep the response friendly, concise (under 120 words), and written in plain text (no markdown).
+7. Always use ₹ for prices.
+
+Return ONLY valid JSON: {{"response": "..."}}"""
+
+    try:
+        client = anthropic.Anthropic()
+        resp = client.messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=350,
+            messages=[{'role': 'user', 'content': prompt}],
+        )
+        result = _parse_json_response(resp.content[0].text)
+        if 'response' not in result:
+            result = {'response': resp.content[0].text.strip()}
+    except Exception as e:
+        # Graceful fallback
+        result = {
+            'response': (
+                "I'm having trouble connecting right now. "
+                "You can browse services in the 'Browse Services' tab "
+                "or book an appointment from 'Book Appointment'. "
+                "Feel free to try again shortly!"
+            )
+        }
+
+    return jsonify(result)
+
+
 def _reports_dir():
     """Absolute path to the /reports/ folder next to main.py."""
     import os
