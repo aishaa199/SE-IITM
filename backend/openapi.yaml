@@ -1,487 +1,725 @@
 openapi: 3.0.3
+
 info:
-  title: Salon Management API
-  description: Authentication and Management API for the Salon System.
-  version: 1.0.0
+  title: Glow Suite – Salon Operations Management API
+  description: |
+    Complete REST API for the Glow Suite Salon Operations Management Platform.
+    Built with Flask + Flask-RESTful. Supports four roles: **owner**, **manager**, **staff**, and **customer**.
+
+    ## Authentication
+    Most endpoints require a Bearer JWT token obtained from the login endpoints.
+    Pass it in the `Authorization` header as `Bearer <token>` **and** as `Authentication-Token: <token>`.
+
+    ## Roles
+    | Role | Description |
+    |------|-------------|
+    | owner | Salon owner – full read access, manages managers |
+    | manager | Day-to-day operations – appointments, staff, inventory, reports |
+    | staff | Beauticians / stylists – own schedule, attendance, inventory usage |
+    | customer | End-customers – booking, reviews, AI assistant |
+  version: "2.0.0"
+  contact:
+    name: Glow Suite Dev Team
 
 servers:
-  - url: http://127.0.0.1:5000
+  - url: http://localhost:5000
     description: Local Development Server
 
+# ─── Security ────────────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        JWT token returned by any login endpoint.
+        Also pass as `Authentication-Token` header for Flask-Security compatibility.
+
+  # ─── Reusable Schemas ────────────────────────────────────────────────────
+  schemas:
+
+    # ── Auth ──────────────────────────────────────────────────────────────
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string, example: manager_01 }
+        password: { type: string, format: password, example: password }
+
+    LoginResponse:
+      type: object
+      properties:
+        token:    { type: string, example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9... }
+        username: { type: string, example: manager_01 }
+        role:     { type: string, example: manager }
+
+    CustomerRegisterRequest:
+      type: object
+      required: [email, password, name, dob, phone]
+      properties:
+        email:       { type: string, format: email, example: priya@example.com }
+        password:    { type: string, format: password, example: StrongPass@1 }
+        name:        { type: string, example: Priya Sharma }
+        dob:         { type: string, format: date, example: "1995-08-14" }
+        phone:       { type: string, example: "+91-9876543210" }
+        address:     { type: string, example: "12 MG Road, Bengaluru" }
+        preferences: { type: array, items: { type: string }, example: [Haircut, Facial] }
+
+    # ── Service ───────────────────────────────────────────────────────────
+    Service:
+      type: object
+      properties:
+        service_id:       { type: integer, example: 1 }
+        service_desc:     { type: string,  example: Ladies Haircut & Styling }
+        service_category: { type: string,  example: Hair }
+        from_date:        { type: string,  format: date }
+        to_date:          { type: string,  format: date, nullable: true }
+        active_flg:       { type: boolean, example: true }
+        service_price:    { type: number,  example: 550 }
+        service_duration: { type: integer, example: 60 }
+        service_products: { type: string,  example: "Wella Shampoo, Streax Serum" }
+        service_rating:   { type: number,  example: 4.7 }
+        no_of_reviews:    { type: integer, example: 128 }
+
+    ServiceCreateRequest:
+      type: object
+      required: [service_desc, service_category, service_price, service_duration]
+      properties:
+        service_desc:     { type: string, example: Gold Facial }
+        service_category: { type: string, example: Skin }
+        service_price:    { type: number, example: 1400 }
+        service_duration: { type: integer, example: 75 }
+        service_products: { type: string, example: "Shahnaz Gold Kit" }
+        from_date:        { type: string, format: date }
+        to_date:          { type: string, format: date }
+
+    # ── Staff ─────────────────────────────────────────────────────────────
+    Staff:
+      type: object
+      properties:
+        staff_id:                 { type: integer, example: 5 }
+        staff_name:               { type: string,  example: Priya Sharma }
+        staff_contact:            { type: string,  example: "+91-9812345678" }
+        staff_email:              { type: string,  format: email }
+        staff_skills:             { type: string,  example: "Haircut, Hair Coloring, Hair Spa" }
+        staff_role:               { type: string,  example: Senior Stylist }
+        staff_dob:                { type: string,  format: date }
+        staff_doj:                { type: string,  format: date }
+        staff_salary:             { type: number,  example: 38000 }
+        staff_cumulative_rating:  { type: number,  example: 4.6 }
+        no_of_reviews:            { type: integer, example: 85 }
+        is_present_today:         { type: boolean, example: true }
+        appointments_today:       { type: integer, example: 4 }
+        active:                   { type: boolean, example: true }
+
+    StaffCreateRequest:
+      type: object
+      required: [username, staff_name, staff_contact, staff_email, staff_dob, staff_doj]
+      properties:
+        username:      { type: string,  example: staff_31 }
+        staff_name:    { type: string,  example: Anjali Singh }
+        staff_contact: { type: string,  example: "+91-9876543201" }
+        staff_email:   { type: string,  format: email }
+        staff_skills:  { type: string,  example: "Facial, Waxing, Threading" }
+        staff_role:    { type: string,  example: Beautician }
+        staff_dob:     { type: string,  format: date, example: "1998-04-22" }
+        staff_doj:     { type: string,  format: date, example: "2024-01-10" }
+        staff_salary:  { type: number,  example: 28000 }
+        active:        { type: boolean, example: true }
+
+    # ── Customer ──────────────────────────────────────────────────────────
+    Customer:
+      type: object
+      properties:
+        customer_id:               { type: integer, example: 10 }
+        customer_name:             { type: string,  example: Aditi Sharma }
+        customer_contact:          { type: string,  example: "+91-9800012345" }
+        customer_dob:              { type: string,  format: date }
+        customer_reg_date:         { type: string,  format: date }
+        customer_email:            { type: string,  format: email }
+        customer_address:          { type: string,  example: "45 Linking Road, Mumbai" }
+        number_of_visits:          { type: integer, example: 12 }
+        customer_type:             { type: string,  example: Regular }
+        customer_preferences:      { type: string,  example: "Haircut, Facial" }
+        customer_available_rewards: { type: integer, example: 250 }
+        total_spend:               { type: number,  example: 14500.00 }
+
+    CustomerCreateRequest:
+      type: object
+      required: [customer_email, customer_name, customer_contact, customer_dob, customer_address]
+      properties:
+        customer_email:       { type: string, format: email }
+        customer_name:        { type: string, example: Bhavna Patel }
+        customer_contact:     { type: string, example: "+91-9823456789" }
+        customer_dob:         { type: string, format: date, example: "1992-06-15" }
+        customer_address:     { type: string, example: "8 FC Road, Pune" }
+        customer_preferences: { type: string, example: "Waxing, Threading" }
+
+    # ── Manager ───────────────────────────────────────────────────────────
+    Manager:
+      type: object
+      properties:
+        manager_id:      { type: integer, example: 2 }
+        manager_name:    { type: string,  example: Rekha Pillai }
+        manager_email:   { type: string,  format: email }
+        manager_contact: { type: string,  example: "+91-9811122233" }
+        manager_skills:  { type: string,  example: "Operations, Staff Management" }
+        manager_role:    { type: string,  example: Manager }
+        manager_dob:     { type: string,  format: date }
+        manager_doj:     { type: string,  format: date }
+        branch_name:     { type: string,  example: Koramangala Branch }
+
+    ManagerCreateRequest:
+      type: object
+      required: [fullname, email, phone, skills, role, dob, doj, branch_name, username, password]
+      properties:
+        fullname:    { type: string, example: Rekha Pillai }
+        email:       { type: string, format: email }
+        phone:       { type: string, example: "+91-9811122233" }
+        skills:      { type: string, example: "Operations, Staff Management" }
+        role:        { type: string, example: Manager }
+        dob:         { type: string, format: date, example: "1985-03-10" }
+        doj:         { type: string, format: date, example: "2023-07-01" }
+        branch_name: { type: string, example: Koramangala Branch }
+        username:    { type: string, example: manager_02 }
+        password:    { type: string, format: password }
+
+    # ── Product / Inventory ───────────────────────────────────────────────
+    Product:
+      type: object
+      properties:
+        product_id:               { type: integer, example: 3 }
+        product_desc:             { type: string,  example: "Wella Professionals Shampoo 1L" }
+        product_category_name:    { type: string,  example: Hair }
+        product_price:            { type: number,  example: 850.00 }
+        product_min_qoh:          { type: integer, example: 5 }
+        product_curr_qoh:         { type: integer, example: 22 }
+        product_supplier_name:    { type: string,  example: Wella India Pvt Ltd }
+        product_supplier_contact: { type: string,  example: "+91-2266130000" }
+        product_supplier_email:   { type: string,  format: email }
+        product_low_stock_alert:  { type: boolean, example: false }
+
+    ProductCreateRequest:
+      type: object
+      required: [product_name, product_category, price, minimum_stock, stock_quantity, supplier_name, supplier_contact, supplier_email]
+      properties:
+        product_name:     { type: string, example: "Rica Brazilian Wax 400g" }
+        product_category: { type: string, example: Skin }
+        price:            { type: number, example: 850 }
+        minimum_stock:    { type: integer, example: 6 }
+        stock_quantity:   { type: integer, example: 24 }
+        supplier_name:    { type: string,  example: Rica Professional India }
+        supplier_contact: { type: string,  example: "+91-2265108000" }
+        supplier_email:   { type: string,  format: email }
+
+    # ── Appointment ───────────────────────────────────────────────────────
+    Appointment:
+      type: object
+      properties:
+        appointment_id:       { type: integer, example: 42 }
+        customer_id:          { type: integer, example: 10 }
+        customer_name:        { type: string,  example: Aditi Sharma }
+        staff_id:             { type: integer, example: 5 }
+        staff_name:           { type: string,  example: Priya Sharma }
+        datetime:             { type: string,  format: date-time }
+        status:               { type: integer, example: 1, description: "0=Booked,1=Completed,2=No-show,3=Cancelled,4=Rescheduled,5=Invoiced" }
+        services:
+          type: array
+          items:
+            type: object
+            properties:
+              service_id:   { type: integer }
+              service_desc: { type: string }
+              service_price: { type: number }
+
+    AppointmentCreateRequest:
+      type: object
+      required: [customer_email, service_ids, appointment_datetime]
+      properties:
+        customer_email:       { type: string, format: email }
+        staff_id:             { type: integer, nullable: true }
+        service_ids:          { type: array, items: { type: integer }, example: [1, 3] }
+        appointment_datetime: { type: string, format: date-time, example: "2026-04-10T11:00:00" }
+
+    # ── Invoice ───────────────────────────────────────────────────────────
+    Invoice:
+      type: object
+      properties:
+        invoice_number:        { type: integer, example: 101 }
+        invoice_date:          { type: string,  format: date }
+        customer_id:           { type: integer, example: 10 }
+        customer_name:         { type: string,  example: Aditi Sharma }
+        staff_id:              { type: integer, example: 5 }
+        staff_name:            { type: string,  example: Priya Sharma }
+        service_ids:           { type: string,  example: "1,3" }
+        service_descs:         { type: string,  example: "Ladies Haircut, Gold Facial" }
+        other_charges:         { type: number,  example: 100 }
+        rewards_earned:        { type: integer, example: 55 }
+        rewards_utilized:      { type: integer, example: 0 }
+        current_reward_points: { type: integer, example: 305 }
+        invoice_amount:        { type: number,  example: 1950 }
+        total_charges:         { type: number,  example: 2050 }
+        status:                { type: integer, example: 1, description: "0=Pending,1=Invoiced,2=Sent" }
+
+    InvoiceCreateRequest:
+      type: object
+      required: [customer_id, staff_id, service_ids, invoice_amount]
+      properties:
+        customer_id:    { type: integer, example: 10 }
+        staff_id:       { type: integer, example: 5 }
+        service_ids:    { type: array, items: { type: integer }, example: [1, 3] }
+        invoice_amount: { type: number, example: 1950 }
+        other_charges:  { type: number, example: 100 }
+        appointment_id: { type: integer, nullable: true }
+
+    # ── Inventory Transaction ──────────────────────────────────────────────
+    InventoryTransaction:
+      type: object
+      properties:
+        txn_id:       { type: integer, example: 7 }
+        product_id:   { type: integer, example: 3 }
+        product_name: { type: string,  example: "Wella Professionals Shampoo 1L" }
+        staff_id:     { type: integer, example: 5 }
+        recorded_by:  { type: string,  example: Priya Sharma }
+        service_id:   { type: integer, example: 1, nullable: true }
+        service_name: { type: string,  example: Ladies Haircut, nullable: true }
+        txn_type:     { type: integer, example: 0, description: "0=ordering (staff), 1=replenishment (manager)" }
+        quantity:     { type: integer, example: 2 }
+        date_of_txn:  { type: string,  format: date-time }
+
+    InventoryTransactionCreateRequest:
+      type: object
+      required: [product_id, quantity]
+      properties:
+        product_id: { type: integer, example: 3 }
+        service_id: { type: integer, nullable: true, example: 1 }
+        quantity:   { type: integer, example: 2 }
+
+    # ── Order ─────────────────────────────────────────────────────────────
+    Order:
+      type: object
+      properties:
+        order_id:                 { type: integer, example: 5 }
+        product_id:               { type: integer, example: 3 }
+        product_name:             { type: string,  example: "Wella Professionals Shampoo 1L" }
+        product_quantity:         { type: integer, example: 22 }
+        order_quantity:           { type: integer, example: 10 }
+        order_cost:               { type: number,  example: 8500 }
+        order_date:               { type: string,  format: date-time }
+        order_replenishment_date: { type: string,  format: date-time, nullable: true }
+        reason_for_order:         { type: string,  example: Low stock replenishment }
+        supplier_name:            { type: string,  example: Wella India Pvt Ltd }
+        supplier_email:           { type: string,  format: email }
+        status:                   { type: integer, example: 0, description: "0=Pending,1=Processed,2=Cancelled" }
+
+    OrderCreateRequest:
+      type: object
+      required: [product_id, order_quantity]
+      properties:
+        product_id:       { type: integer, example: 3 }
+        order_quantity:   { type: integer, example: 10 }
+        reason_for_order: { type: string, example: Low stock replenishment }
+
+    # ── Finance ───────────────────────────────────────────────────────────
+    Finance:
+      type: object
+      properties:
+        reporting_month: { type: string, format: date-time, example: "2026-03-01T00:00:00" }
+        product_cost:    { type: number, example: 24500 }
+        total_revenue:   { type: number, example: 148000 }
+        staff_salary:    { type: number, example: 28500 }
+        overheads:       { type: number, example: 32000 }
+        other:           { type: number, example: 7500 }
+        net_profit:      { type: number, example: 55500 }
+
+    # ── Salon Config ──────────────────────────────────────────────────────
+    SalonConfig:
+      type: object
+      properties:
+        setting_id:  { type: integer, example: 1 }
+        param_name:  { type: string,  example: APPT_HISTORY_RETENTION_DAYS }
+        param_value: { type: string,  example: "90" }
+        from_date:   { type: string,  format: date-time }
+        to_date:     { type: string,  format: date-time, nullable: true }
+
+    # ── Report ────────────────────────────────────────────────────────────
+    ReportRecord:
+      type: object
+      properties:
+        id:          { type: integer, example: 1 }
+        report_type: { type: string,  example: sales }
+        time_period: { type: string,  example: monthly }
+        created_at:  { type: string,  format: date-time }
+        has_pdf:     { type: boolean, example: true }
+        has_csv:     { type: boolean, example: true }
+        shared:      { type: boolean, example: false }
+
+    # ── Manager Task ──────────────────────────────────────────────────────
+    ManagerTask:
+      type: object
+      properties:
+        task_id:          { type: integer, example: 3 }
+        task_description: { type: string,  example: "Check inventory levels for wax and shampoo" }
+        task_section:     { type: string,  example: inventory }
+        status:           { type: string,  enum: [pending, completed] }
+        created_at:       { type: string,  format: date-time }
+
+    # ── AI Briefing ───────────────────────────────────────────────────────
+    DailyBriefing:
+      type: object
+      properties:
+        greeting:        { type: string,  example: "Good morning, Rekha!" }
+        summary:         { type: string,  example: "You have 8 appointments today..." }
+        insights:
+          type: array
+          items: { type: string }
+        recommendations:
+          type: array
+          items: { type: string }
+
+    # ── Attendance ────────────────────────────────────────────────────────
+    AttendanceRecord:
+      type: object
+      properties:
+        register_id:       { type: integer, example: 12 }
+        staff_id:          { type: integer, example: 5 }
+        staff_name:        { type: string,  example: Priya Sharma }
+        register_datetime: { type: string,  format: date-time }
+
+    # ── Common ────────────────────────────────────────────────────────────
+    MessageResponse:
+      type: object
+      properties:
+        message: { type: string, example: Operation successful }
+
+    ErrorResponse:
+      type: object
+      properties:
+        message: { type: string, example: An error occurred }
+
+    ValidationError:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Validation failed
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+
+# ─── Global Security ─────────────────────────────────────────────────────────
+security:
+  - BearerAuth: []
+
+# ─── Tags ────────────────────────────────────────────────────────────────────
+tags:
+  - name: Authentication
+    description: Login and customer registration endpoints
+  - name: AI Assistant
+    description: Claude AI-powered features for managers, owners, and customers
+  - name: Services
+    description: Salon service catalogue management
+  - name: Staff
+    description: Staff profile management
+  - name: Customers
+    description: Customer profile management
+  - name: Managers
+    description: Manager profile management
+  - name: Appointments
+    description: Appointment booking and management
+  - name: Invoices
+    description: Invoice creation and retrieval
+  - name: Inventory
+    description: Product inventory and transaction management
+  - name: Orders
+    description: Supplier order management
+  - name: Finance
+    description: Monthly financial reporting
+  - name: Reports
+    description: Analytics and downloadable report generation
+  - name: Salon Config
+    description: Salon-wide configuration parameters
+  - name: Attendance
+    description: Staff attendance tracking
+
+# ─── Paths ───────────────────────────────────────────────────────────────────
 paths:
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AUTHENTICATION
+  # ═══════════════════════════════════════════════════════════════════════════
+
   /owner-login:
     post:
-      tags:
-        - Authentication
-      summary: Owner Login
-      description: Authenticates a user with the 'owner' role.
+      tags: [Authentication]
+      summary: Owner login
+      description: |
+        **User Story:** As a salon owner, I want to log in so that I can access the owner dashboard and view reports.
+      security: []
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
+            schema: { $ref: '#/components/schemas/LoginRequest' }
       responses:
-        '200':
-          description: Successful authentication
+        "200":
+          description: Login successful
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/LoginResponse'
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        "400": { description: Missing username or password, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "403": { description: User does not have owner role, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "404": { description: User not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
 
   /manager-login:
     post:
-      tags:
-        - Authentication
-      summary: Manager Login
-      description: Authenticates a user with the 'manager' role.
+      tags: [Authentication]
+      summary: Manager login
+      description: |
+        **User Story:** As a salon manager, I want to log in so that I can manage daily operations.
+      security: []
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
+            schema: { $ref: '#/components/schemas/LoginRequest' }
       responses:
-        '200':
-          description: Successful authentication
+        "200":
+          description: Login successful
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/LoginResponse'
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        "400": { description: Missing credentials, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "403": { description: Access denied – not a manager, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "404": { description: User not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
 
   /staff-login:
     post:
-      tags:
-        - Authentication
-      summary: Staff Login
-      description: Authenticates a user with the 'staff' role.
+      tags: [Authentication]
+      summary: Staff login
+      description: |
+        **User Story:** As a salon staff member, I want to log in so that I can view my schedule and mark attendance.
+      security: []
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
+            schema: { $ref: '#/components/schemas/LoginRequest' }
       responses:
-        '200':
-          description: Successful authentication
+        "200":
+          description: Login successful
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/LoginResponse'
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        "400": { description: Missing credentials, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "403": { description: Access denied – not a staff member, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "404": { description: User not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
 
   /customer-login:
     post:
-      tags:
-        - Authentication
-      summary: Customer Login
-      description: Authenticates a user with the 'customer' role.
+      tags: [Authentication]
+      summary: Customer login
+      description: |
+        **User Story:** As a customer, I want to log in so that I can book appointments and track my rewards.
+      security: []
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              $ref: '#/components/schemas/LoginRequest'
+            schema: { $ref: '#/components/schemas/LoginRequest' }
       responses:
-        '200':
-          description: Successful authentication
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        "400": { description: Missing credentials, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "403": { description: Access denied – not a customer, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "404": { description: User not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /register-customer:
+    post:
+      tags: [Authentication]
+      summary: Self-register as a customer
+      description: |
+        **User Story:** As a new customer, I want to create an account so that I can book salon appointments online.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CustomerRegisterRequest' }
+      responses:
+        "201":
+          description: Customer registered successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
+                type: object
+                properties:
+                  message:     { type: string }
+                  customer_id: { type: integer }
+        "400": { description: Validation error or email already registered, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationError' } } } }
+        "500": { description: Internal server error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # PASSWORD
+  # ═══════════════════════════════════════════════════════════════════════════
 
   /api/change-password:
     put:
-      summary: Change password for current authenticated user
-      tags:
-        - User
-      security:
-        - tokenAuth: []
+      tags: [Authentication]
+      summary: Change authenticated user's password
+      description: |
+        **User Story:** As any authenticated user, I want to change my password so that I can maintain account security.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChangePassword'
+              type: object
+              required: [current_password, new_password, confirm_password]
+              properties:
+                current_password: { type: string, format: password }
+                new_password:     { type: string, format: password }
+                confirm_password: { type: string, format: password }
       responses:
-        '200':
-          description: Password changed successfully
+        "200": { description: Password changed successfully, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "400": { description: Passwords do not match or current password incorrect, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "401": { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
 
-  /api/product:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AI ASSISTANT
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /ai/daily-briefing:
     get:
-      summary: Get all products
-      tags:
-        - Product
-      security:
-        - tokenAuth: []
+      tags: [AI Assistant]
+      summary: Get AI-generated daily briefing
+      description: |
+        **User Story:** As a salon manager or owner, I want an AI-generated morning briefing so that I can quickly understand today's priorities.
+
+        Returns personalized greeting, salon summary, insights, and recommendations based on live appointment, inventory, and feedback data.
       responses:
-        '200':
-          description: List of products
+        "200":
+          description: Daily briefing generated successfully
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DailyBriefing' }
+        "401": { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "500": { description: AI generation failed, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /ai/generate-manager-tasks:
+    post:
+      tags: [AI Assistant]
+      summary: Generate AI task checklist for today
+      description: |
+        **User Story:** As a salon manager, I want the AI to generate a task checklist for today so that I don't miss critical operational tasks.
+
+        Analyses live data (appointments, inventory, feedback, staff) and produces a prioritised task list. Replaces any existing tasks for today.
+      responses:
+        "200":
+          description: Tasks generated and saved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items: { $ref: '#/components/schemas/ManagerTask' }
+        "401": { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "404": { description: Manager profile not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "500": { description: AI generation failed, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /ai/manager-tasks:
+    get:
+      tags: [AI Assistant]
+      summary: Retrieve today's manager task checklist
+      description: |
+        **User Story:** As a salon manager, I want to view my AI-generated task list so that I can track what I've completed today.
+      responses:
+        "200":
+          description: List of today's tasks
           content:
             application/json:
               schema:
                 type: array
-                items:
-                  $ref: '#/components/schemas/Product'
-    post:
-      summary: Create a product
-      tags:
-        - Product
-      security:
-        - tokenAuth: []
+                items: { $ref: '#/components/schemas/ManagerTask' }
+        "401": { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /tasks/{task_id}:
+    patch:
+      tags: [AI Assistant]
+      summary: Update manager task status
+      description: |
+        **User Story:** As a salon manager, I want to mark tasks as completed so that I can track my daily progress.
+      parameters:
+        - name: task_id
+          in: path
+          required: true
+          schema: { type: integer }
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Product'
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [pending, completed] }
       responses:
-        '201':
-          description: Product created
-
-  /api/product/{product_id}:
-    parameters:
-      - name: product_id
-        in: path
-        required: true
-        schema:
-          type: integer
-    get:
-      summary: Get product details
-      tags:
-        - Product
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: Product details
+        "200":
+          description: Task updated
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Product'
-    put:
-      summary: Update a product
-      tags:
-        - Product
-      security:
-        - tokenAuth: []
+                type: object
+                properties:
+                  task_id: { type: integer }
+                  status:  { type: string }
+        "400": { description: Invalid status value, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "404": { description: Task not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /ai/report-intent:
+    post:
+      tags: [AI Assistant]
+      summary: Classify natural-language report request
+      description: |
+        **User Story:** As a salon manager, I want to describe the report I need in plain English so that the system automatically selects the correct report type and period.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Product'
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, example: "Show me this month's sales report" }
       responses:
-        '200':
-          description: Product updated
-    delete:
-      summary: Delete a product
-      tags:
-        - Product
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: Product deleted
-
-  /api/inventory-transaction:
-    get:
-      summary: Get inventory transactions
-      tags:
-        - Inventory
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: List of transactions
+        "200":
+          description: Intent classified
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/InventoryTransaction'
+                type: object
+                properties:
+                  report_type:  { type: string, example: sales }
+                  time_period:  { type: string, example: monthly }
+                  custom_start: { type: string, format: date, nullable: true }
+                  custom_end:   { type: string, format: date, nullable: true }
+        "422": { description: Report type could not be determined, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /ai/generate-feedback:
     post:
-      summary: Record a transaction
-      tags:
-        - Inventory
-      security:
-        - tokenAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InventoryTransactionCreate'
-      responses:
-        '201':
-          description: Transaction recorded
+      tags: [AI Assistant]
+      summary: Generate AI-written customer review
+      description: |
+        **User Story:** As a customer, I want AI to help me write polished feedback so that I can express my experience clearly without spending too much time.
 
-  /api/order:
-    get:
-      summary: Get replenishment orders
-      tags:
-        - Inventory
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: List of orders
-    post:
-      summary: Create a replenishment order
-      tags:
-        - Inventory
-      security:
-        - tokenAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Order'
-      responses:
-        '201':
-          description: Order created
-
-  /api/order/{order_id}:
-    parameters:
-      - name: order_id
-        in: path
-        required: true
-        schema:
-          type: integer
-    put:
-      summary: Update order status/replenishment
-      tags:
-        - Inventory
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: Order updated
-
-  /api/customer:
-    get:
-      summary: Get all customers
-      tags:
-        - Customer
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: List of customers
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Customer'
-    post:
-      summary: Create a customer account
-      tags:
-        - Customer
-      security:
-        - tokenAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Customer'
-      responses:
-        '201':
-          description: Customer created
-
-  /api/customer/{customer_id}:
-    parameters:
-      - name: customer_id
-        in: path
-        required: true
-        schema:
-          type: integer
-    get:
-      summary: Get customer profile
-      tags:
-        - Customer
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: Customer details
-    put:
-      summary: Update customer profile
-      tags:
-        - Customer
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: Customer updated
-
-  /api/customer-summary:
-    get:
-      summary: Get logged-in customer's dashboard data
-      tags:
-        - Customer
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: Dashboard summary
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CustomerSummary'
-
-  /api/staff:
-    get:
-      summary: Get all staff members
-      tags:
-        - Staff
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: List of staff
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Staff'
-
-  /api/staff-attendance:
-    get:
-      summary: Get attendance records
-      tags:
-        - Staff
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: Attendance list
-    post:
-      summary: Mark current staff as present
-      tags:
-        - Staff
-      security:
-        - tokenAuth: []
-      responses:
-        '201':
-          description: Attendance marked
-
-  /api/service:
-    get:
-      summary: Get all active services
-      tags:
-        - Service
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: List of services
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Service'
-
-  /api/appointment:
-    get:
-      summary: Get manager-level appointment list
-      tags:
-        - Appointment
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: List of appointments
-    post:
-      summary: Book a new appointment
-      tags:
-        - Appointment
-      security:
-        - tokenAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AppointmentCreate'
-      responses:
-        '201':
-          description: Appointment booked
-
-  /api/appointment/{appointment_id}:
-    parameters:
-      - name: appointment_id
-        in: path
-        required: true
-        schema:
-          type: integer
-    put:
-      summary: Update appointment (status/time)
-      tags:
-        - Appointment
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: Appointment updated
-
-  /api/invoice:
-    get:
-      summary: Get all invoices
-      tags:
-        - Invoice
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: List of invoices
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Invoice'
-    post:
-      summary: Generate a new invoice
-      tags:
-        - Invoice
-      security:
-        - tokenAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InvoiceCreate'
-      responses:
-        '201':
-          description: Invoice created
-
-  /api/finance:
-    get:
-      summary: Get monthly financial reports (Owner/Manager)
-      tags:
-        - Finance
-      security:
-        - tokenAuth: []
-      responses:
-        '200':
-          description: Financial records
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Finance'
-    post:
-      summary: Generate financial report for a month
-      tags:
-        - Finance
-      security:
-        - tokenAuth: []
+        Customer selects topic keywords and optionally adds a short personal note; Claude generates a 2–3 sentence review.
       requestBody:
         required: true
         content:
@@ -489,184 +727,1423 @@ paths:
             schema:
               type: object
               properties:
-                last_date:
-                  type: string
-                  format: date
+                keywords:
+                  type: array
+                  items: { type: string }
+                  example: ["Service Quality", "Waiting Time"]
+                customer_note: { type: string, example: "Hair coloring was great but waited 20 mins" }
+                service_name:  { type: string, example: Ladies Haircut & Styling }
+                staff_name:    { type: string, example: Priya Sharma }
       responses:
-        '201':
-          description: Finance report generated
+        "200":
+          description: Feedback generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  feedback_message: { type: string, example: "I visited for the Ladies Haircut and was delighted with Priya's expertise..." }
+        "400": { description: No keywords or note provided, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "500": { description: AI generation failed, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
 
-  /api/past-months:
-    get:
-      summary: Get list of months with existing invoices
-      tags:
-        - Finance
-      security:
-        - tokenAuth: []
+  /ai/customer-chat:
+    post:
+      tags: [AI Assistant]
+      summary: AI customer service chatbot
+      description: |
+        **User Story:** As a customer, I want to chat with an AI assistant so that I can get service recommendations, pricing, booking guidance, and reward point information instantly.
+
+        The AI queries live service and staff data from the database and factors in the customer's current reward point balance to give personalised answers.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message: { type: string, example: "My hair is very dry and frizzy, what do you recommend?" }
       responses:
-        '200':
-          description: List of available report months
+        "200":
+          description: AI response generated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response: { type: string, example: "For dry and frizzy hair we recommend our Hair Spa (₹1,100) or Keratin Treatment (₹4,500)..." }
+        "400": { description: Empty message, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # REPORTS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /generate-report:
+    post:
+      tags: [Reports]
+      summary: Generate and download a report (PDF or CSV)
+      description: |
+        **User Story:** As a salon manager, I want to generate reports in PDF or CSV format so that I can analyse business performance and share findings.
+
+        Supported types: `sales`, `appointments`, `staff`, `inventory`, `financial`, `feedback`.
+        Supported periods: `daily`, `yesterday`, `weekly`, `monthly`, `custom`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [report_type, time_period, format]
+              properties:
+                report_type:  { type: string, enum: [sales, appointments, staff, inventory, financial, feedback] }
+                time_period:  { type: string, enum: [daily, yesterday, weekly, monthly, custom] }
+                format:       { type: string, enum: [pdf, csv] }
+                custom_start: { type: string, format: date, nullable: true }
+                custom_end:   { type: string, format: date, nullable: true }
+      responses:
+        "200":
+          description: File download (PDF or CSV)
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            text/csv:
+              schema: { type: string, format: binary }
+        "400": { description: Invalid report type or period, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "500": { description: Report generation failed, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /reports:
+    get:
+      tags: [Reports]
+      summary: List saved reports
+      description: |
+        **User Story:** As a salon manager or owner, I want to browse previously generated reports so that I can re-download or share them.
+
+        Managers see their own reports; owners see all shared reports.
+      responses:
+        "200":
+          description: List of saved reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ReportRecord' }
+
+  /reports/analytics:
+    get:
+      tags: [Reports]
+      summary: Get chart-ready analytics data for a report type
+      description: |
+        **User Story:** As a salon manager or owner, I want to view live analytics charts so that I can understand trends visually without downloading a file.
+      parameters:
+        - name: type
+          in: query
+          required: true
+          schema: { type: string, enum: [sales, appointments, staff, inventory, financial, feedback] }
+        - name: period
+          in: query
+          required: true
+          schema: { type: string, enum: [daily, yesterday, weekly, monthly, custom] }
+        - name: custom_start
+          in: query
+          schema: { type: string, format: date }
+        - name: custom_end
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: Analytics JSON (structure varies by report type)
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Chart-ready data. Keys vary by type (e.g. by_day, by_status, top_services for appointments).
+        "500": { description: Analytics query failed, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /reports/{report_id}/download:
+    get:
+      tags: [Reports]
+      summary: Download a saved report file
+      description: |
+        **User Story:** As a salon manager or owner, I want to download a previously generated report file so that I can share it offline.
+      parameters:
+        - name: report_id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: format
+          in: query
+          schema: { type: string, enum: [pdf, csv], default: csv }
+      responses:
+        "200":
+          description: File download
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+            text/csv:
+              schema: { type: string, format: binary }
+        "404": { description: Report or file not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /reports/{report_id}/share:
+    post:
+      tags: [Reports]
+      summary: Share an existing report with the owner
+      description: |
+        **User Story:** As a salon manager, I want to share a saved report with the owner so that they can review performance.
+      parameters:
+        - name: report_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Report shared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  id:      { type: integer }
+        "403": { description: Forbidden – not the report owner, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "404": { description: Report not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /reports/generate-and-share:
+    post:
+      tags: [Reports]
+      summary: Generate both PDF + CSV and share with owner in one step
+      description: |
+        **User Story:** As a salon manager, I want to generate and share a complete report (PDF + CSV) with the owner in a single click so that they can review it immediately.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [report_type, time_period]
+              properties:
+                report_type:  { type: string, enum: [sales, appointments, staff, inventory, financial, feedback] }
+                time_period:  { type: string, enum: [daily, yesterday, weekly, monthly, custom] }
+                custom_start: { type: string, format: date, nullable: true }
+                custom_end:   { type: string, format: date, nullable: true }
+      responses:
+        "200":
+          description: Report generated and shared
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  id:      { type: integer }
+        "500": { description: Report generation failed, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SERVICES
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/service:
+    get:
+      tags: [Services]
+      summary: List all services
+      description: |
+        **User Story:** As a customer or staff member, I want to browse all available salon services so that I can choose what to book.
+      responses:
+        "200":
+          description: List of services
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Service' }
+    post:
+      tags: [Services]
+      summary: Create a new service
+      description: |
+        **User Story:** As a salon manager, I want to add new services to the catalogue so that customers can book them.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ServiceCreateRequest' }
+      responses:
+        "201":
+          description: Service created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:    { type: string }
+                  service_id: { type: integer }
+        "400": { description: Missing required fields, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /api/service/{service_id}:
+    get:
+      tags: [Services]
+      summary: Get a single service
+      description: |
+        **User Story:** As a customer, I want to view details of a specific service so that I can decide whether to book it.
+      parameters:
+        - name: service_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Service details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Service' }
+        "404": { description: Service not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    put:
+      tags: [Services]
+      summary: Update a service
+      description: |
+        **User Story:** As a salon manager, I want to update service details (e.g. price, duration) so that the catalogue reflects current offerings.
+      parameters:
+        - name: service_id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                service_desc:     { type: string }
+                service_category: { type: string }
+                service_price:    { type: number }
+                service_duration: { type: integer }
+                service_products: { type: string }
+      responses:
+        "200": { description: Service updated, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Service not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    delete:
+      tags: [Services]
+      summary: Delete a service
+      description: |
+        **User Story:** As a salon manager, I want to remove discontinued services so that customers don't book unavailable treatments.
+      parameters:
+        - name: service_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Service deleted, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Service not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # STAFF
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/staff:
+    get:
+      tags: [Staff]
+      summary: List all staff members
+      description: |
+        **User Story:** As a salon manager, I want to view all staff members so that I can monitor their schedule and performance.
+      responses:
+        "200":
+          description: List of staff
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Staff' }
+    post:
+      tags: [Staff]
+      summary: Add a new staff member
+      description: |
+        **User Story:** As a salon manager, I want to onboard new staff so that they can start taking appointments.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StaffCreateRequest' }
+      responses:
+        "201":
+          description: Staff member created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:  { type: string }
+                  staff_id: { type: integer }
+                  username: { type: string }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationError' } } } }
+
+  /api/staff/{staff_id}:
+    get:
+      tags: [Staff]
+      summary: Get a specific staff member
+      parameters:
+        - name: staff_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Staff details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Staff' }
+        "404": { description: Staff not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    put:
+      tags: [Staff]
+      summary: Update staff member details
+      description: |
+        **User Story:** As a salon manager, I want to update staff information so that records remain accurate.
+      parameters:
+        - name: staff_id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                staff_name:    { type: string }
+                staff_contact: { type: string }
+                staff_email:   { type: string, format: email }
+                staff_skills:  { type: string }
+                staff_role:    { type: string }
+                staff_salary:  { type: number }
+                staff_dob:     { type: string, format: date }
+                staff_doj:     { type: string, format: date }
+                active:        { type: boolean }
+      responses:
+        "200": { description: Staff updated, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Staff not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    delete:
+      tags: [Staff]
+      summary: Remove a staff member
+      description: |
+        **User Story:** As a salon manager, I want to remove a staff member's record when they leave so that the system stays current.
+      parameters:
+        - name: staff_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Staff deleted, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Staff not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CUSTOMERS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/customer:
+    get:
+      tags: [Customers]
+      summary: List all customers
+      description: |
+        **User Story:** As a salon manager, I want to view all registered customers so that I can manage their profiles and preferences.
+      responses:
+        "200":
+          description: List of customers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Customer' }
+    post:
+      tags: [Customers]
+      summary: Create a customer (by manager)
+      description: |
+        **User Story:** As a salon manager, I want to create a customer profile for walk-in customers so that I can track their history.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CustomerCreateRequest' }
+      responses:
+        "201":
+          description: Customer created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:     { type: string }
+                  customer_id: { type: integer }
+                  username:    { type: string }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ValidationError' } } } }
+
+  /api/customer/{customer_id}:
+    get:
+      tags: [Customers]
+      summary: Get a specific customer
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Customer details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Customer' }
+        "404": { description: Customer not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    put:
+      tags: [Customers]
+      summary: Update a customer profile
+      description: |
+        **User Story:** As a salon manager, I want to update customer information so that contact details and preferences stay current.
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer_name:        { type: string }
+                customer_contact:     { type: string }
+                customer_email:       { type: string, format: email }
+                customer_address:     { type: string }
+                customer_preferences: { type: string }
+                customer_dob:         { type: string, format: date }
+      responses:
+        "200": { description: Customer updated, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Customer not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    delete:
+      tags: [Customers]
+      summary: Delete a customer
+      parameters:
+        - name: customer_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Customer deleted, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Customer not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CUSTOMER SELF-SERVICE
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/customer-summary:
+    get:
+      tags: [Customers]
+      summary: Get current customer's dashboard summary
+      description: |
+        **User Story:** As a customer, I want to see a summary of my account (upcoming appointments, reward points, visit count) so that I can plan my next visit.
+      responses:
+        "200":
+          description: Customer summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customer_name:              { type: string }
+                  customer_type:              { type: string }
+                  upcoming_appointments_count: { type: integer }
+                  past_appointments_count:    { type: integer }
+                  available_rewards:          { type: integer }
+                  total_spend:                { type: number }
+
+  /api/customer-upcoming-appointments:
+    get:
+      tags: [Customers]
+      summary: Get logged-in customer's upcoming appointments
+      description: |
+        **User Story:** As a customer, I want to see my upcoming appointments so that I can plan my schedule.
+      responses:
+        "200":
+          description: Upcoming appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Appointment' }
+    post:
+      tags: [Customers]
+      summary: Book an appointment (customer self-service)
+      description: |
+        **User Story:** As a customer, I want to book a salon appointment online so that I don't have to call the salon.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [service_ids, appointment_datetime]
+              properties:
+                staff_id:             { type: integer, nullable: true }
+                service_ids:          { type: array, items: { type: integer }, example: [1, 3] }
+                appointment_datetime: { type: string, format: date-time, example: "2026-04-15T10:30:00" }
+      responses:
+        "201":
+          description: Appointment booked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:        { type: string }
+                  appointment_id: { type: integer }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /api/customer-history-appointments:
+    get:
+      tags: [Customers]
+      summary: Get logged-in customer's appointment history
+      description: |
+        **User Story:** As a customer, I want to view my past appointments so that I can review what services I've used.
+      responses:
+        "200":
+          description: Past appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Appointment' }
+
+  /api/customer-review:
+    get:
+      tags: [Customers]
+      summary: Get appointments pending review
+      description: |
+        **User Story:** As a customer, I want to see which completed appointments I haven't reviewed yet so that I can provide feedback.
+      responses:
+        "200":
+          description: Appointments awaiting review
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    appointment_id: { type: integer }
+                    services:       { type: array, items: { type: string } }
+                    staff_name:     { type: string }
+                    datetime:       { type: string, format: date-time }
+
+  /api/customer-reviewed-appointments:
+    get:
+      tags: [Customers]
+      summary: Get appointments that have been reviewed
+      description: |
+        **User Story:** As a customer, I want to view my submitted reviews so that I can see my feedback history.
+      responses:
+        "200":
+          description: Reviewed appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Appointment' }
+    post:
+      tags: [Customers]
+      summary: Submit a review for a completed appointment
+      description: |
+        **User Story:** As a customer, I want to rate and review my salon visit so that I can share my experience with others.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [appointment_id, rating]
+              properties:
+                appointment_id: { type: integer, example: 42 }
+                rating:         { type: integer, minimum: 1, maximum: 5, example: 5 }
+                review:         { type: string, example: "Excellent haircut, very professional!" }
+      responses:
+        "201":
+          description: Review submitted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:   { type: string }
+                  review_id: { type: integer }
+        "400": { description: Invalid input, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "404": { description: Appointment not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # MANAGERS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/create-manager:
+    post:
+      tags: [Managers]
+      summary: Create a new manager account (owner only)
+      description: |
+        **User Story:** As a salon owner, I want to create manager accounts so that branch managers can log in and run operations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ManagerCreateRequest' }
+      responses:
+        "201":
+          description: Manager created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:  { type: string }
+                  username: { type: string }
+        "400": { description: Missing fields or duplicate username, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /api/manager:
+    get:
+      tags: [Managers]
+      summary: List all managers
+      description: |
+        **User Story:** As a salon owner, I want to view all branch managers so that I can monitor their accounts.
+      responses:
+        "200":
+          description: List of managers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Manager' }
+
+  /api/manager/{manager_id}:
+    get:
+      tags: [Managers]
+      summary: Get a specific manager
+      parameters:
+        - name: manager_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Manager details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Manager' }
+        "404": { description: Manager not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    put:
+      tags: [Managers]
+      summary: Update a manager profile
+      description: |
+        **User Story:** As a salon owner or manager, I want to update manager profile details so that contact information stays current.
+      parameters:
+        - name: manager_id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                manager_name:    { type: string }
+                manager_email:   { type: string, format: email }
+                manager_contact: { type: string }
+                manager_skills:  { type: string }
+                manager_role:    { type: string }
+                manager_dob:     { type: string, format: date }
+                manager_doj:     { type: string, format: date }
+                branch_name:     { type: string }
+      responses:
+        "200": { description: Manager updated, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Manager not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    delete:
+      tags: [Managers]
+      summary: Delete a manager account (owner only)
+      description: |
+        **User Story:** As a salon owner, I want to remove a manager account so that former employees no longer have system access.
+      parameters:
+        - name: manager_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Manager deleted, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Manager not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # APPOINTMENTS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/appointment:
+    get:
+      tags: [Appointments]
+      summary: List appointments (manager)
+      description: |
+        **User Story:** As a salon manager, I want to view all appointments so that I can manage the daily schedule.
+      parameters:
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+          description: Filter appointments by date (YYYY-MM-DD)
+      responses:
+        "200":
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Appointment' }
+    post:
+      tags: [Appointments]
+      summary: Create an appointment (manager)
+      description: |
+        **User Story:** As a salon manager, I want to create appointments for customers so that I can manage bookings made by phone or walk-in.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AppointmentCreateRequest' }
+      responses:
+        "201":
+          description: Appointment created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:        { type: string }
+                  appointment_id: { type: integer }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+        "404": { description: Customer or service not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /api/appointment/{appointment_id}:
+    get:
+      tags: [Appointments]
+      summary: Get a specific appointment
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Appointment details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Appointment' }
+        "404": { description: Appointment not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    put:
+      tags: [Appointments]
+      summary: Update an appointment
+      description: |
+        **User Story:** As a salon manager, I want to reschedule or update appointment details so that I can accommodate customer changes.
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                staff_id:             { type: integer, nullable: true }
+                service_ids:          { type: array, items: { type: integer } }
+                appointment_datetime: { type: string, format: date-time }
+                status:               { type: integer, description: "0=Booked,1=Completed,2=No-show,3=Cancelled,4=Rescheduled,5=Invoiced" }
+      responses:
+        "200": { description: Appointment updated, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Appointment not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    delete:
+      tags: [Appointments]
+      summary: Delete an appointment
+      description: |
+        **User Story:** As a salon manager, I want to cancel and remove an appointment so that the slot becomes available again.
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Appointment deleted, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Appointment not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /api/todays-appointments:
+    get:
+      tags: [Appointments]
+      summary: Get today's appointments (manager and staff)
+      description: |
+        **User Story:** As a salon manager or staff member, I want to see today's schedule so that I can prepare for each appointment.
+      responses:
+        "200":
+          description: Today's appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Appointment' }
+
+  /api/staff-appointments:
+    get:
+      tags: [Appointments]
+      summary: Get appointments for the logged-in staff member
+      description: |
+        **User Story:** As a salon stylist, I want to view my assigned appointments so that I can prepare my day.
+      parameters:
+        - name: mode
+          in: query
+          schema: { type: string, enum: [today, upcoming, past], default: today }
+      responses:
+        "200":
+          description: Staff appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Appointment' }
+
+  /api/daily-appointment-count:
+    get:
+      tags: [Appointments]
+      summary: Get appointment count by hour for today (manager)
+      description: |
+        **User Story:** As a salon manager, I want to see appointment distribution by hour so that I can manage staff workload.
+      responses:
+        "200":
+          description: Hourly appointment counts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    hour:  { type: integer, example: 10 }
+                    count: { type: integer, example: 3 }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # INVOICES
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/invoice:
+    get:
+      tags: [Invoices]
+      summary: List all invoices
+      description: |
+        **User Story:** As a salon manager, I want to view all invoices so that I can track payments and revenue.
+      responses:
+        "200":
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Invoice' }
+    post:
+      tags: [Invoices]
+      summary: Create an invoice
+      description: |
+        **User Story:** As a salon manager or staff member, I want to generate an invoice at checkout so that the customer receives a bill.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InvoiceCreateRequest' }
+      responses:
+        "201":
+          description: Invoice created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:        { type: string }
+                  invoice_number: { type: integer }
+        "400": { description: Validation error, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /api/invoice/{appointment_id}:
+    get:
+      tags: [Invoices]
+      summary: Get invoice for a specific appointment
+      parameters:
+        - name: appointment_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Invoice' }
+        "404": { description: Invoice not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # INVENTORY
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/product:
+    get:
+      tags: [Inventory]
+      summary: List all products
+      description: |
+        **User Story:** As a salon manager, I want to view all inventory items so that I can monitor stock levels.
+      responses:
+        "200":
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Product' }
+    post:
+      tags: [Inventory]
+      summary: Add a new product to inventory
+      description: |
+        **User Story:** As a salon manager, I want to add new products to the inventory so that stock records stay complete.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProductCreateRequest' }
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:    { type: string }
+                  product_id: { type: integer }
+
+  /api/product/{product_id}:
+    get:
+      tags: [Inventory]
+      summary: Get a specific product
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Product details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Product' }
+        "404": { description: Product not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    put:
+      tags: [Inventory]
+      summary: Update a product
+      description: |
+        **User Story:** As a salon manager, I want to update product details and stock levels so that inventory records are accurate.
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                product_name:     { type: string }
+                product_category: { type: string }
+                price:            { type: number }
+                minimum_stock:    { type: integer }
+                stock_quantity:   { type: integer }
+                supplier_name:    { type: string }
+                product_supplier_contact: { type: string }
+                product_supplier_email:   { type: string, format: email }
+      responses:
+        "200": { description: Product updated, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Product not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    delete:
+      tags: [Inventory]
+      summary: Delete a product
+      parameters:
+        - name: product_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Product deleted, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Product not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /api/inventory-transaction:
+    get:
+      tags: [Inventory]
+      summary: List inventory transactions
+      description: |
+        **User Story:** As a salon manager, I want to view all inventory usage transactions so that I can track product consumption.
+      parameters:
+        - name: from_date
+          in: query
+          schema: { type: string, format: date }
+        - name: to_date
+          in: query
+          schema: { type: string, format: date }
+      responses:
+        "200":
+          description: List of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/InventoryTransaction' }
+    post:
+      tags: [Inventory]
+      summary: Record an inventory usage transaction
+      description: |
+        **User Story:** As a staff member, I want to record product usage during a service so that inventory levels stay accurate.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/InventoryTransactionCreateRequest' }
+      responses:
+        "201":
+          description: Transaction recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  txn_id:  { type: integer }
+
+  /api/inventory-transaction/{txn_id}:
+    get:
+      tags: [Inventory]
+      summary: Get a specific inventory transaction
+      parameters:
+        - name: txn_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Transaction details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InventoryTransaction' }
+        "404": { description: Transaction not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ORDERS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/order:
+    get:
+      tags: [Orders]
+      summary: List all supplier orders
+      description: |
+        **User Story:** As a salon manager, I want to view all purchase orders so that I can track replenishment requests.
+      responses:
+        "200":
+          description: List of orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Order' }
+    post:
+      tags: [Orders]
+      summary: Create a supplier order
+      description: |
+        **User Story:** As a salon manager, I want to raise a purchase order for low-stock products so that we don't run out of supplies.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OrderCreateRequest' }
+      responses:
+        "201":
+          description: Order placed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  order:   { $ref: '#/components/schemas/Order' }
+        "400": { description: Product not found or invalid quantity, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /api/order/{order_id}:
+    get:
+      tags: [Orders]
+      summary: Get a specific order
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Order details
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Order' }
+        "404": { description: Order not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    put:
+      tags: [Orders]
+      summary: Update an order (e.g. mark as processed)
+      description: |
+        **User Story:** As a salon manager, I want to update the status of a purchase order so that I can track whether stock has arrived.
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:                   { type: integer, enum: [0, 1, 2], description: "0=Pending,1=Processed,2=Cancelled" }
+                order_quantity:           { type: integer }
+                order_cost:               { type: number }
+                order_replenishment_date: { type: string, format: date }
+                reason_for_order:         { type: string }
+      responses:
+        "200":
+          description: Order updated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string }
+                  order:   { $ref: '#/components/schemas/Order' }
+        "404": { description: Order not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    delete:
+      tags: [Orders]
+      summary: Cancel and delete an order
+      parameters:
+        - name: order_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200": { description: Order deleted, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Order not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # FINANCE
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/finance:
+    get:
+      tags: [Finance]
+      summary: Get monthly financial records
+      description: |
+        **User Story:** As a salon manager, I want to view monthly financial summaries so that I can monitor revenue and profitability.
+      parameters:
+        - name: last_date
+          in: query
+          schema: { type: string, format: date }
+          description: Last day of the month to filter (YYYY-MM-DD). Returns all records if omitted.
+      responses:
+        "200":
+          description: Finance record(s)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - { $ref: '#/components/schemas/Finance' }
+                  - type: array
+                    items: { $ref: '#/components/schemas/Finance' }
+    post:
+      tags: [Finance]
+      summary: Generate finance record for a month
+      description: |
+        **User Story:** As a salon manager, I want to generate a monthly financial record so that I can review profitability at the end of the month.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [last_date]
+              properties:
+                last_date: { type: string, format: date, example: "2026-03-31", description: "Last day of the reporting month" }
+      responses:
+        "201":
+          description: Finance record generated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Finance' }
+        "400": { description: Invalid date, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    put:
+      tags: [Finance]
+      summary: Update overheads or other charges for a month
+      description: |
+        **User Story:** As a salon manager, I want to adjust monthly expense figures so that the financial record reflects actual costs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [last_date]
+              properties:
+                last_date: { type: string, format: date, example: "2026-03-31" }
+                overheads: { type: number, example: 34000 }
+                other:     { type: number, example: 8000 }
+      responses:
+        "200":
+          description: Finance record updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Finance' }
+        "404": { description: Finance record not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # SALON CONFIG
+  # ═══════════════════════════════════════════════════════════════════════════
 
   /api/salon-config:
     get:
-      summary: Get all system settings
-      tags:        - Configuration
-      security:
-        - tokenAuth: []
+      tags: [Salon Config]
+      summary: List all configuration parameters
+      description: |
+        **User Story:** As a salon manager, I want to view system configuration settings so that I can understand how the platform is configured.
       responses:
-        '200':
+        "200":
           description: Configuration list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/SalonConfig' }
 
-components:
-  securitySchemes:
-    tokenAuth:
-      type: apiKey
-      in: header
-      name: Authentication-Token
+  /api/salon-config/{setting_id}:
+    get:
+      tags: [Salon Config]
+      summary: Get a specific configuration parameter
+      parameters:
+        - name: setting_id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Configuration setting
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SalonConfig' }
+        "404": { description: Setting not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    put:
+      tags: [Salon Config]
+      summary: Update a configuration parameter
+      description: |
+        **User Story:** As a salon manager, I want to change configuration values (e.g. appointment retention period) so that the platform behaves according to business rules.
+      parameters:
+        - name: setting_id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                param_value: { type: string, example: "120" }
+      responses:
+        "200": { description: Setting updated, content: { application/json: { schema: { $ref: '#/components/schemas/MessageResponse' } } } }
+        "404": { description: Setting not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
 
-  schemas:
-    LoginRequest:
-      type: object
-      required: [username, password]
-      properties:
-        username: {type: string}
-        password: {type: string}
+  # ═══════════════════════════════════════════════════════════════════════════
+  # ATTENDANCE
+  # ═══════════════════════════════════════════════════════════════════════════
 
-    LoginResponse:
-      type: object
-      properties:
-        token: {type: string}
-        username: {type: string}
-        role: {type: string}
+  /api/staff-attendance:
+    get:
+      tags: [Attendance]
+      summary: Get logged-in staff member's attendance records
+      description: |
+        **User Story:** As a staff member, I want to view my attendance history so that I can verify my punch-in records.
+      responses:
+        "200":
+          description: Attendance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AttendanceRecord' }
+    post:
+      tags: [Attendance]
+      summary: Mark attendance for today
+      description: |
+        **User Story:** As a staff member, I want to mark my attendance when I arrive so that the manager knows I'm present.
+      responses:
+        "201":
+          description: Attendance marked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:           { type: string }
+                  register_id:       { type: integer }
+                  register_datetime: { type: string, format: date-time }
+        "400": { description: Already marked today, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
 
-    ChangePassword:
-      type: object
-      required: [current_password, new_password, confirm_password]
-      properties:
-        current_password: {type: string}
-        new_password: {type: string}
-        confirm_password: {type: string}
+  /api/manager-staff-attendance:
+    get:
+      tags: [Attendance]
+      summary: Get all staff attendance for a given date (manager)
+      description: |
+        **User Story:** As a salon manager, I want to view staff attendance for any date so that I can monitor punctuality and plan cover.
+      parameters:
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+          description: Date to filter (YYYY-MM-DD). Defaults to today.
+      responses:
+        "200":
+          description: Staff attendance for the day
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AttendanceRecord' }
 
-    Product:
-      type: object
-      properties:
-        product_id: {type: integer}
-        product_desc: {type: string}
-        product_category_name: {type: string}
-        product_price: {type: number}
-        product_min_qoh: {type: integer}
-        product_curr_qoh: {type: integer}
-        product_supplier_name: {type: string}
-        product_supplier_contact: {type: string}
-        product_supplier_email: {type: string}
-        product_low_stock_alert: {type: boolean}
+  # ═══════════════════════════════════════════════════════════════════════════
+  # UTILITIES
+  # ═══════════════════════════════════════════════════════════════════════════
 
-    InventoryTransactionCreate:
-      type: object
-      required: [product_id, quantity, txn_type]
-      properties:
-        product_id: {type: integer}
-        service_id: {type: integer}
-        quantity: {type: integer}
-        txn_type: {type: integer, description: "0=Usage, 1=Purchase"}
+  /api/cleanup-appointments:
+    delete:
+      tags: [Appointments]
+      summary: Delete appointment records older than retention period
+      description: |
+        **User Story:** As a salon manager, I want to purge old appointment records so that the database doesn't grow indefinitely.
 
-    InventoryTransaction:
-      type: object
-      properties:
-        txn_id: {type: integer}
-        product_name: {type: string}
-        recorded_by: {type: string}
-        service_name: {type: string}
-        txn_type: {type: integer}
-        quantity: {type: integer}
-        date_of_txn: {type: string, format: date-time}
-
-    Order:
-      type: object
-      properties:
-        order_id: {type: integer}
-        product_id: {type: integer}
-        product_name: {type: string}
-        order_quantity: {type: integer}
-        order_cost: {type: number}
-        order_date: {type: string, format: date-time}
-        status: {type: integer, description: "0=Pending, 1=Received"}
-
-    Customer:
-      type: object
-      properties:
-        customer_id: {type: integer}
-        customer_name: {type: string}
-        customer_contact: {type: string}
-        customer_dob: {type: string}
-        customer_email: {type: string}
-        customer_type: {type: string}
-        customer_available_rewards: {type: integer}
-        total_spend: {type: number}
-
-    CustomerSummary:
-      type: object
-      properties:
-        customer_type: {type: string}
-        upcoming_appointments_count: {type: integer}
-        past_appointments_count: {type: integer}
-        available_rewards: {type: integer}
-
-    Staff:
-      type: object
-      properties:
-        staff_id: {type: integer}
-        staff_name: {type: string}
-        staff_email: {type: string}
-        staff_cumulative_rating: {type: number}
-        is_present_today: {type: boolean}
-
-    Service:
-      type: object
-      properties:
-        service_id: {type: integer}
-        service_desc: {type: string}
-        service_price: {type: number}
-        service_duration: {type: integer}
-
-    AppointmentCreate:
-      type: object
-      required: [customer_email, service_ids, appointment_datetime]
-      properties:
-        customer_email: {type: string}
-        staff_id: {type: integer}
-        service_ids: {type: array, items: {type: integer}}
-        appointment_datetime: {type: string, format: date-time}
-
-    Invoice:
-      type: object
-      properties:
-        invoice_number: {type: integer}
-        invoice_date: {type: string}
-        customer_name: {type: string}
-        service_descs: {type: string}
-        rewards_utilized: {type: integer}
-        invoice_amount: {type: number}
-        status: {type: integer}
-
-    InvoiceCreate:
-      type: object
-      required: [customer_id, appointment_id, service_ids, invoice_amount]
-      properties:
-        customer_id: {type: integer}
-        appointment_id: {type: integer}
-        staff_id: {type: integer}
-        service_ids: {type: string}
-        invoice_amount: {type: number}
-        other_charges: {type: number}
-
-    Finance: 
-      type: object
-      properties:
-        reporting_month: {type: string, format: date-time}
-        product_cost: {type: number}
-        total_revenue: {type: number}
-        staff_salary: {type: number}
-        overheads: {type: number}
-        other: {type: number}
-        net_profit: {type: number}
+        The retention period is defined by the `APPT_HISTORY_RETENTION_DAYS` salon configuration parameter.
+      responses:
+        "200":
+          description: Cleanup result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:       { type: string }
+                  deleted_count: { type: integer }
+        "400": { description: Retention policy not configured, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
