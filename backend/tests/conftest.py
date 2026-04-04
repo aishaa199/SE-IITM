@@ -41,3 +41,23 @@ def client(app_fixture):
 
         db.session.remove()
         db.drop_all()
+
+from application.models import User
+from flask_security.utils import hash_password
+
+@pytest.fixture
+def create_user():
+    def _create_user(username, password, role_name):
+        role = Role.query.filter_by(name=role_name).first()
+        assert role is not None, f"Role '{role_name}' not found in DB"
+        user = User(
+            username=username,
+            password=hash_password(password),
+            roles=[role]
+        )
+
+        db.session.add(user)
+        db.session.commit()
+        return user
+
+    return _create_user
