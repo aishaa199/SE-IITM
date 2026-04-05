@@ -95,6 +95,34 @@
       <div class="page-content">
         <!-- DASHBOARD VIEW -->
         <div v-if="currentView === 'dashboard'" class="fade-in">
+          <!-- Customer Profile Widget -->
+          <div class="card" style="margin-bottom: 24px">
+            <div class="card-header">
+              <h3 class="card-title">My Profile</h3>
+            </div>
+            <div class="card-body">
+              <div style="display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: bold">
+                  {{ customerData.name?.charAt(0) || "C" }}
+                </div>
+                <div>
+                  <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px">{{ customerData.name }}</div>
+                  <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px">{{ customerData.membershipStatus }}</div>
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 13px">
+                    <div>
+                      <span class="text-muted">Email:</span>
+                      <div style="font-weight: 500">{{ customerData.email }}</div>
+                    </div>
+                    <div>
+                      <span class="text-muted">Phone:</span>
+                      <div style="font-weight: 500">{{ customerData.phone }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Quick Stats -->
           <div class="stat-grid">
             <div class="stat-card">
@@ -1232,20 +1260,17 @@ const historyAppointmentsData = ref([]);
 const historyAppointmentsError = ref("");
 const loadingHistoryAppointments = ref(false);
 
-// Mock data with real customer name from appStore
-const customerData = computed(() => {
-  const username = appStore.user?.username;
-  const customer = appStore.data.customers.find(c => c.customerType); // Find a customer or use first
-  return {
-    name: customer?.name || "John Anderson",
-    email: customer?.email || "john@example.com",
-    phone: customer?.phone || "+233 123 456 789",
-    address: customer?.address || "123 Main Street, Accra",
-    dob: customer?.dob || "1992-05-20",
-    memberSince: "2024-01-15",
-    membershipStatus: customer?.customerType === "VIP" ? "Gold" : "Silver",
-    totalSpent: customer?.totalSpent || 1250,
-    preferredServices: [1, 4, 6],
+// Customer data ref to store backend data
+const customerData = ref({
+  name: "Customer",
+  email: "email@example.com",
+  phone: "+233 123 456 789",
+  address: "Address not provided",
+  dob: "Not provided",
+  memberSince: "2024-01-15",
+  membershipStatus: "Regular",
+  totalSpent: 0,
+  preferredServices: [],
   todayStats: {
     upcomingAppointments: 1,
     totalAppointments: 12,
@@ -1302,26 +1327,49 @@ const customerData = computed(() => {
     },
   ],
   availableServices: availableServicesData.value,
-  feedback: [
-    {
-      id: 1,
-      service: "Hair Styling",
-      staff: "Sarah Johnson",
-      date: "2026-03-02",
-      rating: 5,
-      comment: "Excellent service! Very professional and friendly. Highly recommend!"
-    },
-    {
-      id: 2,
-      service: "Manicure",
-      staff: "Emma Davis",
-      date: "2026-02-25",
-      rating: 4,
-      comment: "Great work! The nails look perfect."
-    }
-  ]
-  };
+  feedback: []
 });
+
+// Fetch customer info from backend
+const fetchCustomerInfo = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/customer`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const customerList = await response.json();
+      if (Array.isArray(customerList) && customerList.length > 0) {
+        const customer = customerList[0]; // Get first customer (current user)
+        
+        // Update customerData with backend values
+        customerData.value.name = customer.customer_name || "Customer";
+        customerData.value.email = customer.customer_email || "email@example.com";
+        customerData.value.phone = customer.customer_contact || "Not provided";
+        customerData.value.address = customer.customer_address || "Not provided";
+        customerData.value.dob = customer.customer_dob || "Not provided";
+        customerData.value.membershipStatus = customer.customer_type || "Regular";
+        
+        console.log("Customer info updated from backend:", customerData.value);
+      }
+    } else {
+      console.error("Failed to fetch customer info:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching customer info:", error);
+  }
+};
 
 const preferredServiceIds = ref([...customerData.value.preferredServices]);
 
@@ -2040,6 +2088,7 @@ const generateAiFeedback = async () => {
 };
 
 onMounted(() => {
+  fetchCustomerInfo();
   fetchServices();
   fetchUpcomingAppointments();
   fetchHistoryAppointments();

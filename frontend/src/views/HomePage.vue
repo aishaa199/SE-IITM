@@ -11,8 +11,8 @@
         <a href="#features" class="nav-link">Services</a>
         <a href="#about"    class="nav-link">About</a>
         <a href="#contact"  class="nav-link">Contact</a>
-        <router-link to="/login/customer" class="nav-link btn btn-gold">
-          Book Now
+        <router-link to="/login/customer" class="nav-link btn btn-gold" style="color: #000000;">
+          Start Now
         </router-link>
       </div>
     </nav>
@@ -237,10 +237,10 @@ const marqueeItems = [
 const features = [
   { icon: '📅', title: 'Smart Scheduling',     description: 'Effortlessly manage appointments with an intelligent calendar that anticipates your needs.' },
   { icon: '💎', title: 'Customer Loyalty',     description: 'Reward your most valued clients with our sophisticated points and VIP membership system.' },
+  { icon: '🤖', title: 'AI-Powered Insights',  description: 'Your personal AI briefing each morning — recommendations, alerts, and daily priorities.' },
   { icon: '💰', title: 'Financial Clarity',    description: 'Real-time revenue tracking, expense management, and profit analytics in one elegant view.' },
   { icon: '📦', title: 'Inventory Mastery',    description: 'Never run short of your finest products with automated stock alerts and supplier management.' },
   { icon: '👔', title: 'Team Excellence',      description: 'Curate your staff, track performance, and cultivate an exceptional service culture.' },
-  { icon: '🤖', title: 'AI-Powered Insights',  description: 'Your personal AI briefing each morning — recommendations, alerts, and daily priorities.' },
 ]
 
 const roles = [

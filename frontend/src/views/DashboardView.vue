@@ -64,6 +64,12 @@
         >
           <span class="nav-icon">🎁</span> Rewards
         </div>
+        <div
+          :class="['nav-item', { active: currentView === 'invoices' }]"
+          @click="currentView = 'invoices'; fetchInvoices(); sidebarOpen = false"
+        >
+          <span class="nav-icon">📄</span> Invoices
+        </div>
 
         <div class="nav-section">Operations</div>
         <div
@@ -2079,6 +2085,181 @@
           </div>
         </div>
 
+        <!-- INVOICES VIEW -->
+        <div v-if="currentView === 'invoices'" class="fade-in">
+          <!-- Add Invoice Form -->
+          <div class="card" style="margin-bottom: 20px">
+            <div class="card-header">
+              <h3 class="card-title">➕ Create New Invoice</h3>
+            </div>
+            <div class="card-body">
+              <form @submit.prevent="handleAddInvoice" style="max-width: 800px">
+                <div class="grid-2">
+                  <div class="form-group">
+                    <label for="invoice-appointment">Select Appointment *</label>
+                    <select 
+                      id="invoice-appointment"
+                      @change="handleAppointmentSelect"
+                      class="form-input"
+                      required
+                    >
+                      <option value="">Choose an appointment</option>
+                      <option v-for="appt in data.appointments" :key="appt.id" :value="appt.id">
+                        {{ getCustomerName(appt.customerId) }} - {{ getServiceName(appt.serviceId) }} ({{ appt.date }})
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 16px; opacity: 0.7">
+                  <div class="form-group">
+                    <label>Customer</label>
+                    <input type="text" :value="getCustomerName(invoiceForm.customerId)" class="form-input" disabled />
+                  </div>
+                  <div class="form-group">
+                    <label>Service</label>
+                    <input type="text" :value="getServiceName(invoiceForm.serviceId)" class="form-input" disabled />
+                  </div>
+                  <div class="form-group">
+                    <label>Invoice Date</label>
+                    <input type="text" :value="invoiceForm.date" class="form-input" disabled />
+                  </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 16px">
+                  <div class="form-group">
+                    <label for="invoice-payment">Payment Type *</label>
+                    <select 
+                      id="invoice-payment"
+                      v-model="invoiceForm.paymentType"
+                      class="form-input"
+                      required
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="card">Card</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="invoice-discount">Discount (%) *</label>
+                    <input 
+                      id="invoice-discount"
+                      v-model.number="invoiceForm.discount"
+                      type="number"
+                      placeholder="e.g., 10"
+                      class="form-input"
+                      required
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+                </div>
+
+                <div v-if="invoiceError" class="error-message">{{ invoiceError }}</div>
+                <div v-if="invoiceSuccess" class="success-message">{{ invoiceSuccess }}</div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
+                  Create Invoice
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Stats Cards -->
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-icon">📋</div>
+              <div class="stat-value">{{ invoices.length }}</div>
+              <div class="stat-label">Total Invoices</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">✅</div>
+              <div class="stat-value">{{ invoices.filter(inv => inv.status === 1).length }}</div>
+              <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">⏳</div>
+              <div class="stat-value">{{ invoices.filter(inv => inv.status === 0).length }}</div>
+              <div class="stat-label">Pending</div>
+            </div>
+          </div>
+
+          <!-- Invoices Table -->
+          <div class="card" style="margin-top: 24px">
+            <div class="card-header">
+              <h3 class="card-title">All Invoices</h3>
+            </div>
+            <div class="card-body">
+              <div style="margin-bottom: 16px">
+                <input 
+                  v-model="invoiceCustomerName"
+                  type="text" 
+                  placeholder="🔍 Filter by customer name..." 
+                  class="form-input"
+                  style="width: 100%; max-width: 300px"
+                />
+              </div>
+              
+              <div v-if="filteredInvoices.length === 0" class="empty-state">
+                <div class="empty-state-icon">📄</div>
+                <div class="empty-state-text">No invoices found</div>
+              </div>
+              
+              <div v-else class="table-wrap" style="overflow-x: auto; width: 100%">
+                <table style="min-width: 1000px; width: 100%">
+                  <thead>
+                    <tr>
+                      <th style="min-width: 80px">Invoice #</th>
+                      <th style="min-width: 120px">Customer</th>
+                      <th style="min-width: 120px">Staff</th>
+                      <th style="min-width: 150px">Services</th>
+                      <th style="min-width: 100px">Amount (₹)</th>
+                      <th style="min-width: 100px">Date</th>
+                      <th style="min-width: 90px">Status</th>
+                      <th style="min-width: 200px">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="invoice in filteredInvoices" :key="invoice.id">
+                      <td><strong>{{ invoice.invoice_number }}</strong></td>
+                      <td>{{ invoice.customer_name || getCustomerName(invoice.customer_id) }}</td>
+                      <td>{{ invoice.staff_name || getStaffName(invoice.staff_id) }}</td>
+                      <td><small>{{ invoice.service_descs || 'N/A' }}</small></td>
+                      <td><strong>₹{{ invoice.total_charges?.toFixed(2) || 0 }}</strong></td>
+                      <td><small>{{ new Date(invoice.invoice_date).toLocaleDateString() }}</small></td>
+                      <td>
+                        <span :style="{ 
+                          padding: '4px 8px', 
+                          borderRadius: '4px', 
+                          fontSize: '11px', 
+                          fontWeight: '600',
+                          backgroundColor: invoice.status === 0 ? '#e8f5e9' : '#fff3cd',
+                          color: invoice.status === 0 ? '#27ae60' : '#856404'
+                        }">
+                          {{ invoice.status === 0 ? 'Pending' : 'Completed' }}
+                        </span>
+                      </td>
+                      <td>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap">
+                          <button @click="viewInvoice(invoice)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px">
+                            📄 View
+                          </button>
+                          <button @click="handleSendInvoice(invoice)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #27ae60; border-color: #27ae60">
+                            📧 Send
+                          </button>
+                          <button @click="handleDeleteInvoice(invoice.id)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #e74c3c; border-color: #e74c3c">
+                            🗑️ Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- REWARDS VIEW -->
         <div v-if="currentView === 'rewards'" class="fade-in">
           <div class="card">
@@ -3699,6 +3880,9 @@ const editSettingForm = ref({
 const settingError = ref("");
 const settingSuccess = ref("");
 
+// Store manager profile data fetched from backend
+const managerProfileData = ref(null);
+
 const user = computed(() => {
   const currentUser = appStore.user;
   if (!currentUser) {
@@ -3708,8 +3892,9 @@ const user = computed(() => {
       role: "manager"
     };
   }
+  // Display manager name from backend profile data if available
   return {
-    name: currentUser.name || currentUser.username || "Manager",
+    name: managerProfileData.value?.manager_name || currentUser.username || "Manager",
     userId: currentUser.username || "manager",
     role: currentUser.role || "manager"
   };
@@ -4692,6 +4877,7 @@ const fetchAppointments = async () => {
         customer_name: appt.customer_name,
         staffId: appt.staff_id,
         staff_name: appt.staff_name,
+        serviceId: appt.services && appt.services.length > 0 ? appt.services[0].id : null,
         date: appt.datetime.split('T')[0],
         datetime: appt.datetime,
         notes: appt.datetime.split('T')[1],
@@ -4791,6 +4977,100 @@ const fetchManagerInventoryTransactions = async () => {
     }
   } catch (error) {
     console.error("Error fetching inventory transactions:", error);
+  }
+};
+
+const handleAppointmentSelect = (event) => {
+  const appointmentId = parseInt(event.target.value);
+  if (!appointmentId) {
+    invoiceForm.value.customerId = null;
+    invoiceForm.value.serviceId = null;
+    invoiceForm.value.date = "";
+    return;
+  }
+  
+  const selected = data.value.appointments.find(a => a.id === appointmentId);
+  if (selected) {
+    invoiceForm.value.customerId = selected.customerId;
+    invoiceForm.value.serviceId = selected.serviceId;
+    invoiceForm.value.date = selected.date;
+    console.log("Selected appointment:", selected);
+    console.log("Form values:", invoiceForm.value);
+  }
+};
+
+const handleAddInvoice = async () => {
+  if (!invoiceForm.value.customerId || !invoiceForm.value.serviceId) {
+    invoiceError.value = "Please select an appointment";
+    return;
+  }
+
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    invoiceError.value = "Not authenticated";
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/invoice`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify({
+        customer_id: invoiceForm.value.customerId,
+        staff_id: 1, // Default or from appointment
+        service_ids: String(invoiceForm.value.serviceId),
+        invoice_amount: getServicePrice(invoiceForm.value.serviceId) || 0,
+        other_charges: 0,
+        status: 0
+      })
+    });
+
+    if (response.ok) {
+      invoiceSuccess.value = "Invoice created successfully!";
+      invoiceError.value = "";
+      invoiceForm.value = {
+        customerId: null,
+        serviceId: null,
+        date: new Date().toISOString().split('T')[0],
+        paymentType: "cash",
+        discount: 0
+      };
+      setTimeout(() => invoiceSuccess.value = "", 3000);
+      await fetchInvoices();
+    } else {
+      invoiceError.value = "Failed to create invoice";
+    }
+  } catch (error) {
+    invoiceError.value = "Error creating invoice: " + error.message;
+  }
+};
+
+const handleDeleteInvoice = async (invoiceId) => {
+  if (!confirm("Are you sure you want to delete this invoice?")) return;
+
+  const token = localStorage.getItem("authToken");
+  if (!token) return;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/invoice/${invoiceId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      invoiceSuccess.value = "Invoice deleted successfully!";
+      setTimeout(() => invoiceSuccess.value = "", 3000);
+      await fetchInvoices();
+    }
+  } catch (error) {
+    invoiceError.value = "Error deleting invoice";
   }
 };
 
@@ -6243,172 +6523,6 @@ const handleAddStaff = async () => {
 };
 
 // Invoice handlers
-const handleAppointmentSelect = (event) => {
-  const appointmentId = parseInt(event.target.value);
-  console.log("Appointment selected:", appointmentId);
-  
-  if (!appointmentId) {
-    invoiceForm.value.appointmentId = "";
-    invoiceForm.value.customerId = "";
-    invoiceForm.value.staffId = "";
-    invoiceForm.value.serviceId = "";
-    invoiceForm.value.date = "";
-    invoiceForm.value.services = [];
-    invoiceForm.value.amount = 0;
-    return;
-  }
-  
-  // Search in today's appointments (which is what the dropdown shows)
-  const appointment = todaysAppointmentsForInvoice.value.find(a => a.id === appointmentId);
-  console.log("Found appointment:", appointment);
-  
-  if (appointment) {
-    invoiceForm.value.appointmentId = appointment.id;
-    invoiceForm.value.customerId = appointment.customerId;
-    invoiceForm.value.staffId = appointment.staffId;
-    // Extract service ID from services array (first service) or use serviceId if it exists
-    const serviceId = appointment.services && appointment.services.length > 0 
-      ? appointment.services[0].id 
-      : (appointment.serviceId || "");
-    invoiceForm.value.serviceId = serviceId;
-    invoiceForm.value.date = appointment.date;
-    invoiceForm.value.services = appointment.services || [];
-    
-    // Calculate total amount from all services
-    console.log("Services array:", invoiceForm.value.services);
-    let totalAmount = 0;
-    if (invoiceForm.value.services && invoiceForm.value.services.length > 0) {
-      totalAmount = invoiceForm.value.services.reduce((sum, service) => {
-        const servicePrice = parseFloat(service.price) || 0;
-        console.log("Service:", service.name, "Price:", servicePrice);
-        return sum + servicePrice;
-      }, 0);
-    }
-    invoiceForm.value.amount = totalAmount;
-    
-    console.log(`Selected appointment #${appointmentId} - Amount: ₹${totalAmount}`);
-  }
-};
-
-const handleAddInvoice = async () => {
-  invoiceError.value = "";
-  invoiceSuccess.value = "";
-
-  if (!invoiceForm.value.appointmentId) {
-    invoiceError.value = "Please select an appointment";
-    return;
-  }
-
-  if (!invoiceForm.value.customerId) {
-    invoiceError.value = "Please select a customer";
-    return;
-  }
-
-  if (!invoiceForm.value.staffId) {
-    invoiceError.value = "Staff information missing from appointment";
-    return;
-  }
-
-  if (invoiceForm.value.services.length === 0) {
-    invoiceError.value = "No services found for this appointment";
-    return;
-  }
-
-  if (invoiceForm.value.discount < 0 || invoiceForm.value.discount > 100) {
-    invoiceError.value = "Discount must be between 0 and 100";
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      invoiceError.value = "Authentication required. Please login again.";
-      return;
-    }
-
-    // Calculate invoice amount from services
-    const serviceTotal = invoiceForm.value.services.reduce((sum, service) => {
-      return sum + (service.price || 0);
-    }, 0);
-
-    // Apply discount
-    const discountAmount = (serviceTotal * invoiceForm.value.discount) / 100;
-    const invoiceAmount = serviceTotal - discountAmount;
-
-    // Build service_ids as comma-separated string
-    const serviceIds = invoiceForm.value.services.map(s => s.id).join(",");
-
-    // Prepare payload for backend
-    const payload = {
-      appointment_id: invoiceForm.value.appointmentId,
-      customer_id: invoiceForm.value.customerId,
-      staff_id: invoiceForm.value.staffId,
-      service_ids: serviceIds,
-      invoice_amount: parseFloat(invoiceAmount.toFixed(2)),
-      other_charges: 0,
-      discount_percentage: invoiceForm.value.discount
-    };
-
-    console.log("Creating invoice with payload:", payload);
-
-    const response = await fetch(`${API_BASE_URL}/api/invoice`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        "Authentication-Token": token
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const result = await response.json();
-
-    if (response.ok) {
-      invoiceSuccess.value = "Invoice created successfully!";
-      console.log("Invoice created:", result);
-
-      // Remove the invoiced appointment from today's appointments list immediately
-      const appointmentIndex = todaysAppointmentsForInvoice.value.findIndex(appt => appt.id === invoiceForm.value.appointmentId);
-      if (appointmentIndex > -1) {
-        todaysAppointmentsForInvoice.value.splice(appointmentIndex, 1);
-      }
-
-      // Reset form
-      setTimeout(() => {
-        invoiceForm.value = {
-          appointmentId: "",
-          customerId: "",
-          staffId: "",
-          serviceId: "",
-          date: "",
-          paymentType: "cash",
-          discount: 0,
-          services: []
-        };
-        invoiceSuccess.value = "";
-        // Refresh appointments and invoices to show updated status
-        fetchAppointments();
-        fetchInvoices();
-        fetchTodaysAppointmentsForInvoice();
-      }, 1500);
-    } else {
-      invoiceError.value = result.message || "Failed to create invoice";
-      console.error("Error creating invoice:", result);
-    }
-  } catch (error) {
-    invoiceError.value = "Unable to connect to server. Please try again.";
-    console.error("Network error:", error);
-  }
-};
-
-const handleDeleteInvoice = (appointmentId) => {
-  if (confirm("Are you sure you want to delete this invoice?")) {
-    const index = data.value.appointments.findIndex(a => a.id === appointmentId);
-    if (index > -1) {
-      data.value.appointments.splice(index, 1);
-    }
-  }
-};
 
 const handleSendInvoice = (invoice) => {
   const customerEmail = data.value.customers.find(c => c.id === invoice.customer_id)?.email;
@@ -6569,6 +6683,32 @@ const verifyReportsPassword = async () => {
   } catch (error) {
     console.error("Error verifying password:", error);
     financialPasswordError.value = "❌ Error verifying password. Please try again.";
+  }
+};
+
+// ── Manager Profile Data Fetch ────────────────────────────────────────────
+const fetchManagerProfileData = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const userId = appStore.user?.id;
+    
+    if (!token || !userId) return;
+
+    const response = await fetch(`${API_BASE_URL}/api/manager/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authentication-Token': token,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      managerProfileData.value = await response.json();
+      console.log('Manager profile data loaded:', managerProfileData.value);
+    }
+  } catch (error) {
+    console.error('Error fetching manager profile:', error);
   }
 };
 
@@ -8458,6 +8598,8 @@ onMounted(() => {
   document.addEventListener('click', handleClickOutside);
   // Fetch AI daily briefing
   fetchBriefing();
+  // Fetch manager profile data for name display
+  fetchManagerProfileData();
   // Fetch today's AI tasks
   fetchManagerTasks();
   // Fetch saved reports list
