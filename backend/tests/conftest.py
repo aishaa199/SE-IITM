@@ -26,8 +26,10 @@ def app_fixture():
     app.config["TESTING"] = True
     app.config["SECURITY_REDIRECT_BEHAVIOR"] = "spa"
     app.config["SECURITY_UNAUTHORIZED_VIEW"] = None
+    # ADD THESE TWO LINES:
+    app.config["WTF_CSRF_ENABLED"] = False 
+    app.config["SECURITY_TOKEN_AUTHENTICATION_HEADER"] = "Authentication-Token"
     return app
-
 
 @pytest.fixture
 def client(app_fixture):
@@ -100,25 +102,30 @@ def staff_headers(headers_for_role):
 @pytest.fixture
 def customer_headers(headers_for_role):
     return headers_for_role("customer")
-
 @pytest.fixture
 def create_user():
     def _create_user(username, password, role_name):
-        role = Role.query.filter_by(name=role_name).first()
-        assert role is not None, f"Role '{role_name}' not found in DB"
-        if not role:
-            role = Role(name=role_name)
-            db.session.add(role)
+        from application.sec import datastore # Ensure this points to your datastore
+        
+        # Check if user already exists to avoid duplicate seed errors
+        user = datastore.find_user(username=username)
+        if not user:
+            # Create user via datastore
+            user = datastore.create_user(
+                username=username,
+                password=hash_password(password),
+                active=True
+            )
             db.session.commit()
 
-        user = User(
-            username=username,
-            password=hash_password(password),
-        )
-        db.session.add(user)
-        db.session.commit()
-        user.roles.append(role)
-        db.session.commit()
+        # Check if user already has the role
+        role = Role.query.filter_by(name=role_name).first()
+        if role not in user.roles:
+            datastore.add_role_to_user(user, role)
+            db.session.commit()
+        
+        # Force a refresh to ensure roles are loaded
+        db.session.refresh(user)
         return user
 
     return _create_user
