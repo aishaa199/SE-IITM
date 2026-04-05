@@ -1013,7 +1013,8 @@ class ServiceResource(Resource):
                 return {"message": "Service not found"}, 404
             return marshal(service, service_fields)
         
-        services = Service.query.filter_by(active_flg=True).all()
+        # Return all services (both active and disabled)
+        services = Service.query.all()
         return marshal(services, service_fields)
 
 ################################## Create Service ###########################################

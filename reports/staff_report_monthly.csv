@@ -1,31 +1,32 @@
 Staff Name,Role,Skills,Appointments Handled,Completed,Attendance Days,Avg Rating
-Alec Norton,Stylist,"Haircut, Styling",0,0,0,5.0
-Andrew Dixon,Stylist,"Haircut, Styling",1,0,0,3.6
-Angela Fritz,Stylist,"Haircut, Styling",2,1,0,4.9
-Bethany Schultz,Stylist,"Haircut, Styling",0,0,0,3.5
-Brandon Haney,Stylist,"Haircut, Styling",0,0,0,4.9
-Brian Day,Stylist,"Haircut, Styling",1,0,0,3.8
-Brian Lopez,Stylist,"Haircut, Styling",0,0,0,3.9
-Chad Mcpherson,Stylist,"Haircut, Styling",0,0,0,4.1
-Chloe Johnson,Stylist,"Haircut, Styling",0,0,0,4.3
-Cindy Burton,Stylist,"Haircut, Styling",0,0,0,3.5
-Devon Coleman,Stylist,"Haircut, Styling",0,0,0,3.8
-Elizabeth Richmond,Stylist,"Haircut, Styling",0,0,0,4.1
-Eric Perez,Stylist,"Haircut, Styling",0,0,0,4.0
-Gary Davis,Stylist,"Haircut, Styling",0,0,0,3.7
-Heather Werner,Stylist,"Haircut, Styling",1,0,0,4.4
-James Johnson,Stylist,"Haircut, Styling",3,0,0,3.9
-Jenna Howe,Stylist,"Haircut, Styling",0,0,0,4.5
-Jennifer Santiago,Stylist,"Haircut, Styling",0,0,0,4.3
-Jose Davis,Stylist,"Haircut, Styling",2,0,0,4.4
-Kimberly Ortiz,Stylist,"Haircut, Styling",0,0,0,4.3
-Mary Adkins,Stylist,"Haircut, Styling",0,0,0,5.0
-Melanie Lopez,Stylist,"Haircut, Styling",0,0,0,4.9
-Michael Alexander,Stylist,"Haircut, Styling",1,0,0,4.2
-Mr. Adam Grimes,Stylist,"Haircut, Styling",0,0,1,4.4
-Olivia Medina,Stylist,"Haircut, Styling",2,0,0,4.5
-Paul Ortiz,Stylist,"Haircut, Styling",1,0,0,4.1
-Robert Knight,Stylist,"Haircut, Styling",2,0,0,3.8
-Samantha Vaughn PhD,Stylist,"Haircut, Styling",0,0,0,3.6
-Susan Delacruz,Stylist,"Haircut, Styling",0,0,0,5.0
-Suzanne Boyd,Stylist,"Haircut, Styling",1,0,0,3.8
+Ananya Chatterjee,Nail Technician,"Manicure, Pedicure, Nail Art, Gel Top Coat",1,0,0,3.8
+Anjali Singh,Beautician,"Facial, Waxing, Threading, Cleanup, De-Tan Pack",1,0,0,4.2
+Bindhu Pillai,Senior Beautician,"Gold Facial, Waxing, Threading, De-Tan Pack",0,0,0,4.6
+Deepika Joshi,Beautician,"Threading, Cleanup, De-Tan, Full Body Waxing",0,0,0,4.2
+Divya Iyer,Spa Therapist,"Aromatherapy, Swedish Massage, Head Massage",0,0,0,4.6
+Geeta Krishnan,Makeup Artist,"Bridal Makeup, Party Makeup, Airbrush Makeup",1,0,0,4.4
+Kavitha Reddy,Nail Technician,"Manicure, Pedicure, Gel Extensions, Nail Art",0,0,0,4.2
+Kiran Rao,Spa Therapist,"Body Scrub & Wrap, Swedish Massage, Hot Stone Therapy",0,0,0,4.0
+Lakshmi Rao,Senior Stylist,"Hair Coloring, Highlights, Keratin Treatment, Blow Dry",0,0,0,3.8
+Meera Nair,Senior Beautician,"Gold Facial, Diamond Facial, Waxing, Eyebrow Tint",0,0,0,4.8
+Nalini Murthy,Beautician,"Diamond Facial, Waxing, De-Tan, Eyebrow Shaping",0,0,0,4.5
+Nandita Bose,Junior Stylist,"Ladies Haircut, Head Massage, Blow Dry",1,0,0,4.6
+Neha Gupta,Makeup Artist,"Bridal Makeup, Party Makeup, Saree Draping",0,0,0,4.1
+Padmavathi Reddy,Senior Stylist,"Keratin Treatment, Hair Coloring, Blow Dry",0,0,0,4.5
+Pooja Agarwal,Junior Stylist,"Gents Haircut, Ladies Haircut, Blow Dry",0,0,0,4.1
+Preeti Mishra,Beautician,"Cleanup, Facial, De-Tan, Waxing",0,0,0,4.4
+Priya Sharma,Senior Stylist,"Ladies Haircut, Hair Coloring, Hair Spa, Blow Dry",1,0,0,4.6
+Radha Menon,Beautician,"Facial, De-Tan, Cleanup, Waxing",0,0,0,4.5
+Rekha Pillai,Senior Beautician,"Gold Facial, Cleanup, Waxing, Threading",0,0,0,4.0
+Ritu Verma,Stylist,"Ladies Haircut, Blow Dry, Hair Spa, Head Massage",0,0,0,4.1
+Sangeeta Bhatt,Stylist,"Ladies Haircut, Highlights, Hair Spa",0,0,0,4.5
+Shilpa Kaur,Stylist,"Hair Coloring, Hair Spa, Blow Dry, Ladies Haircut",0,0,0,3.9
+Sneha Kulkarni,Beautician,"Facial, Waxing, Threading, Eyebrow Tint",0,0,0,4.4
+Sonal Mehta,Senior Nail Tech,"Nail Art, Gel Extensions, Acrylic Extensions, Pedicure",0,0,0,4.5
+Sumitha Suresh,Nail Technician,"Nail Art, Gel Extensions, Acrylic Nails, Pedicure",0,0,0,4.0
+Sunita Patel,Spa Therapist,"Swedish Massage, Aromatherapy, Body Scrub & Wrap",0,0,0,4.8
+Swati Desai,Makeup Artist,"Party Makeup, Bridal Makeup, HD Makeup",0,0,0,4.7
+Usha Srinivasan,Beautician,"Threading, Waxing, Facial, Cleanup",0,0,0,4.1
+Vasudha Singh,Junior Nail Tech,"Manicure, Pedicure, Basic Nail Art",0,0,0,4.7
+Yamini Nambiar,Junior Stylist,"Gents Haircut, Head Massage, Blow Dry",0,0,0,4.1
+staff1name,Beautician,"Coloring, Styling, Nails",0,0,2,N/A

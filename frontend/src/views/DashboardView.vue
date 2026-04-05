@@ -76,7 +76,7 @@
           :class="['nav-item', { active: currentView === 'orders' }]"
           @click="currentView = 'orders'"
         >
-          <span class="nav-icon">📮</span> Orders ({{ pendingOrders.length }})
+          <span class="nav-icon">📮</span> Orders
         </div>
         <div
           :class="['nav-item', { active: currentView === 'finance' }]"
@@ -799,6 +799,7 @@
                       <td style="font-size: 12px">{{ service.toDate || '-' }}</td>
                       <td>
                         <span v-if="getServiceStatus(service) === 'Active'" style="background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600">✓ Active</span>
+                        <span v-else-if="getServiceStatus(service) === 'Disabled'" style="background: #f8cccb; color: #c1272d; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600">⊘ Disabled</span>
                         <span v-else style="background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600">✗ Inactive</span>
                       </td>
                       <td class="text-muted" style="font-size: 12px">{{ service.productsRequired || "None" }}</td>
@@ -876,18 +877,6 @@
                       class="form-input"
                       required
                     />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="customer-type">Customer Type</label>
-                    <select 
-                      id="customer-type"
-                      v-model="customerForm.customerType"
-                      class="form-input"
-                    >
-                      <option value="Normal">Normal</option>
-                      <option value="VIP">VIP</option>
-                    </select>
                   </div>
 
                   <div class="form-group" style="grid-column: 1 / -1">
@@ -1800,7 +1789,12 @@
                     </tr>
                     <tr>
                       <td style="padding-left: 24px">Overhead Bills</td>
-                      <td style="text-align: right">₹{{ overheadBillsTotal.toLocaleString() }}</td>
+                      <td style="text-align: right; display: flex; justify-content: space-between; align-items: center">
+                        <span>₹{{ overheadBillsTotal.toLocaleString() }}</span>
+                        <button @click="openEditOverheadModal" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; margin-left: 12px">
+                          ✏️ Edit
+                        </button>
+                      </td>
                     </tr>
                     <tr style="border-top: 2px solid var(--border)">
                       <td style="font-weight: 600; padding-top: 12px">Net Profit</td>
@@ -2558,37 +2552,52 @@
         <form @submit.prevent="handleChangePassword">
           <div class="form-group">
             <label for="current-password">Current Password</label>
-            <input 
-              id="current-password"
-              v-model="passwordForm.currentPassword" 
-              type="password" 
-              placeholder="Enter current password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="current-password"
+                v-model="passwordForm.currentPassword" 
+                :type="showCurrentPassword ? 'text' : 'password'" 
+                placeholder="Enter current password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showCurrentPassword = !showCurrentPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showCurrentPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label for="new-password">New Password</label>
-            <input 
-              id="new-password"
-              v-model="passwordForm.newPassword" 
-              type="password" 
-              placeholder="Enter new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="new-password"
+                v-model="passwordForm.newPassword" 
+                :type="showNewPassword ? 'text' : 'password'" 
+                placeholder="Enter new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showNewPassword = !showNewPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showNewPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
             <div class="form-hint">At least 8 characters</div>
           </div>
           <div class="form-group">
             <label for="confirm-password">Confirm Password</label>
-            <input 
-              id="confirm-password"
-              v-model="passwordForm.confirmPassword" 
-              type="password" 
-              placeholder="Confirm new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="confirm-password"
+                v-model="passwordForm.confirmPassword" 
+                :type="showConfirmPassword ? 'text' : 'password'" 
+                placeholder="Confirm new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showConfirmPassword = !showConfirmPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showConfirmPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
           <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
@@ -2646,17 +2655,61 @@
             />
           </div>
           <div class="form-group">
-            <label for="profile-address">Address</label>
-            <textarea 
-              id="profile-address"
-              v-model="profileEditForm.address" 
-              placeholder="Enter address"
+            <label for="profile-role">Role</label>
+            <input 
+              id="profile-role"
+              v-model="profileEditForm.role" 
+              type="text" 
+              placeholder="Enter role"
               class="form-input"
-              rows="3"
-            ></textarea>
+            />
+          </div>
+          <div class="form-group">
+            <label for="profile-doj">Date of Joining</label>
+            <input 
+              id="profile-doj"
+              v-model="profileEditForm.doj" 
+              type="date" 
+              class="form-input"
+            />
           </div>
           <div style="display: flex; gap: 12px; margin-top: 20px">
             <button type="button" class="btn btn-outline" @click="showProfileEditModal = false" style="flex: 1">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Overhead Bills Modal -->
+  <div v-if="showEditOverheadModal" class="modal-overlay" @click="showEditOverheadModal = false">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h3 class="modal-title">💵 Edit Overhead Bills</h3>
+        <button class="modal-close" @click="showEditOverheadModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <form @submit.prevent="handleUpdateOverhead">
+          <div class="form-group">
+            <label for="overhead-bills">Overhead Bills Amount (₹)</label>
+            <input 
+              id="overhead-bills"
+              v-model.number="overheadEditForm.overheads" 
+              type="number" 
+              placeholder="Enter overhead bills amount"
+              class="form-input"
+              min="0"
+              step="0.01"
+              required
+            />
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 20px">
+            <button type="button" class="btn btn-outline" @click="showEditOverheadModal = false" style="flex: 1">
               Cancel
             </button>
             <button type="submit" class="btn btn-primary" style="flex: 1">
@@ -2792,15 +2845,24 @@
         <form @submit.prevent="verifyFinancialPassword">
           <div class="form-group">
             <label for="financial-password">Enter Password</label>
-            <input 
-              id="financial-password"
-              v-model="financialPasswordInput" 
-              type="password" 
-              placeholder="Enter password"
-              class="form-input"
-              required
-              autofocus
-            />
+            <div style="position: relative">
+              <input 
+                id="financial-password"
+                v-model="financialPasswordInput" 
+                :type="showFinancePassword ? 'text' : 'password'" 
+                placeholder="Enter password"
+                class="form-input"
+                required
+                autofocus
+              />
+              <button
+                type="button"
+                @click="showFinancePassword = !showFinancePassword"
+                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 18px; padding: 0; color: var(--text-muted)"
+              >
+                {{ showFinancePassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div v-if="financialPasswordError" class="error-message">{{ financialPasswordError }}</div>
           <div style="display: flex; gap: 12px; margin-top: 20px">
@@ -2830,15 +2892,24 @@
         <form @submit.prevent="verifyReportsPassword">
           <div class="form-group">
             <label for="reports-password">Enter Password</label>
-            <input 
-              id="reports-password"
-              v-model="financialPasswordInput" 
-              type="password" 
-              placeholder="Enter password"
-              class="form-input"
-              required
-              autofocus
-            />
+            <div style="position: relative">
+              <input 
+                id="reports-password"
+                v-model="financialPasswordInput" 
+                :type="showReportsPassword ? 'text' : 'password'" 
+                placeholder="Enter password"
+                class="form-input"
+                required
+                autofocus
+              />
+              <button
+                type="button"
+                @click="showReportsPassword = !showReportsPassword"
+                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 18px; padding: 0; color: var(--text-muted)"
+              >
+                {{ showReportsPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div v-if="financialPasswordError" class="error-message">{{ financialPasswordError }}</div>
           <div style="display: flex; gap: 12px; margin-top: 20px">
@@ -3312,7 +3383,8 @@ const profileEditForm = ref({
   name: '',
   email: '',
   phone: '',
-  address: ''
+  role: '',
+  doj: ''
 });
 const passwordForm = ref({
   currentPassword: "",
@@ -3327,9 +3399,20 @@ const showFinancePasswordModal = ref(false);
 const showReportsPasswordModal = ref(false);
 const financialPasswordInput = ref("");
 const financialPasswordError = ref("");
+const showFinancePassword = ref(false);
+const showReportsPassword = ref(false);
 const financeAuthenticated = ref(false);
 const reportsAuthenticated = ref(false);
 const pendingFinancialView = ref(null); // Track which view user tried to access
+
+// Finance data state
+const financeData = ref(null);
+const financeLoading = ref(false);
+const financeError = ref(null);
+const showEditOverheadModal = ref(false);
+const overheadEditForm = ref({
+  overheads: 0
+});
 
 // AI Daily Briefing state
 const briefingData = ref(null);
@@ -3456,8 +3539,7 @@ const customerForm = ref({
   phone: "",
   dob: "",
   address: "",
-  preferences: "",
-  customerType: "Normal"
+  preferences: ""
 });
 const isEditingCustomer = ref(false);
 const editingCustomerId = ref(null);
@@ -4045,7 +4127,10 @@ const staffOrderRequests = computed(() => {
 });
 
 const managerReplenishmentOrders = computed(() => {
-  return managerInventoryTransactions.value.filter(txn => txn.txn_type === 1);
+  const replenishments = managerInventoryTransactions.value.filter(txn => txn.txn_type === 1);
+  // Filter out replenishment orders that already have wholesale orders placed
+  const placedProductIds = new Set(managerOrders.value.map(order => order.product_id));
+  return replenishments.filter(txn => !placedProductIds.has(txn.product_id));
 });
 
 const groupedSupplierOrders = computed(() => {
@@ -4064,54 +4149,41 @@ const groupedSupplierOrders = computed(() => {
 });
 
 const totalRevenue = computed(() => {
-  return "₹" + invoicedAppointments.value
-    .reduce((sum, appt) => {
-      const service = data.value.services.find(s => s.id === appt.serviceId);
-      return sum + (service?.price || 0);
-    }, 0)
-    .toLocaleString();
+  if (financeData.value?.total_revenue !== undefined) {
+    return "₹" + financeData.value.total_revenue.toLocaleString();
+  }
+  return "₹0";
 });
 
 const totalProductCost = computed(() => {
-  return invoicedAppointments.value
-    .reduce((sum, appt) => {
-      const service = data.value.services.find(s => s.id === appt.serviceId);
-      return sum + (service?.price || 0);
-    }, 0);
+  return financeData.value?.total_revenue || 0;
 });
 
 const productInventoryCost = computed(() => {
-  return data.value.products.reduce((sum, product) => {
-    return sum + (product.costPrice * product.stock);
-  }, 0);
+  return financeData.value?.product_cost || 0;
 });
 
 const netProfit = computed(() => {
-  const revenue = totalProductCost.value;
-  const cost = productInventoryCost.value;
-  return "₹" + (revenue - cost).toLocaleString();
+  if (financeData.value?.net_profit !== undefined) {
+    return "₹" + financeData.value.net_profit.toLocaleString();
+  }
+  return "₹0";
 });
 
 const staffSalaryTotal = computed(() => {
-  return data.value.staff.reduce((sum, staff) => {
-    return sum + (staff.salary || 0);
-  }, 0);
+  return financeData.value?.staff_salary || 0;
 });
 
 const serviceCommissionTotal = computed(() => {
-  return Math.round(totalProductCost.value * 0.05); // 5% commission on services
+  return Math.round((financeData.value?.total_revenue || 0) * 0.05); // 5% commission on services
 });
 
 const overheadBillsTotal = computed(() => {
-  return 5000; // Fixed overhead bills amount
+  return financeData.value?.overheads || 0;
 });
 
 const calculatedNetProfit = computed(() => {
-  const revenue = totalProductCost.value;
-  const staffSalary = staffSalaryTotal.value;
-  const productCost = productInventoryCost.value;
-  const overhead = overheadBillsTotal.value;
-  return revenue - staffSalary - productCost - overhead;
+  return financeData.value?.net_profit || 0;
 });
 
 const currentMonthYear = computed(() => {
@@ -4312,6 +4384,12 @@ const getCategoryName = (id) => {
 };
 
 const getServiceStatus = (service) => {
+  // Check if service is disabled
+  if (service.active === false || service.active_flg === false) {
+    return "Disabled";
+  }
+  
+  // Check if service date has passed
   if (!service.toDate) return "Active";
   const today = new Date().toISOString().split('T')[0];
   return service.toDate < today ? "Inactive" : "Active";
@@ -4469,26 +4547,114 @@ const handleChangePassword = async () => {
   }
 };
 
-const openProfileEdit = () => {
-  // Populate form with current user data
-  profileEditForm.value.name = user.value?.name || '';
-  profileEditForm.value.email = user.value?.email || '';
-  profileEditForm.value.phone = user.value?.phone || '';
-  profileEditForm.value.address = user.value?.address || '';
+const openProfileEdit = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const userId = appStore.user?.id;
+    
+    if (!token || !userId) {
+      alert('User information not found. Please login again.');
+      return;
+    }
+
+    // Fetch current manager's data using userId
+    const response = await fetch(`${API_BASE_URL}/api/manager/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authentication-Token': token,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      const manager = await response.json();
+      console.log('Current manager data:', manager);
+      
+      // Parse dates properly - handle both "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DDTHH:MM:SS" formats
+      const parseDateString = (dateString) => {
+        if (!dateString) return '';
+        // Remove time portion by taking only the first 10 characters (YYYY-MM-DD)
+        return dateString.substring(0, 10);
+      };
+
+      profileEditForm.value = {
+        name: manager.manager_name || '',
+        email: manager.manager_email || '',
+        phone: manager.manager_contact || '',
+        role: manager.manager_role || '',
+        doj: parseDateString(manager.manager_doj)
+      };
+    } else {
+      alert('Failed to load profile data');
+      console.error('Response status:', response.status);
+    }
+  } catch (error) {
+    console.error('Error fetching manager data:', error);
+    alert('Error loading profile: ' + error.message);
+  }
+  
   showProfileEditModal.value = true;
 };
 
-const handleUpdateProfile = () => {
-  // Update user profile
-  if (profileEditForm.value.name.trim()) {
-    if (appStore.user) {
-      appStore.user.name = profileEditForm.value.name;
-    }
+const handleUpdateProfile = async () => {
+  // Validate name
+  if (!profileEditForm.value.name.trim()) {
+    alert('Name is required');
+    return;
   }
-  
-  // In a real application, send this data to the backend
-  // For now, just show success message
-  showProfileEditModal.value = false;
+
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      alert('Not authenticated');
+      return;
+    }
+
+    // Get current user ID
+    const userId = appStore.user?.id;
+    if (!userId) {
+      alert('Unable to identify user');
+      return;
+    }
+
+    // Send update to backend
+    const response = await fetch(`${API_BASE_URL}/api/manager/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authentication-Token': token,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        manager_name: profileEditForm.value.name,
+        manager_email: profileEditForm.value.email,
+        manager_contact: profileEditForm.value.phone,
+        manager_role: profileEditForm.value.role,
+        manager_doj: profileEditForm.value.doj
+      })
+    });
+
+    if (response.ok) {
+      // Update local store
+      if (appStore.user) {
+        appStore.user.name = profileEditForm.value.name;
+        appStore.user.email = profileEditForm.value.email;
+        appStore.user.phone = profileEditForm.value.phone;
+        appStore.user.role = profileEditForm.value.role;
+        appStore.user.doj = profileEditForm.value.doj;
+      }
+      
+      alert('Profile updated successfully');
+      showProfileEditModal.value = false;
+    } else {
+      const error = await response.json();
+      alert(`Failed to update profile: ${error.message || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    alert('Error updating profile: ' + error.message);
+  }
 };
 
 // Booking handlers
@@ -6266,12 +6432,14 @@ const handleSendInvoice = (invoice) => {
 };
 
 // Financial section password handlers
-const handleFinanceAccess = () => {
+const handleFinanceAccess = async () => {
   if (financeAuthenticated.value) {
     currentView.value = 'finance';
+    await fetchFinanceData();
   } else {
     financialPasswordInput.value = "";
     financialPasswordError.value = "";
+    showFinancePassword.value = false;
     pendingFinancialView.value = 'finance';
     showFinancePasswordModal.value = true;
   }
@@ -6283,6 +6451,7 @@ const handleReportsAccess = () => {
   } else {
     financialPasswordInput.value = "";
     financialPasswordError.value = "";
+    showReportsPassword.value = false;
     pendingFinancialView.value = 'reports';
     showReportsPasswordModal.value = true;
   }
@@ -6332,8 +6501,10 @@ const verifyFinancialPassword = async () => {
     if (response.ok && data.token) {
       financeAuthenticated.value = true;
       showFinancePasswordModal.value = false;
+      showFinancePassword.value = false;
       currentView.value = 'finance';
       financialPasswordInput.value = "";
+      await fetchFinanceData();
     } else {
       financialPasswordError.value = "❌ Incorrect password. Please try again.";
       financialPasswordInput.value = "";
@@ -6388,6 +6559,7 @@ const verifyReportsPassword = async () => {
     if (response.ok && data.token) {
       reportsAuthenticated.value = true;
       showReportsPasswordModal.value = false;
+      showReportsPassword.value = false;
       currentView.value = 'reports';
       financialPasswordInput.value = "";
     } else {
@@ -6397,6 +6569,136 @@ const verifyReportsPassword = async () => {
   } catch (error) {
     console.error("Error verifying password:", error);
     financialPasswordError.value = "❌ Error verifying password. Please try again.";
+  }
+};
+
+// ── Finance API Functions ──────────────────────────────────────────────────
+
+const openEditOverheadModal = async () => {
+  try {
+    if (financeData.value) {
+      overheadEditForm.value = {
+        overheads: financeData.value.overheads || 0
+      };
+      showEditOverheadModal.value = true;
+    }
+  } catch (error) {
+    console.error('Error opening edit modal:', error);
+  }
+};
+
+const handleUpdateOverhead = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      alert('User not authenticated');
+      return;
+    }
+
+    // Get current month's last date
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const lastDateStr = lastDay.toISOString().split('T')[0];
+
+    const response = await fetch(`${API_BASE_URL}/api/finance`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authentication-Token': token,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        last_date: lastDateStr,
+        overheads: parseFloat(overheadEditForm.value.overheads)
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      financeData.value = data;
+      showEditOverheadModal.value = false;
+      alert('✅ Overhead bills updated successfully!');
+    } else {
+      const errorData = await response.json();
+      alert(`❌ Failed to update: ${errorData.message}`);
+    }
+  } catch (error) {
+    console.error('Error updating overhead bills:', error);
+    alert(`❌ Error: ${error.message}`);
+  }
+};
+
+const fetchFinanceData = async () => {
+  try {
+    financeLoading.value = true;
+    financeError.value = null;
+    
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      financeError.value = "User not authenticated";
+      return;
+    }
+
+    // Get current month's last date
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const lastDateStr = lastDay.toISOString().split('T')[0];
+    
+    // Try to fetch existing finance record
+    const response = await fetch(`${API_BASE_URL}/api/finance?last_date=${lastDateStr}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authentication-Token': token,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.status === 404) {
+      // Finance record not found, create it
+      console.log('Finance record not found, creating new one...');
+      await createFinanceReport(lastDateStr);
+    } else if (response.ok) {
+      const data = await response.json();
+      financeData.value = data;
+      console.log('Finance data fetched:', data);
+    } else {
+      throw new Error(`Failed to fetch finance data: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error fetching finance data:', error);
+    financeError.value = error.message;
+  } finally {
+    financeLoading.value = false;
+  }
+};
+
+const createFinanceReport = async (lastDateStr) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    const response = await fetch(`${API_BASE_URL}/api/finance`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authentication-Token': token,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ last_date: lastDateStr }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      financeData.value = data;
+      console.log('Finance report created:', data);
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to create finance report');
+    }
+  } catch (error) {
+    console.error('Error creating finance report:', error);
+    financeError.value = error.message;
   }
 };
 

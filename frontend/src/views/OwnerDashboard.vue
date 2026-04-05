@@ -686,6 +686,75 @@
 
         <!-- MANAGERS VIEW -->
         <div v-if="currentView === 'managers'" class="fade-in">
+          <!-- Managers Grid View -->
+          <div v-if="managers.length > 0" style="margin-bottom: 40px">
+            <h3 style="font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 24px">All Managers</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px">
+              <div v-for="manager in managers" :key="manager.id" style="background: var(--surface); border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid var(--border); transition: all 0.3s ease">
+                
+                <!-- Branch/Manager Header -->
+                <div style="margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--divider)">
+                  <h4 style="font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--gold-deep); margin: 0 0 8px 0">{{ manager.branchName }}</h4>
+                  <p style="font-size: 12px; color: var(--text-muted); margin: 0">📍 {{ manager.role }}</p>
+                </div>
+
+                <!-- Manager Info -->
+                <div style="margin-bottom: 16px">
+                  <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px">Manager</div>
+                  <div style="font-size: 14px; font-weight: 500; color: var(--gold-deep)">{{ manager.name }}</div>
+                </div>
+
+                <!-- Contact -->
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--ivory-warm); border-radius: 8px">
+                  <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px">Contact</div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px">
+                    <span style="font-size: 12px; color: var(--text)">📞</span>
+                    <span style="font-size: 12px; color: var(--text)">{{ manager.phone }}</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <span style="font-size: 12px; color: var(--text)">📧</span>
+                    <span style="font-size: 12px; color: var(--text-muted)">{{ manager.email }}</span>
+                  </div>
+                </div>
+
+                <!-- Stats -->
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--ivory-warm); border-radius: 8px">
+                  <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px">Stats</div>
+                  <div style="display: flex; gap: 12px; flex-wrap: wrap">
+                    <div style="display: flex; align-items: center; gap: 6px">
+                      <span style="font-size: 12px">👥</span>
+                      <span style="font-size: 12px; font-weight: 600; color: var(--text)">{{ getManagerStats(manager.id).customers }} Customers</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px">
+                      <span style="font-size: 12px">📅</span>
+                      <span style="font-size: 12px; font-weight: 600; color: var(--text)">{{ getManagerStats(manager.id).bookings }} Bookings</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px">
+                    <span style="font-size: 12px">💰</span>
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text)">₹{{ getManagerStats(manager.id).revenue }} Revenue</span>
+                  </div>
+                </div>
+
+                <!-- Status & Actions -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px">
+                  <span style="display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600">✓ Active</span>
+                </div>
+                <div style="display: flex; gap: 10px">
+                  <button @click="deleteManager(manager.id)" style="flex: 1; padding: 10px 16px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s" @mouseenter="$event.target.style.backgroundColor='#c0392b'" @mouseleave="$event.target.style.backgroundColor='#e74c3c'">
+                    🗑 Delete
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+          <div v-else style="margin-bottom: 40px; text-align: center; padding: 40px; background: var(--ivory-warm); border-radius: 12px">
+            <div style="font-size: 32px; margin-bottom: 8px">👥</div>
+            <div style="font-size: 14px; font-weight: 500; color: var(--text)">No Managers Yet</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px">Create a manager below to get started</div>
+          </div>
+
           <div class="card" style="margin-bottom: 24px">
             <div class="card-header">
               <h3 class="card-title">Create New Manager</h3>
@@ -755,7 +824,12 @@
 
                       <div class="manager-form-item">
                         <label class="manager-form-label">Password *</label>
-                        <input v-model="newManagerForm.password" type="password" placeholder="Enter password" class="form-input" required />
+                        <div style="position: relative; display: flex; align-items: center">
+                          <input v-model="newManagerForm.password" :type="showManagerPassword ? 'text' : 'password'" placeholder="Enter password" class="form-input" required />
+                          <button type="button" @click="showManagerPassword = !showManagerPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                            {{ showManagerPassword ? '👁️' : '👁️‍🗨️' }}
+                          </button>
+                        </div>
                         <span class="manager-form-hint">Minimum 8 characters.</span>
                       </div>
                     </div>
@@ -792,37 +866,52 @@
         <form @submit.prevent="handleChangePassword">
           <div class="form-group">
             <label for="current-password">Current Password</label>
-            <input 
-              id="current-password"
-              v-model="passwordForm.currentPassword" 
-              type="password" 
-              placeholder="Enter current password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="current-password"
+                v-model="passwordForm.currentPassword" 
+                :type="showCurrentPassword ? 'text' : 'password'" 
+                placeholder="Enter current password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showCurrentPassword = !showCurrentPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showCurrentPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label for="new-password">New Password</label>
-            <input 
-              id="new-password"
-              v-model="passwordForm.newPassword" 
-              type="password" 
-              placeholder="Enter new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="new-password"
+                v-model="passwordForm.newPassword" 
+                :type="showNewPassword ? 'text' : 'password'" 
+                placeholder="Enter new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showNewPassword = !showNewPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showNewPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
             <div class="form-hint">At least 8 characters</div>
           </div>
           <div class="form-group">
             <label for="confirm-password">Confirm Password</label>
-            <input 
-              id="confirm-password"
-              v-model="passwordForm.confirmPassword" 
-              type="password" 
-              placeholder="Confirm new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="confirm-password"
+                v-model="passwordForm.confirmPassword" 
+                :type="showConfirmPassword ? 'text' : 'password'" 
+                placeholder="Confirm new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showConfirmPassword = !showConfirmPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showConfirmPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
           <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
@@ -1106,10 +1195,45 @@ export default {
 
     onMounted(() => {
       fetchOwnerReports();
+      fetchManagers();
     });
 
     // Manager management
     const managers = ref([]);
+    
+    const fetchManagers = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/manager`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authentication-Token': token,
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Map API response to component structure
+          managers.value = data.map(manager => ({
+            id: manager.manager_id,
+            name: manager.manager_name,
+            email: manager.manager_email,
+            phone: manager.manager_contact,
+            skills: manager.manager_skills,
+            role: manager.manager_role,
+            dob: manager.manager_dob,
+            doj: manager.manager_doj,
+            branchName: manager.branch_name,
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to fetch managers:', error);
+      }
+    };
     const newManagerForm = ref({
       name: '',
       email: '',
@@ -1192,6 +1316,7 @@ export default {
 
         managerSuccess.value = data.message || `Manager "${newManagerForm.value.name}" created successfully!`;
         resetManagerForm();
+        fetchManagers(); // Refresh the managers list
         setTimeout(() => { managerSuccess.value = ''; }, 3000);
       } catch (error) {
         managerError.value = 'Unable to connect to server. Please try again.';
@@ -1213,10 +1338,46 @@ export default {
       };
     };
 
-    const deleteManager = (managerId) => {
+    const deleteManager = async (managerId) => {
       if (confirm('Are you sure you want to delete this manager?')) {
-        managers.value = managers.value.filter(m => m.id !== managerId);
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          alert('You are not authenticated. Please log in again.');
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/manager/${managerId}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authentication-Token': token,
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            managers.value = managers.value.filter(m => m.id !== managerId);
+            alert('Manager deleted successfully');
+          } else {
+            const data = await response.json();
+            alert(data.message || 'Failed to delete manager');
+          }
+        } catch (error) {
+          alert('Unable to delete manager. Please try again.');
+        }
       }
+    };
+
+    const getManagerStats = (managerId) => {
+      // Calculate stats for this manager
+      // In a real application, you would fetch this from the API
+      // For now, return placeholder stats
+      return {
+        customers: Math.floor(Math.random() * 100) + 10,
+        bookings: Math.floor(Math.random() * 200) + 20,
+        revenue: Math.floor(Math.random() * 50000) + 5000,
+      };
     };
 
     const getManagerBranch = (branchName) => {
@@ -1226,6 +1387,10 @@ export default {
 
     // Change password
     const showChangePasswordModal = ref(false);
+    const showManagerPassword = ref(false);
+    const showCurrentPassword = ref(false);
+    const showNewPassword = ref(false);
+    const showConfirmPassword = ref(false);
     const passwordForm = ref({
       currentPassword: '',
       newPassword: '',
@@ -1326,8 +1491,14 @@ export default {
       handleCreateManager,
       deleteManager,
       getManagerBranch,
+      fetchManagers,
+      getManagerStats,
       resetManagerForm,
       showChangePasswordModal,
+      showManagerPassword,
+      showCurrentPassword,
+      showNewPassword,
+      showConfirmPassword,
       passwordForm,
       passwordError,
       passwordSuccess,

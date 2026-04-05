@@ -824,37 +824,52 @@
         <form @submit.prevent="handleChangePassword">
           <div class="form-group">
             <label for="current-password">Current Password</label>
-            <input 
-              id="current-password"
-              v-model="passwordForm.currentPassword" 
-              type="password" 
-              placeholder="Enter current password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="current-password"
+                v-model="passwordForm.currentPassword" 
+                :type="showCurrentPassword ? 'text' : 'password'" 
+                placeholder="Enter current password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showCurrentPassword = !showCurrentPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showCurrentPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label for="new-password">New Password</label>
-            <input 
-              id="new-password"
-              v-model="passwordForm.newPassword" 
-              type="password" 
-              placeholder="Enter new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="new-password"
+                v-model="passwordForm.newPassword" 
+                :type="showNewPassword ? 'text' : 'password'" 
+                placeholder="Enter new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showNewPassword = !showNewPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showNewPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
             <div class="form-hint">At least 8 characters</div>
           </div>
           <div class="form-group">
             <label for="confirm-password">Confirm Password</label>
-            <input 
-              id="confirm-password"
-              v-model="passwordForm.confirmPassword" 
-              type="password" 
-              placeholder="Confirm new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="confirm-password"
+                v-model="passwordForm.confirmPassword" 
+                :type="showConfirmPassword ? 'text' : 'password'" 
+                placeholder="Confirm new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showConfirmPassword = !showConfirmPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showConfirmPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
           <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
@@ -1121,6 +1136,9 @@ const API_BASE_URL = "http://localhost:5000";
 const currentView = ref("dashboard");
 const sidebarOpen = ref(false);
 const showChangePasswordModal = ref(false);
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 const showProfileMenu = ref(false);
 const showProfileEditModal = ref(false);
 const showAppointmentDetailsModal = ref(false);
