@@ -5,7 +5,7 @@ from flask_security import UserMixin, RoleMixin
 db = SQLAlchemy()
 
 class User(db.Model, UserMixin):
-    _tablename_ = 'user'
+    __tablename__ = 'user'
    
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(120), unique=True, nullable=False)
@@ -20,14 +20,14 @@ class User(db.Model, UserMixin):
 
 
 class Role(db.Model, RoleMixin):
-    _tablename_ = 'role'
+    __tablename__ = 'role'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(80), unique=True, nullable=False)
     description = db.Column(db.String(255))
 
 
 class UserRoles(db.Model):
-    _tablename_ = 'user_roles'
+    __tablename__ = 'user_roles'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
