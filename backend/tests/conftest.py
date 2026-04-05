@@ -6,6 +6,7 @@ Uses an in-memory SQLite database so tests never touch the real DB.
 import pytest
 import sys
 import os
+from datetime import date
 
 # Make sure Python can find the backend package
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -77,8 +78,8 @@ def _seed_test_data(app):
                 manager_contact='+91-9000000001',
                 manager_skills='Operations',
                 manager_role='Manager',
-                manager_dob='1985-01-01',
-                manager_doj='2023-01-01',
+                manager_dob=date(1985, 1, 1),
+                manager_doj=date(2023, 1, 1),
                 branch_name='Test Branch',
             ))
         _db.session.commit()
@@ -93,8 +94,8 @@ def _seed_test_data(app):
                 staff_email='staff@test.com',
                 staff_skills='Haircut, Facial',
                 staff_role='Stylist',
-                staff_dob='1995-06-15',
-                staff_doj='2023-03-01',
+                staff_dob=date(1995, 6, 15),
+                staff_doj=date(2023, 3, 1),
                 staff_salary=30000,
             ))
         _db.session.commit()
@@ -106,7 +107,7 @@ def _seed_test_data(app):
                 customer_id=cust_user.id,
                 customer_name='Test Customer',
                 customer_contact='+91-9000000003',
-                customer_dob='1998-08-20',
+                customer_dob=date(1998, 8, 20),
                 customer_email='cust@test.com',
                 customer_address='12 Test Street, Bengaluru',
                 number_of_visits=3,
