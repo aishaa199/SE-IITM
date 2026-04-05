@@ -48,35 +48,40 @@ def client(app_fixture):
 
 from application.models import User
 from flask_security.utils import hash_password
-
 @pytest.fixture
 def headers_for_role(client, create_user):
     def _get_headers(role_name):
-        # 1. Remove underscore to satisfy "only letters and numbers" rule
         username = f"test{role_name}" 
         password = "password123"
         
         create_user(username, password, role_name)
         
-        # 2. Login
-        res = client.post("/login?include_auth_token", json={
+        # Use the role-specific login route you defined: /owner-login, /manager-login, etc.
+        login_url = f"/{role_name}-login"
+        res = client.post(login_url, json={
             "username": username,
             "password": password
         })
         
         data = res.get_json()
 
-        # 3. Defensive check: If login fails, show why instead of crashing with KeyError
         if res.status_code != 200:
-            pytest.fail(f"Login failed for {role_name}. Status: {res.status_code}, Error: {data}")
+            pytest.fail(f"Login failed for {role_name} at {login_url}. Status: {res.status_code}, Error: {data}")
 
-        # 4. Correct path based on your JSON structure
-        # Based on your DEBUG, it seems your app wraps everything in 'response'
-        try:
-            return {"Authentication-Token": data["response"]["user"]["authentication_token"]}
-        except KeyError:
-            # If 'user' is still missing, let's see the keys available
-            pytest.fail(f"Token path wrong. Available keys in response: {data['response'].keys()}")
+        # Try to find the token based on your different possible response structures
+        token = None
+        if "token" in data:
+            token = data["token"]
+        elif "response" in data and "user" in data["response"]:
+            token = data["response"]["user"].get("authentication_token")
+            
+        if not token:
+            pytest.fail(f"Could not find token in response. Data: {data}")
+            
+        return {
+            "Authentication-Token": token,
+            "Content-Type": "application/json"
+        }
             
     return _get_headers
 

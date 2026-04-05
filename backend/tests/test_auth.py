@@ -34,7 +34,6 @@ def test_owner_login_wrong_password(client,create_user):
     data = response.get_json()
     assert data["message"] == "Wrong Password"
 
-
 def test_owner_login_user_not_found(client):
     response = client.post("/owner-login", json={
         "username": "notexist@test.com",
@@ -79,8 +78,32 @@ def test_manager_login_success(client,create_user):
     assert response.status_code == 200
 
 
+def test_manager_login_wrong_password(client,create_user):
+    create_user( "manager1", "1234", "manager")
+
+    response = client.post("/manager-login", json={
+        "username": "manager1",
+        "password": "wrong"
+    })
+   
+    assert response.status_code == 400
+    data = response.get_json()
+    assert data["message"] == "Wrong Password"
+
+def test_manager_login_user_not_found(client):
+    response = client.post("/manager-login", json={
+        "username": "notexist@test.com",
+        "password": "1234"
+    })
+    print(response.status_code)
+    data = response.get_json()
+    print(data)
+
+    assert response.status_code == 404
+
+
 def test_manager_login_wrong_role(client,create_user):
-    create_user("user1", "1234", "customer")
+    create_user("user1", "1234", "owner")
 
     response = client.post("/manager-login", json={
         "username": "user1",
@@ -92,7 +115,21 @@ def test_manager_login_wrong_role(client,create_user):
 
     assert response.status_code == 403
 
+def test_register_manager_by_owner_success(client, owner_headers):
+    # 'owner_headers' should contain the Authentication-Token for an admin/owner
+    response = client.post("/register-manager", json={
+        "email": "newmanager@salon.com",
+        "password": "1234",
+        "name": "Branch Manager",
+        "dob": "1990-01-01",
+        "doj": "2024-04-01",
+        "contact": "9888877777",
+        "skills": "Operations",
+        "branch_name": "Pune Main"
+    }, headers=owner_headers) # <--- CRITICAL: Owner must authorize this
 
+    assert response.status_code == 201
+    assert response.get_json()["message"] == "Registration successful"
 # ========================= STAFF LOGIN =========================
 def test_staff_login_success(client,create_user):
     create_user("staff1", "1234", "staff")
@@ -109,6 +146,61 @@ def test_staff_login_success(client,create_user):
     assert response.status_code == 200
 
 
+def test_staff_login_wrong_password(client,create_user):
+    create_user( "staff1", "1234", "staff")
+
+    response = client.post("/staff-login", json={
+        "username": "staff1",
+        "password": "wrong"
+    })
+   
+    assert response.status_code == 400
+    data = response.get_json()
+    assert data["message"] == "Wrong Password"
+
+def test_staff_login_user_not_found(client):
+    response = client.post("/staff-login", json={
+        "username": "notexist@test.com",
+        "password": "1234"
+    })
+    print(response.status_code)
+    data = response.get_json()
+    print(data)
+
+    assert response.status_code == 404
+
+
+def test_staff_login_wrong_role(client,create_user):
+    create_user("user1", "1234", "customer")
+
+    response = client.post("/staff-login", json={
+        "username": "user1",
+        "password": "1234"
+    })
+
+    print(response.status_code)
+    data = response.get_json()
+    print(data)
+
+    assert response.status_code == 403
+
+def test_register_staff_by_manager_success(client, manager_headers):
+    # manager_headers should contain the 'Authentication-Token'
+    response = client.post("/api/staff", json={
+        "email": "newstaff@salon.com",
+        "password": "1234",
+        "name": "New Stylist",
+        "dob": "1995-05-05",
+        "doj": "2024-01-01",
+        "contact": "9876543210",
+        "salary": 50000.0,
+        "address": "Pune",
+        "skills": "Stylist", 
+    }, headers=manager_headers) # <--- CRITICAL: Prove you are a manager
+
+    assert response.status_code == 201
+    assert response.get_json()["message"] == "Registration successful"
+
 # ========================= CUSTOMER LOGIN =========================
 def test_customer_login_success(client,create_user):
     create_user("cust1", "1234", "customer")
@@ -124,6 +216,44 @@ def test_customer_login_success(client,create_user):
 
     assert response.status_code == 200
 
+
+def test_customer_login_wrong_password(client,create_user):
+    create_user( "cust1", "1234", "customer")
+
+    response = client.post("/customer-login", json={
+        "username": "cust1",
+        "password": "wrong"
+    })
+   
+    assert response.status_code == 400
+    data = response.get_json()
+    assert data["message"] == "Wrong Password"
+
+def test_customer_login_user_not_found(client):
+    response = client.post("/customer-login", json={
+        "username": "notexist@test.com",
+        "password": "1234"
+    })
+    print(response.status_code)
+    data = response.get_json()
+    print(data)
+
+    assert response.status_code == 404
+
+
+def test_customer_login_wrong_role(client,create_user):
+    create_user("user1", "1234", "owner")
+
+    response = client.post("/customer-login", json={
+        "username": "user1",
+        "password": "1234"
+    })
+
+    print(response.status_code)
+    data = response.get_json()
+    print(data)
+
+    assert response.status_code == 403
 
 # ========================= REGISTER CUSTOMER =========================
 def test_register_customer_success(client):
@@ -240,7 +370,7 @@ def test_change_password(client, create_user):
             "confirm_password": "abcd"
         },
         headers={
-            "Authorization": f"Bearer {token}",
+            "Authentication-Token": token,
             "Accept": "application/json",
             "Content-Type": "application/json"
         }
