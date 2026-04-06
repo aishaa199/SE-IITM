@@ -5,7 +5,7 @@ from flask_security import UserMixin, RoleMixin
 db = SQLAlchemy()
 
 class User(db.Model, UserMixin):
-    _tablename_ = 'user'
+    __tablename__ = 'user'
    
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     username = db.Column(db.String(120), unique=True, nullable=False)
@@ -20,14 +20,14 @@ class User(db.Model, UserMixin):
 
 
 class Role(db.Model, RoleMixin):
-    _tablename_ = 'role'
+    __tablename__ = 'role'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(80), unique=True, nullable=False)
     description = db.Column(db.String(255))
 
 
 class UserRoles(db.Model):
-    _tablename_ = 'user_roles'
+    __tablename__ = 'user_roles'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     role_id = db.Column(db.Integer, db.ForeignKey('role.id'))
@@ -244,6 +244,32 @@ class SalonConfig(db.Model):
     param_value = db.Column(db.String(255), nullable=False)
     from_date = db.Column(db.DateTime, nullable=False)
     to_date = db.Column(db.DateTime, nullable=True)
+
+class ReportRecord(db.Model):
+    __tablename__ = 'reports'
+    id            = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    report_type   = db.Column(db.String(50), nullable=False)
+    time_period   = db.Column(db.String(50), nullable=False)
+    generated_by  = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at    = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+    pdf_path      = db.Column(db.String(512), nullable=True)
+    csv_path      = db.Column(db.String(512), nullable=True)
+    shared_with_owner = db.Column(db.Boolean, default=False)
+
+    generator = db.relationship('User', backref=db.backref('reports', lazy=True))
+
+
+class ManagerTask(db.Model):
+    __tablename__ = 'manager_tasks'
+    task_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    manager_id = db.Column(db.Integer, db.ForeignKey('manager_master.manager_id'), nullable=False)
+    task_description = db.Column(db.String(255), nullable=False)
+    task_section = db.Column(db.String(50), nullable=False, default='general')
+    status = db.Column(db.String(20), nullable=False, default='pending')  # pending / completed
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+
+    manager = db.relationship('Manager', backref=db.backref('tasks', lazy=True))
+
 
 class Order(db.Model):
     __tablename__ = 'orders'

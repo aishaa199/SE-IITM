@@ -4,7 +4,7 @@
     <div class="dashboard-sidebar">
       <div class="sidebar-header">
         <h2 style="color: var(--gold); font-size: 24px; margin: 0">👑 Owner Hub</h2>
-        <p style="color: #999; margin: 8px 0 0 0; font-size: 12px">{{ ownerData.ownerName }}</p>
+        <p style="color: #6f675a; margin: 8px 0 0 0; font-size: 12px">{{ ownerData.ownerName }}</p>
       </div>
 
       <div class="sidebar-menu">
@@ -13,13 +13,6 @@
           @click="currentView = 'overview'"
         >
           <span class="nav-icon">📊</span> Overview
-        </div>
-
-        <div
-          :class="['nav-item', { active: currentView === 'branches' }]"
-          @click="currentView = 'branches'"
-        >
-          <span class="nav-icon">🏢</span> Branches ({{ ownerData.branches.length }})
         </div>
 
         <div
@@ -33,7 +26,7 @@
           :class="['nav-item', { active: currentView === 'reports' }]"
           @click="currentView = 'reports'"
         >
-          <span class="nav-icon">📄</span> Download Reports
+          <span class="nav-icon">📊</span> Reports & Analytics
         </div>
         <div
           :class="['nav-item', { active: currentView === 'profile' }]"
@@ -60,11 +53,6 @@
         <div v-if="currentView === 'overview'" class="fade-in">
           <div class="stats-grid">
             <div class="stat-card">
-              <div class="stat-icon">🏢</div>
-              <div class="stat-label">Total Branches</div>
-              <div class="stat-value">{{ ownerData.branches.length }}</div>
-            </div>
-            <div class="stat-card">
               <div class="stat-icon">📊</div>
               <div class="stat-label">Total Revenue</div>
               <div class="stat-value">₹{{ totalRevenue }}</div>
@@ -87,13 +75,6 @@
               <div class="stat-icon">💰</div>
               <div class="stat-label">Avg Revenue/Booking</div>
               <div class="stat-value">₹{{ avgRevenuePerBooking }}</div>
-            </div>
-            <div class="stat-card">
-              <div class="stat-icon">📈</div>
-              <div class="stat-label">Avg Customers/Branch</div>
-              <div class="stat-value">{{ avgCustomersPerBranch }}</div>
-            </div>
-            <div class="stat-card">
               <div class="stat-icon">⭐</div>
               <div class="stat-label">Overall Performance</div>
               <div class="stat-value">{{ overallPerformance }}%</div>
@@ -124,7 +105,7 @@
                   </svg>
                   <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center">
                     <div style="font-size: 36px; font-weight: bold; color: var(--gold)">{{ totalCustomers }}</div>
-                    <div style="font-size: 12px; color: #999">Total</div>
+                    <div style="font-size: 12px; color: #6f675a">Total</div>
                   </div>
                 </div>
                 
@@ -167,50 +148,50 @@
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
                   <div style="width: 60px; height: 150px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
                     @mouseenter="hoveredBar = 'mon'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'mon'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹500</div>
+                    <div v-if="hoveredBar === 'mon'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹500</div>
                   </div>
                   <div style="font-weight: 700">Mon</div>
-                  <div style="font-size: 12px; color: #999">₹500</div>
+                  <div style="font-size: 12px; color: #6f675a">₹500</div>
                 </div>
 
                 <!-- Tuesday -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
                   <div style="width: 60px; height: 200px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
                     @mouseenter="hoveredBar = 'tue'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'tue'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹750</div>
+                    <div v-if="hoveredBar === 'tue'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹750</div>
                   </div>
                   <div style="font-weight: 700">Tue</div>
-                  <div style="font-size: 12px; color: #999">₹750</div>
+                  <div style="font-size: 12px; color: #6f675a">₹750</div>
                 </div>
 
                 <!-- Wednesday -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
                   <div style="width: 60px; height: 180px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
                     @mouseenter="hoveredBar = 'wed'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'wed'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹600</div>
+                    <div v-if="hoveredBar === 'wed'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹600</div>
                   </div>
                   <div style="font-weight: 700">Wed</div>
-                  <div style="font-size: 12px; color: #999">₹600</div>
+                  <div style="font-size: 12px; color: #6f675a">₹600</div>
                 </div>
 
                 <!-- Thursday -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
                   <div style="width: 60px; height: 240px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
                     @mouseenter="hoveredBar = 'thu'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'thu'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹800</div>
+                    <div v-if="hoveredBar === 'thu'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹800</div>
                   </div>
                   <div style="font-weight: 700">Thu</div>
-                  <div style="font-size: 12px; color: #999">₹800</div>
+                  <div style="font-size: 12px; color: #6f675a">₹800</div>
                 </div>
 
                 <!-- Friday -->
                 <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
                   <div style="width: 60px; height: 190px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
                     @mouseenter="hoveredBar = 'fri'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'fri'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹650</div>
+                    <div v-if="hoveredBar === 'fri'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹650</div>
                   </div>
                   <div style="font-weight: 700">Fri</div>
-                  <div style="font-size: 12px; color: #999">₹650</div>
+                  <div style="font-size: 12px; color: #6f675a">₹650</div>
                 </div>
               </div>
             </div>
@@ -230,7 +211,7 @@
                     @mouseenter="hoveredBar = idx"
                     @mouseleave="hoveredBar = null"
                   >
-                    <div v-if="hoveredBar === idx" style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--bg); padding: 6px 12px; border-radius: 4px; font-weight: 600; white-space: nowrap; font-size: 14px">₹{{ booking.amount }}</div>
+                    <div v-if="hoveredBar === idx" style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 6px 12px; border-radius: 4px; font-weight: 600; white-space: nowrap; font-size: 14px">₹{{ booking.amount }}</div>
                   </div>
                   <div style="font-weight: 600">Day {{ idx + 1 }}</div>
                   <div class="text-muted" style="font-size: 12px">₹{{ booking.amount }}</div>
@@ -408,13 +389,7 @@
                     </div>
                     <div class="text-muted" style="font-size: 12px; margin-top: 4px">↑ 8% from last week</div>
                   </div>
-                  <div style="padding: 16px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)); border-radius: 8px; border-left: 5px solid #3b82f6">
-                    <div style="display: flex; justify-content: space-between; align-items: center">
-                      <span>Customers Per Branch</span>
-                      <span style="font-weight: 700; font-size: 18px; color: #3b82f6">{{ avgCustomersPerBranch }}</span>
-                    </div>
-                    <div class="text-muted" style="font-size: 12px; margin-top: 4px">Optimal distribution</div>
-                  </div>
+
                   <div style="padding: 16px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05)); border-radius: 8px; border-left: 5px solid #f59e0b">
                     <div style="display: flex; justify-content: space-between; align-items: center">
                       <span>Conversion Rate</span>
@@ -435,295 +410,218 @@
           </div>
         </div>
 
-        <!-- BRANCHES VIEW -->
-        <div v-if="currentView === 'branches'" class="fade-in">
-          <!-- Create New Branch Form -->
-          <div class="card" style="margin-bottom: 24px; border-left: 5px solid var(--gold)">
-            <div class="card-header">
-              <h3 class="card-title">➕ Create New Branch</h3>
-            </div>
-            <div class="card-body">
-              <form @submit.prevent="handleCreateBranch">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px">
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Branch Name *</label>
-                    <input 
-                      v-model="newBranchForm.name"
-                      type="text"
-                      placeholder="Enter branch name"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Location *</label>
-                    <input 
-                      v-model="newBranchForm.location"
-                      type="text"
-                      placeholder="Enter branch location"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Manager Name *</label>
-                    <input 
-                      v-model="newBranchForm.manager"
-                      type="text"
-                      placeholder="Enter manager name"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Phone *</label>
-                    <input 
-                      v-model="newBranchForm.phone"
-                      type="tel"
-                      placeholder="Enter phone number"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Email *</label>
-                    <input 
-                      v-model="newBranchForm.email"
-                      type="email"
-                      placeholder="Enter email"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Status *</label>
-                    <select 
-                      v-model="newBranchForm.status"
-                      class="form-input"
-                      required
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div v-if="branchError" style="color: #ef4444; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px; margin-top: 16px">
-                  {{ branchError }}
-                </div>
-                <div v-if="branchSuccess" style="color: #22c55e; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px; margin-top: 16px">
-                  {{ branchSuccess }}
-                </div>
-
-                <div style="display: flex; gap: 12px; margin-top: 16px">
-                  <button type="submit" class="btn btn-primary">✅ Create Branch</button>
-                  <button type="button" class="btn btn-secondary" @click="resetBranchForm">Clear Form</button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <!-- Edit Branch Form -->
-          <div v-if="showEditForm" class="card" style="margin-bottom: 24px; border-left: 5px solid var(--gold)">
-            <div class="card-header">
-              <h3 class="card-title">✏️ Edit Branch</h3>
-            </div>
-            <div class="card-body">
-              <form @submit.prevent="handleSaveBranch">
-                <div class="form-grid">
-                  <div class="form-group">
-                    <label for="edit-branch-name">Branch Name *</label>
-                    <input 
-                      id="edit-branch-name"
-                      v-model="editForm.name"
-                      type="text"
-                      placeholder="Enter branch name"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-branch-location">Location *</label>
-                    <input 
-                      id="edit-branch-location"
-                      v-model="editForm.location"
-                      type="text"
-                      placeholder="Enter branch location"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-branch-manager">Manager Name *</label>
-                    <input 
-                      id="edit-branch-manager"
-                      v-model="editForm.manager"
-                      type="text"
-                      placeholder="Enter manager name"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-branch-phone">Phone *</label>
-                    <input 
-                      id="edit-branch-phone"
-                      v-model="editForm.phone"
-                      type="tel"
-                      placeholder="Enter phone number"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-branch-email">Email *</label>
-                    <input 
-                      id="edit-branch-email"
-                      v-model="editForm.email"
-                      type="email"
-                      placeholder="Enter email"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-branch-status">Status *</label>
-                    <select 
-                      id="edit-branch-status"
-                      v-model="editForm.status"
-                      class="form-input"
-                      required
-                    >
-                      <option value="active">Active</option>
-                      <option value="inactive">Inactive</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div style="display: flex; gap: 12px; margin-top: 16px">
-                  <button type="submit" class="btn btn-primary">💾 Save Changes</button>
-                  <button type="button" class="btn btn-secondary" @click="showEditForm = false">Cancel</button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px">
-            <div v-for="branch in ownerData.branches" :key="branch.id" class="card">
-              <div class="card-header" style="display: flex; justify-content: space-between; align-items: center">
-                <div>
-                  <h3 class="card-title" style="margin: 0">{{ branch.name }}</h3>
-                  <p style="margin: 4px 0 0 0; color: #999; font-size: 12px">📍 {{ branch.location }}</p>
-                </div>
-              </div>
-              <div class="card-body">
-                <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 6px">
-                  <div style="font-size: 12px; color: #999; margin-bottom: 4px">Manager</div>
-                  <div style="font-weight: 600; color: var(--gold)">{{ branch.manager }}</div>
-                </div>
-
-                <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 6px">
-                  <div style="font-size: 12px; color: #999; margin-bottom: 4px">Contact</div>
-                  <div style="font-size: 13px">📞 {{ branch.phone }}</div>
-                  <div style="font-size: 13px">✉️ {{ branch.email }}</div>
-                </div>
-
-                <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 6px">
-                  <div style="font-size: 12px; color: #999; margin-bottom: 4px">Stats</div>
-                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px">
-                    <div>👥 {{ branch.customers }} Customers</div>
-                    <div>📅 {{ branch.bookings }} Bookings</div>
-                    <div style="grid-column: 1 / -1">💰 ₹{{ branch.revenue }} Revenue</div>
-                  </div>
-                </div>
-
-                <div style="padding: 12px; background: var(--light-bg); border-radius: 6px; margin-bottom: 12px">
-                  <div style="font-size: 12px; color: #999; margin-bottom: 4px">Status</div>
-                  <span :class="['badge', branch.status === 'active' ? 'badge-success' : 'badge-danger']">{{ branch.status }}</span>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px">
-                  <button class="btn btn-primary" @click="handleEditBranch(branch)" style="font-size: 12px; padding: 8px">✏️ Edit</button>
-                  <button class="btn btn-danger" @click="handleDeleteBranch(branch.id)" style="font-size: 12px; padding: 8px">🗑️ Delete</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- REPORTS VIEW -->
         <div v-if="currentView === 'reports'" class="fade-in">
-          <div class="card">
-            <div class="card-header">
-              <h3 class="card-title">Download Reports</h3>
-            </div>
-            <div class="card-body">
-              <!-- Branch Selection -->
-              <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px">
-                <label style="font-weight: 600">Select Branch:</label>
-                <select v-model.number="selectedBranchId" class="form-input" style="flex: 1; max-width: 300px">
-                  <option v-for="branch in ownerData.branches" :key="branch.id" :value="branch.id">
-                    {{ branch.name }}
-                  </option>
-                </select>
-              </div>
 
-              <!-- Branch Reports Grid -->
-              <div v-if="selectedBranch" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px">
-                <div class="report-item">
-                  <div class="report-icon">📊</div>
-                  <div class="report-title">Sales Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Total sales and revenue summary</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
-                </div>
-
-                <div class="report-item">
-                  <div class="report-icon">📅</div>
-                  <div class="report-title">Bookings Report</div>
-                  <div class="text-muted" style="margin: 8px 0">All appointments and bookings</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
-                </div>
-
-                <div class="report-item">
-                  <div class="report-icon">👥</div>
-                  <div class="report-title">Staff Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Staff performance and attendance</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
-                </div>
-
-                <div class="report-item">
-                  <div class="report-icon">📦</div>
-                  <div class="report-title">Inventory Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Stock levels and movements</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
-                </div>
-
-                <div class="report-item">
-                  <div class="report-icon">💰</div>
-                  <div class="report-title">Financial Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Revenue and expenses summary</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
-                </div>
-
-                <div class="report-item">
-                  <div class="report-icon">⭐</div>
-                  <div class="report-title">Feedback Report</div>
-                  <div class="text-muted" style="margin: 8px 0">Customer reviews and ratings</div>
-                  <button class="btn btn-primary w-full">📥 Download CSV</button>
+          <!-- ── Analytics drill-down panel ─────────────────────────── -->
+          <template v-if="ownerAnalyticsView">
+            <!-- Header -->
+            <div class="card" style="margin-bottom: 16px;">
+              <div class="card-body" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <button class="btn btn-outline" style="font-size: 13px; padding: 6px 14px;" @click="closeOwnerAnalytics">
+                  ← Back
+                </button>
+                <span style="font-size: 22px;">{{ ownerAnalyticsView.icon }}</span>
+                <div>
+                  <div style="font-weight: 700; font-size: 16px; color: #2D2D2D;">{{ ownerAnalyticsView.title }}</div>
+                  <div style="font-size: 12px; color: #8B7355;">{{ ownerAnalyticsView.periodLabel }}</div>
                 </div>
               </div>
             </div>
-          </div>
+
+            <!-- Loading / Error -->
+            <div v-if="ownerAnalyticsLoading" style="text-align: center; padding: 48px; color: #8B7355; font-size: 14px;">
+              Loading analytics…
+            </div>
+            <div v-else-if="ownerAnalyticsError" style="text-align: center; padding: 32px; color: #e53e3e; font-size: 14px;">
+              ⚠️ {{ ownerAnalyticsError }}
+            </div>
+
+            <!-- Charts -->
+            <template v-else-if="ownerAnalyticsData">
+              <!-- Summary stat -->
+              <div class="card" style="margin-bottom: 16px;">
+                <div class="card-body" style="display: flex; gap: 24px; flex-wrap: wrap;">
+                  <div v-if="ownerAnalyticsData.total !== undefined">
+                    <div style="font-size: 11px; color: #8B7355; text-transform: uppercase; letter-spacing: 0.5px;">Total</div>
+                    <div style="font-size: 28px; font-weight: 800; color: #2D2D2D;">{{ ownerAnalyticsData.total }}</div>
+                  </div>
+                  <div v-if="ownerAnalyticsData.total_revenue !== undefined">
+                    <div style="font-size: 11px; color: #8B7355; text-transform: uppercase; letter-spacing: 0.5px;">Revenue</div>
+                    <div style="font-size: 28px; font-weight: 800; color: #22c55e;">₹{{ ownerAnalyticsData.total_revenue?.toLocaleString('en-IN') }}</div>
+                  </div>
+                  <div v-if="ownerAnalyticsData.avg_rating !== undefined">
+                    <div style="font-size: 11px; color: #8B7355; text-transform: uppercase; letter-spacing: 0.5px;">Avg Rating</div>
+                    <div style="font-size: 28px; font-weight: 800; color: #d4af37;">{{ ownerAnalyticsData.avg_rating }} ★</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Chart grid -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 16px;">
+                <!-- Appointments -->
+                <template v-if="ownerAnalyticsView.type === 'appointments'">
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Appointments Over Time</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartLine" style="max-height: 220px;"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Top Services</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartBar" style="max-height: 220px;"></canvas></div>
+                  </div>
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Status Breakdown</h3></div>
+                    <div class="card-body" style="padding: 12px; display: flex; justify-content: center;"><canvas ref="ownerChartPie" style="max-height: 260px; max-width: 380px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Sales -->
+                <template v-else-if="ownerAnalyticsView.type === 'sales'">
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Revenue Over Time (INR)</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartLine" style="max-height: 220px;"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Revenue by Service</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartBar" style="max-height: 220px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Staff -->
+                <template v-else-if="ownerAnalyticsView.type === 'staff'">
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Appointments per Staff</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartBar" style="max-height: 240px;"></canvas></div>
+                  </div>
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Staff Ratings</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartLine" style="max-height: 200px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Inventory -->
+                <template v-else-if="ownerAnalyticsView.type === 'inventory'">
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Stock Levels</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartBar" style="max-height: 260px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Feedback -->
+                <template v-else-if="ownerAnalyticsView.type === 'feedback'">
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Ratings Distribution</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartBar" style="max-height: 220px;"></canvas></div>
+                  </div>
+                  <div class="card">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Sentiment Breakdown</h3></div>
+                    <div class="card-body" style="padding: 12px; display: flex; justify-content: center;"><canvas ref="ownerChartPie" style="max-height: 220px; max-width: 280px;"></canvas></div>
+                  </div>
+                </template>
+
+                <!-- Financial -->
+                <template v-else-if="ownerAnalyticsView.type === 'financial'">
+                  <div class="card" style="grid-column: 1 / -1;">
+                    <div class="card-header"><h3 class="card-title" style="font-size: 14px;">Monthly Revenue vs Profit</h3></div>
+                    <div class="card-body" style="padding: 12px;"><canvas ref="ownerChartLine" style="max-height: 240px;"></canvas></div>
+                  </div>
+                </template>
+              </div>
+
+              <!-- Download row -->
+              <div class="card">
+                <div class="card-body" style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+                  <button v-if="ownerAnalyticsView.hasCsv" class="btn btn-outline" @click="ownerDownloadReport(ownerAnalyticsView.reportId, 'csv')">
+                    📥 Download CSV
+                  </button>
+                  <button v-if="ownerAnalyticsView.hasPdf" class="btn btn-primary" @click="ownerDownloadReport(ownerAnalyticsView.reportId, 'pdf')">
+                    📄 Download PDF
+                  </button>
+                </div>
+              </div>
+            </template>
+          </template>
+
+          <!-- ── Reports list (default) ──────────────────────────────── -->
+          <template v-else>
+            <div class="card">
+              <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 class="card-title">📄 Shared Reports from Manager</h3>
+                <button class="btn btn-outline" style="font-size: 12px; padding: 5px 14px;" @click="fetchOwnerReports">
+                  ↻ Refresh
+                </button>
+              </div>
+              <div class="card-body">
+                <!-- Loading -->
+                <div v-if="ownerReportsLoading" style="text-align: center; padding: 32px; color: #8B7355;">
+                  Loading reports…
+                </div>
+
+                <!-- Empty -->
+                <div v-else-if="ownerReports.length === 0" style="text-align: center; padding: 32px;">
+                  <div style="font-size: 40px; margin-bottom: 12px;">📭</div>
+                  <div style="color: #8B7355; font-size: 14px;">No reports shared by the manager yet.</div>
+                  <div style="color: #8B7355; font-size: 12px; margin-top: 6px;">Reports appear here when the manager clicks "Send to Owner" in the Reports section.</div>
+                </div>
+
+                <!-- Reports list -->
+                <div v-else>
+                  <div
+                    v-for="report in ownerReports"
+                    :key="report.id"
+                    style="display: flex; align-items: center; gap: 14px; padding: 12px 10px; border-radius: 8px; border: 1px solid #e8e0d5; margin-bottom: 8px; background: white; transition: background 0.15s;"
+                    @mouseenter="$event.currentTarget.style.background='#f9f5f0'"
+                    @mouseleave="$event.currentTarget.style.background='white'"
+                  >
+                    <div style="font-size: 26px; flex-shrink: 0;">
+                      {{ ownerReportIcons[report.report_type] || '📄' }}
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                      <div style="font-weight: 700; font-size: 14px; color: #2D2D2D;">
+                        {{ report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1) }} Report
+                        <span style="margin-left: 6px; font-size: 10px; background: #e6f4ea; color: #276749; padding: 1px 8px; border-radius: 10px; font-weight: 600;">Shared</span>
+                      </div>
+                      <div style="font-size: 12px; color: #8B7355; margin-top: 3px;">
+                        {{ ownerPeriodLabels[report.time_period] || report.time_period }}
+                        &bull;
+                        {{ new Date(report.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) }}
+                      </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-shrink: 0;">
+                      <button
+                        class="btn btn-primary"
+                        style="font-size: 12px; padding: 5px 12px;"
+                        @click="openOwnerAnalytics(report)"
+                      >
+                        📊 View Analytics
+                      </button>
+                      <button
+                        v-if="report.has_csv"
+                        class="btn btn-outline"
+                        style="font-size: 12px; padding: 5px 12px;"
+                        @click="ownerDownloadReport(report.id, 'csv')"
+                      >
+                        📥 CSV
+                      </button>
+                      <button
+                        v-if="report.has_pdf"
+                        class="btn btn-outline"
+                        style="font-size: 12px; padding: 5px 12px;"
+                        @click="ownerDownloadReport(report.id, 'pdf')"
+                      >
+                        📄 PDF
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Error -->
+                <div v-if="ownerReportsError" style="color: #e53e3e; font-size: 13px; margin-top: 8px;">
+                  ⚠️ {{ ownerReportsError }}
+                </div>
+              </div>
+            </div>
+          </template>
         </div>
 
         <!-- PROFILE VIEW -->
@@ -788,59 +686,166 @@
 
         <!-- MANAGERS VIEW -->
         <div v-if="currentView === 'managers'" class="fade-in">
+          <!-- Managers Grid View -->
+          <div v-if="managers.length > 0" style="margin-bottom: 40px">
+            <h3 style="font-size: 20px; font-weight: 600; color: var(--text); margin-bottom: 24px">All Managers</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px">
+              <div v-for="manager in managers" :key="manager.id" style="background: var(--surface); border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border: 1px solid var(--border); transition: all 0.3s ease">
+                
+                <!-- Branch/Manager Header -->
+                <div style="margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--divider)">
+                  <h4 style="font-family: var(--font-display); font-size: 16px; font-weight: 600; color: var(--gold-deep); margin: 0 0 8px 0">{{ manager.branchName }}</h4>
+                  <p style="font-size: 12px; color: var(--text-muted); margin: 0">📍 {{ manager.role }}</p>
+                </div>
+
+                <!-- Manager Info -->
+                <div style="margin-bottom: 16px">
+                  <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px">Manager</div>
+                  <div style="font-size: 14px; font-weight: 500; color: var(--gold-deep)">{{ manager.name }}</div>
+                </div>
+
+                <!-- Contact -->
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--ivory-warm); border-radius: 8px">
+                  <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px">Contact</div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px">
+                    <span style="font-size: 12px; color: var(--text)">📞</span>
+                    <span style="font-size: 12px; color: var(--text)">{{ manager.phone }}</span>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px">
+                    <span style="font-size: 12px; color: var(--text)">📧</span>
+                    <span style="font-size: 12px; color: var(--text-muted)">{{ manager.email }}</span>
+                  </div>
+                </div>
+
+                <!-- Stats -->
+                <div style="margin-bottom: 16px; padding: 12px; background: var(--ivory-warm); border-radius: 8px">
+                  <div style="font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px">Stats</div>
+                  <div style="display: flex; gap: 12px; flex-wrap: wrap">
+                    <div style="display: flex; align-items: center; gap: 6px">
+                      <span style="font-size: 12px">👥</span>
+                      <span style="font-size: 12px; font-weight: 600; color: var(--text)">{{ getManagerStats(manager.id).customers }} Customers</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 6px">
+                      <span style="font-size: 12px">📅</span>
+                      <span style="font-size: 12px; font-weight: 600; color: var(--text)">{{ getManagerStats(manager.id).bookings }} Bookings</span>
+                    </div>
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 6px; margin-top: 8px">
+                    <span style="font-size: 12px">💰</span>
+                    <span style="font-size: 12px; font-weight: 600; color: var(--text)">₹{{ getManagerStats(manager.id).revenue }} Revenue</span>
+                  </div>
+                </div>
+
+                <!-- Status & Actions -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px">
+                  <span style="display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600">✓ Active</span>
+                </div>
+                <div style="display: flex; gap: 10px">
+                  <button @click="deleteManager(manager.id)" style="flex: 1; padding: 10px 16px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s" @mouseenter="$event.target.style.backgroundColor='#c0392b'" @mouseleave="$event.target.style.backgroundColor='#e74c3c'">
+                    🗑 Delete
+                  </button>
+                </div>
+
+              </div>
+            </div>
+          </div>
+          <div v-else style="margin-bottom: 40px; text-align: center; padding: 40px; background: var(--ivory-warm); border-radius: 12px">
+            <div style="font-size: 32px; margin-bottom: 8px">👥</div>
+            <div style="font-size: 14px; font-weight: 500; color: var(--text)">No Managers Yet</div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px">Create a manager below to get started</div>
+          </div>
+
           <div class="card" style="margin-bottom: 24px">
             <div class="card-header">
               <h3 class="card-title">Create New Manager</h3>
+              <p class="manager-form-subtitle">Fill in manager details and assign the manager to a branch.</p>
             </div>
             <div class="card-body">
-              <form @submit.prevent="handleCreateManager" style="max-width: 600px">
-                <div style="display: grid; gap: 16px">
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Full Name *</label>
-                    <input v-model="newManagerForm.name" type="text" placeholder="Enter manager name" class="form-input" required />
-                  </div>
+              <form @submit.prevent="handleCreateManager" class="manager-form">
+                <div class="manager-form-layout">
+                  <section class="manager-form-section">
+                    <h4 class="manager-section-title">Profile</h4>
+                    <div class="manager-form-grid">
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Full Name *</label>
+                        <input v-model="newManagerForm.name" type="text" placeholder="Enter manager name" class="form-input" required />
+                      </div>
 
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Email *</label>
-                    <input v-model="newManagerForm.email" type="email" placeholder="Enter email address" class="form-input" required />
-                  </div>
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Email *</label>
+                        <input v-model="newManagerForm.email" type="email" placeholder="Enter email address" class="form-input" required />
+                      </div>
 
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Phone *</label>
-                    <input v-model="newManagerForm.phone" type="tel" placeholder="Enter phone number" class="form-input" required />
-                  </div>
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Phone *</label>
+                        <input v-model="newManagerForm.phone" type="tel" placeholder="Enter phone number" class="form-input" required />
+                      </div>
 
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Assign to Branch *</label>
-                    <select v-model.number="newManagerForm.branchId" class="form-input" required>
-                      <option value="">Select a branch</option>
-                      <option v-for="branch in ownerData.branches" :key="branch.id" :value="branch.id">
-                        {{ branch.name }}
-                      </option>
-                    </select>
-                  </div>
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Date of Birth *</label>
+                        <input v-model="newManagerForm.dob" type="date" class="form-input" required />
+                      </div>
+                    </div>
+                  </section>
 
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Username *</label>
-                    <input v-model="newManagerForm.userId" type="text" placeholder="Enter username" class="form-input" required />
-                  </div>
+                  <section class="manager-form-section">
+                    <h4 class="manager-section-title">Employment</h4>
+                    <div class="manager-form-grid">
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Role *</label>
+                        <input v-model="newManagerForm.role" type="text" placeholder="Enter role" class="form-input" required />
+                      </div>
 
-                  <div>
-                    <label style="display: block; margin-bottom: 8px; font-weight: 600">Password *</label>
-                    <input v-model="newManagerForm.password" type="password" placeholder="Enter password" class="form-input" required />
-                  </div>
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Assign to Branch *</label>
+                        <input v-model="newManagerForm.branchName" type="text" placeholder="Enter branch name" class="form-input" required />
+                      </div>
 
-                  <div v-if="managerError" style="color: #ef4444; padding: 12px; background: rgba(239, 68, 68, 0.1); border-radius: 8px">
-                    {{ managerError }}
-                  </div>
-                  <div v-if="managerSuccess" style="color: #22c55e; padding: 12px; background: rgba(34, 197, 94, 0.1); border-radius: 8px">
-                    {{ managerSuccess }}
-                  </div>
+                      <div class="manager-form-item manager-form-item-full">
+                        <label class="manager-form-label">Skills *</label>
+                        <input v-model="newManagerForm.skills" type="text" placeholder="Enter skills (e.g., Hair Styling, Team Management)" class="form-input" required />
+                        <span class="manager-form-hint">Use commas to separate multiple skills.</span>
+                      </div>
 
-                  <div style="display: flex; gap: 12px; margin-top: 12px">
-                    <button type="submit" class="btn btn-primary">✅ Create Manager</button>
-                    <button type="button" class="btn btn-secondary" @click="resetManagerForm">Clear Form</button>
-                  </div>
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Date of Joining *</label>
+                        <input v-model="newManagerForm.doj" type="date" class="form-input" required />
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="manager-form-section">
+                    <h4 class="manager-section-title">Account Access</h4>
+                    <div class="manager-form-grid">
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Username *</label>
+                        <input v-model="newManagerForm.userId" type="text" placeholder="Enter username" class="form-input" required />
+                      </div>
+
+                      <div class="manager-form-item">
+                        <label class="manager-form-label">Password *</label>
+                        <div style="position: relative; display: flex; align-items: center">
+                          <input v-model="newManagerForm.password" :type="showManagerPassword ? 'text' : 'password'" placeholder="Enter password" class="form-input" required />
+                          <button type="button" @click="showManagerPassword = !showManagerPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                            {{ showManagerPassword ? '👁️' : '👁️‍🗨️' }}
+                          </button>
+                        </div>
+                        <span class="manager-form-hint">Minimum 8 characters.</span>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                <div v-if="managerError" class="manager-form-error">
+                  {{ managerError }}
+                </div>
+                <div v-if="managerSuccess" class="manager-form-success">
+                  {{ managerSuccess }}
+                </div>
+
+                <div class="manager-form-actions">
+                  <button type="submit" class="btn btn-primary manager-form-btn">Create Manager</button>
+                  <button type="button" class="btn btn-secondary manager-form-btn" @click="resetManagerForm">Clear Form</button>
                 </div>
               </form>
             </div>
@@ -861,37 +866,52 @@
         <form @submit.prevent="handleChangePassword">
           <div class="form-group">
             <label for="current-password">Current Password</label>
-            <input 
-              id="current-password"
-              v-model="passwordForm.currentPassword" 
-              type="password" 
-              placeholder="Enter current password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="current-password"
+                v-model="passwordForm.currentPassword" 
+                :type="showCurrentPassword ? 'text' : 'password'" 
+                placeholder="Enter current password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showCurrentPassword = !showCurrentPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showCurrentPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label for="new-password">New Password</label>
-            <input 
-              id="new-password"
-              v-model="passwordForm.newPassword" 
-              type="password" 
-              placeholder="Enter new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="new-password"
+                v-model="passwordForm.newPassword" 
+                :type="showNewPassword ? 'text' : 'password'" 
+                placeholder="Enter new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showNewPassword = !showNewPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showNewPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
             <div class="form-hint">At least 8 characters</div>
           </div>
           <div class="form-group">
             <label for="confirm-password">Confirm Password</label>
-            <input 
-              id="confirm-password"
-              v-model="passwordForm.confirmPassword" 
-              type="password" 
-              placeholder="Confirm new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="confirm-password"
+                v-model="passwordForm.confirmPassword" 
+                :type="showConfirmPassword ? 'text' : 'password'" 
+                placeholder="Confirm new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showConfirmPassword = !showConfirmPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showConfirmPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
           <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
@@ -910,7 +930,9 @@
 </template>
 
 <script>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue';
+import { Chart, registerables } from 'chart.js';
+Chart.register(...registerables);
 import { useRouter } from 'vue-router';
 import { useAppStore } from '@/stores/appStore';
 
@@ -919,49 +941,11 @@ export default {
   setup() {
     const router = useRouter();
     const appStore = useAppStore();
+    const API_BASE_URL = 'http://localhost:5000';
     const currentView = ref('overview');
-    const selectedBranchId = ref(1);
 
     const ownerData = ref({
-      ownerName: "Glow Suite Owner",
-      branches: [
-        {
-          id: 1,
-          name: "Downtown Branch",
-          location: "City Center",
-          manager: "Rajesh Kumar",
-          phone: "+91-9876543210",
-          email: "downtown@glowsuite.com",
-          customers: 45,
-          bookings: 120,
-          revenue: 28500,
-          status: "active"
-        },
-        {
-          id: 2,
-          name: "Westside Branch",
-          location: "Mall Road",
-          manager: "Priya Sharma",
-          phone: "+91-9876543211",
-          email: "westside@glowsuite.com",
-          customers: 38,
-          bookings: 95,
-          revenue: 22500,
-          status: "active"
-        },
-        {
-          id: 3,
-          name: "North Branch",
-          location: "Corporate Plaza",
-          manager: "Amit Patel",
-          phone: "+91-9876543212",
-          email: "north@glowsuite.com",
-          customers: 32,
-          bookings: 78,
-          revenue: 18750,
-          status: "active"
-        }
-      ],
+      ownerName: appStore.user?.username || "Glow Suite Owner",
       bookings: [
         { id: 1, customerId: 1, amount: 500, date: "2026-03-05" },
         { id: 2, customerId: 2, amount: 750, date: "2026-03-06" },
@@ -1005,25 +989,19 @@ export default {
       return Math.round(totalRevenue.value / totalBookings.value);
     });
 
-    const avgCustomersPerBranch = computed(() => {
-      if (ownerData.value.branches.length === 0) return 0;
-      return Math.round(totalCustomers.value / ownerData.value.branches.length);
-    });
-
     const overallPerformance = computed(() => {
-      const baseScore = 65;
-      const revenueBonus = Math.min((totalRevenue.value / 5000) * 20, 20);
-      const bookingBonus = Math.min((totalBookings.value / 10) * 10, 10);
-      const score = Math.min(baseScore + revenueBonus + bookingBonus, 100);
-      return Math.round(score);
+      // Calculate performance based on bookings and revenue
+      const bookingScore = Math.min((totalBookings.value / 10) * 100, 100);
+      const revenueScore = Math.min((totalRevenue.value / 5000) * 100, 100);
+      return Math.round((bookingScore + revenueScore) / 2);
     });
 
     const businessHealth = computed(() => {
       const score = overallPerformance.value;
-      if (score >= 85) return '🚀 Excellent';
-      if (score >= 70) return '📈 Good';
-      if (score >= 50) return '⚖️ Average';
-      return '⚠️ Needs Work';
+      if (score >= 85) return 'Excellent';
+      if (score >= 70) return 'Good';
+      if (score >= 50) return 'Fair';
+      return 'Needs Improvement';
     });
 
     const businessHealthColor = computed(() => {
@@ -1032,80 +1010,6 @@ export default {
       if (score >= 70) return '#3b82f6';
       if (score >= 50) return '#f59e0b';
       return '#ef4444';
-    });
-
-    // Branch-specific report data
-    const selectedBranch = computed(() => {
-      return ownerData.value.branches.find(b => b.id === selectedBranchId.value);
-    });
-
-    const branchSalesReport = computed(() => {
-      if (!selectedBranch.value) return null;
-      return {
-        totalSales: selectedBranch.value.revenue,
-        transactionCount: selectedBranch.value.bookings,
-        avgTransactionValue: Math.round(selectedBranch.value.revenue / selectedBranch.value.bookings),
-        topService: 'Hair Styling'
-      };
-    });
-
-    const branchBookingsReport = computed(() => {
-      if (!selectedBranch.value) return null;
-      return {
-        totalBookings: selectedBranch.value.bookings,
-        completedBookings: Math.round(selectedBranch.value.bookings * 0.85),
-        pendingBookings: Math.round(selectedBranch.value.bookings * 0.1),
-        cancelledBookings: Math.round(selectedBranch.value.bookings * 0.05),
-        avgBookingValue: Math.round(selectedBranch.value.revenue / selectedBranch.value.bookings)
-      };
-    });
-
-    const branchStaffReport = computed(() => {
-      if (!selectedBranch.value) return null;
-      const staffCount = Math.ceil(selectedBranch.value.bookings / 25);
-      return {
-        totalStaff: staffCount,
-        presentToday: Math.round(staffCount * 0.9),
-        absentToday: Math.round(staffCount * 0.1),
-        avgPerformance: '4.7/5.0',
-        topPerformer: 'Amara Osei'
-      };
-    });
-
-    const branchInventoryReport = computed(() => {
-      if (!selectedBranch.value) return null;
-      return {
-        totalProducts: Math.floor(selectedBranch.value.bookings / 20),
-        lowStockItems: Math.floor(selectedBranch.value.bookings / 80),
-        totalValue: selectedBranch.value.revenue * 0.15,
-        lastUpdated: '2026-03-20'
-      };
-    });
-
-    const branchFinancialReport = computed(() => {
-      if (!selectedBranch.value) return null;
-      const revenue = selectedBranch.value.revenue;
-      const expenses = revenue * 0.35;
-      const profit = revenue - expenses;
-      return {
-        revenue: revenue,
-        expenses: expenses,
-        profit: profit,
-        profitMargin: Math.round((profit / revenue) * 100),
-        growth: '12.5%'
-      };
-    });
-
-    const branchFeedbackReport = computed(() => {
-      if (!selectedBranch.value) return null;
-      const totalFeedback = Math.floor(selectedBranch.value.customers * 0.6);
-      return {
-        totalFeedback: totalFeedback,
-        avgRating: '4.8/5.0',
-        positiveReviews: Math.round(totalFeedback * 0.85),
-        negativeReviews: Math.round(totalFeedback * 0.05),
-        neutralReviews: Math.round(totalFeedback * 0.1)
-      };
     });
 
     const getStatusBadgeClass = (status) => {
@@ -1120,119 +1024,225 @@ export default {
       return baseClasses;
     };
 
-    const showEditForm = ref(false);
-    const editingBranchId = ref(null);
-    const editForm = ref({
-      name: "",
-      location: "",
-      manager: "",
-      phone: "",
-      email: "",
-      status: "active"
-    });
-
-    const newBranchForm = ref({
-      name: "",
-      location: "",
-      manager: "",
-      phone: "",
-      email: "",
-      status: "active"
-    });
-
-    const branchError = ref('');
-    const branchSuccess = ref('');
-
-    const handleCreateBranch = () => {
-      branchError.value = '';
-      branchSuccess.value = '';
-
-      if (!newBranchForm.value.name || !newBranchForm.value.location || !newBranchForm.value.manager || 
-          !newBranchForm.value.phone || !newBranchForm.value.email) {
-        branchError.value = 'All fields are required';
-        return;
-      }
-
-      const newBranch = {
-        id: Math.max(...ownerData.value.branches.map(b => b.id), 0) + 1,
-        name: newBranchForm.value.name,
-        location: newBranchForm.value.location,
-        manager: newBranchForm.value.manager,
-        phone: newBranchForm.value.phone,
-        email: newBranchForm.value.email,
-        customers: 0,
-        bookings: 0,
-        revenue: 0,
-        status: newBranchForm.value.status
-      };
-
-      ownerData.value.branches.push(newBranch);
-      branchSuccess.value = `Branch "${newBranchForm.value.name}" created successfully!`;
-      resetBranchForm();
-      setTimeout(() => { branchSuccess.value = ''; }, 3000);
-    };
-
-    const resetBranchForm = () => {
-      newBranchForm.value = {
-        name: "",
-        location: "",
-        manager: "",
-        phone: "",
-        email: "",
-        status: "active"
-      };
-    };
-
-    const handleEditBranch = (branch) => {
-      editingBranchId.value = branch.id;
-      editForm.value = {
-        name: branch.name,
-        location: branch.location,
-        manager: branch.manager,
-        phone: branch.phone,
-        email: branch.email,
-        status: branch.status
-      };
-      showEditForm.value = true;
-    };
-
-    const handleSaveBranch = () => {
-      if (editingBranchId.value) {
-        const branchIndex = ownerData.value.branches.findIndex(b => b.id === editingBranchId.value);
-        if (branchIndex !== -1) {
-          ownerData.value.branches[branchIndex] = {
-            ...ownerData.value.branches[branchIndex],
-            name: editForm.value.name,
-            location: editForm.value.location,
-            manager: editForm.value.manager,
-            phone: editForm.value.phone,
-            email: editForm.value.email,
-            status: editForm.value.status
-          };
-          showEditForm.value = false;
-          editingBranchId.value = null;
-        }
-      }
-    };
-
-    const handleDeleteBranch = (branchId) => {
-      if (confirm('Are you sure you want to delete this branch? This action cannot be undone.')) {
-        ownerData.value.branches = ownerData.value.branches.filter(b => b.id !== branchId);
-      }
-    };
-
     const handleLogout = () => {
       appStore.logout();
       router.push('/');
     };
 
+    // ── Shared Reports ──────────────────────────────────────────────────────
+    const ownerReports        = ref([]);
+    const ownerReportsLoading = ref(false);
+    const ownerReportsError   = ref('');
+
+    const ownerReportIcons = {
+      sales: '📊', appointments: '📅', staff: '👥',
+      inventory: '📦', financial: '💰', feedback: '⭐',
+    };
+    const ownerPeriodLabels = {
+      daily: 'Today', yesterday: 'Yesterday', weekly: 'This Week',
+      monthly: 'This Month', custom: 'Custom Range',
+    };
+
+    const fetchOwnerReports = async () => {
+      ownerReportsLoading.value = true;
+      ownerReportsError.value   = '';
+      const token = localStorage.getItem('authToken');
+      if (!token) { ownerReportsLoading.value = false; return; }
+      try {
+        const res = await fetch(`${API_BASE_URL}/reports`, {
+          headers: { Authorization: `Bearer ${token}`, 'Authentication-Token': token },
+        });
+        if (!res.ok) throw new Error('Failed to load reports');
+        ownerReports.value = await res.json();
+      } catch (err) {
+        ownerReportsError.value = err.message || 'Could not load reports.';
+      } finally {
+        ownerReportsLoading.value = false;
+      }
+    };
+
+    const ownerDownloadReport = async (reportId, format) => {
+      const token = localStorage.getItem('authToken');
+      try {
+        const res = await fetch(`${API_BASE_URL}/reports/${reportId}/download?format=${format}`, {
+          headers: { Authorization: `Bearer ${token}`, 'Authentication-Token': token },
+        });
+        if (!res.ok) throw new Error('Download failed');
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `report_${reportId}.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      } catch (err) {
+        ownerReportsError.value = err.message || 'Download failed.';
+      }
+    };
+
+    // ── Owner Analytics View ────────────────────────────────────────────────
+    const ownerAnalyticsView    = ref(null);   // { type, title, icon, periodLabel }
+    const ownerAnalyticsData    = ref(null);
+    const ownerAnalyticsLoading = ref(false);
+    const ownerAnalyticsError   = ref('');
+
+    // Chart.js canvas refs
+    const ownerChartLine = ref(null);
+    const ownerChartBar  = ref(null);
+    const ownerChartPie  = ref(null);
+    let _ownerLineInst = null, _ownerBarInst = null, _ownerPieInst = null;
+
+    const OWNER_CHART_COLORS = [
+      '#d4af37','#8B6914','#3b82f6','#22c55e','#f59e0b',
+      '#ef4444','#a855f7','#06b6d4','#ec4899','#84cc16',
+    ];
+
+    const _ownerDestroyCharts = () => {
+      if (_ownerLineInst) { _ownerLineInst.destroy(); _ownerLineInst = null; }
+      if (_ownerBarInst)  { _ownerBarInst.destroy();  _ownerBarInst  = null; }
+      if (_ownerPieInst)  { _ownerPieInst.destroy();  _ownerPieInst  = null; }
+    };
+
+    const _ownerRenderCharts = () => {
+      _ownerDestroyCharts();
+      if (!ownerAnalyticsData.value || !ownerAnalyticsView.value) return;
+      const type = ownerAnalyticsView.value.type;
+      const data = ownerAnalyticsData.value;
+      const def  = { responsive: true, maintainAspectRatio: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } };
+
+      if (type === 'appointments') {
+        if (ownerChartLine.value && data.by_day?.length)
+          _ownerLineInst = new Chart(ownerChartLine.value, { type: 'line', data: { labels: data.by_day.map(d => d.date), datasets: [{ label: 'Appointments', data: data.by_day.map(d => d.count), borderColor: '#d4af37', backgroundColor: 'rgba(212,175,55,0.15)', tension: 0.35, fill: true, pointRadius: 4 }] }, options: { ...def, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+        if (ownerChartBar.value && data.top_services?.length)
+          _ownerBarInst = new Chart(ownerChartBar.value, { type: 'bar', data: { labels: data.top_services.map(s => s.name), datasets: [{ label: 'Bookings', data: data.top_services.map(s => s.count), backgroundColor: OWNER_CHART_COLORS }] }, options: { ...def, plugins: { ...def.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+        if (ownerChartPie.value && data.by_status?.length)
+          _ownerPieInst = new Chart(ownerChartPie.value, { type: 'pie', data: { labels: data.by_status.map(s => s.name), datasets: [{ data: data.by_status.map(s => s.value), backgroundColor: OWNER_CHART_COLORS }] }, options: def });
+
+      } else if (type === 'sales') {
+        if (ownerChartLine.value && data.by_day?.length)
+          _ownerLineInst = new Chart(ownerChartLine.value, { type: 'line', data: { labels: data.by_day.map(d => d.date), datasets: [{ label: 'Revenue (INR)', data: data.by_day.map(d => d.revenue), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.12)', tension: 0.35, fill: true, pointRadius: 4 }] }, options: { ...def, scales: { y: { beginAtZero: true } } } });
+        if (ownerChartBar.value && data.by_service?.length)
+          _ownerBarInst = new Chart(ownerChartBar.value, { type: 'bar', data: { labels: data.by_service.map(s => s.name), datasets: [{ label: 'Revenue (INR)', data: data.by_service.map(s => s.revenue), backgroundColor: OWNER_CHART_COLORS }] }, options: { ...def, plugins: { ...def.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+
+      } else if (type === 'staff') {
+        if (ownerChartBar.value && data.staff?.length)
+          _ownerBarInst = new Chart(ownerChartBar.value, { type: 'bar', data: { labels: data.staff.map(s => s.name), datasets: [{ label: 'Total', data: data.staff.map(s => s.total), backgroundColor: 'rgba(212,175,55,0.7)' }, { label: 'Completed', data: data.staff.map(s => s.completed), backgroundColor: 'rgba(34,197,94,0.7)' }] }, options: { ...def, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+        if (ownerChartLine.value && data.staff?.length)
+          _ownerLineInst = new Chart(ownerChartLine.value, { type: 'bar', data: { labels: data.staff.map(s => s.name), datasets: [{ label: 'Avg Rating', data: data.staff.map(s => s.rating), backgroundColor: OWNER_CHART_COLORS, borderRadius: 6 }] }, options: { ...def, plugins: { ...def.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true, max: 5, ticks: { stepSize: 1 } } } } });
+
+      } else if (type === 'inventory') {
+        if (ownerChartBar.value && data.items?.length)
+          _ownerBarInst = new Chart(ownerChartBar.value, { type: 'bar', data: { labels: data.items.map(i => i.name), datasets: [{ label: 'Current Stock', data: data.items.map(i => i.current), backgroundColor: 'rgba(59,130,246,0.7)' }, { label: 'Min Required', data: data.items.map(i => i.minimum), backgroundColor: 'rgba(239,68,68,0.6)' }] }, options: { ...def, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+
+      } else if (type === 'feedback') {
+        if (ownerChartBar.value && data.by_rating?.length)
+          _ownerBarInst = new Chart(ownerChartBar.value, { type: 'bar', data: { labels: data.by_rating.map(r => `${r.rating} Star${r.rating !== 1 ? 's' : ''}`), datasets: [{ label: 'Reviews', data: data.by_rating.map(r => r.count), backgroundColor: ['#ef4444','#f97316','#f59e0b','#84cc16','#22c55e'] }] }, options: { ...def, plugins: { ...def.plugins, legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } } });
+        if (ownerChartPie.value && data.sentiment?.length)
+          _ownerPieInst = new Chart(ownerChartPie.value, { type: 'doughnut', data: { labels: data.sentiment.map(s => s.name), datasets: [{ data: data.sentiment.map(s => s.value), backgroundColor: ['#22c55e','#f59e0b','#ef4444'] }] }, options: def });
+
+      } else if (type === 'financial') {
+        if (ownerChartLine.value && data.months?.length)
+          _ownerLineInst = new Chart(ownerChartLine.value, { type: 'line', data: { labels: data.months.map(m => m.month), datasets: [{ label: 'Revenue', data: data.months.map(m => m.revenue), borderColor: '#22c55e', backgroundColor: 'rgba(34,197,94,0.1)', tension: 0.35, fill: true }, { label: 'Cost', data: data.months.map(m => m.cost), borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.07)', tension: 0.35 }, { label: 'Profit', data: data.months.map(m => m.profit), borderColor: '#d4af37', backgroundColor: 'rgba(212,175,55,0.12)', tension: 0.35, fill: true }] }, options: { ...def, scales: { y: { beginAtZero: true } } } });
+      }
+    };
+
+    watch(ownerAnalyticsData, () => { nextTick(_ownerRenderCharts); });
+
+    const OWNER_PERIOD_LABELS = {
+      daily: 'Today', yesterday: 'Yesterday', weekly: 'This Week',
+      monthly: 'This Month', custom: 'Custom Range',
+    };
+
+    const openOwnerAnalytics = async (report) => {
+      _ownerDestroyCharts();
+      ownerAnalyticsView.value = {
+        type:        report.report_type,
+        title:       report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1) + ' Report',
+        icon:        ownerReportIcons[report.report_type] || '📄',
+        periodLabel: OWNER_PERIOD_LABELS[report.time_period] || report.time_period,
+        reportId:    report.id,
+        hasCsv:      report.has_csv,
+        hasPdf:      report.has_pdf,
+      };
+      ownerAnalyticsData.value    = null;
+      ownerAnalyticsLoading.value = true;
+      ownerAnalyticsError.value   = '';
+      const token = localStorage.getItem('authToken');
+      try {
+        const params = new URLSearchParams({ type: report.report_type, period: report.time_period });
+        const res = await fetch(`${API_BASE_URL}/reports/analytics?${params}`, {
+          headers: { Authorization: `Bearer ${token}`, 'Authentication-Token': token },
+        });
+        if (!res.ok) throw new Error('Analytics fetch failed');
+        ownerAnalyticsData.value = await res.json();
+      } catch (err) {
+        ownerAnalyticsError.value = err.message || 'Failed to load analytics.';
+      } finally {
+        ownerAnalyticsLoading.value = false;
+      }
+    };
+
+    const closeOwnerAnalytics = () => {
+      _ownerDestroyCharts();
+      ownerAnalyticsView.value = null;
+      ownerAnalyticsData.value = null;
+      ownerAnalyticsError.value = '';
+    };
+
+    onUnmounted(_ownerDestroyCharts);
+
+    onMounted(() => {
+      fetchOwnerReports();
+      fetchManagers();
+    });
+
     // Manager management
     const managers = ref([]);
+    
+    const fetchManagers = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/manager`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authentication-Token': token,
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // Map API response to component structure
+          managers.value = data.map(manager => ({
+            id: manager.manager_id,
+            name: manager.manager_name,
+            email: manager.manager_email,
+            phone: manager.manager_contact,
+            skills: manager.manager_skills,
+            role: manager.manager_role,
+            dob: manager.manager_dob,
+            doj: manager.manager_doj,
+            branchName: manager.branch_name,
+          }));
+        }
+      } catch (error) {
+        console.error('Failed to fetch managers:', error);
+      }
+    };
     const newManagerForm = ref({
       name: '',
       email: '',
       phone: '',
-      branchId: '',
+      skills: '',
+      role: '',
+      dob: '',
+      doj: '',
+      branchName: '',
       userId: '',
       password: ''
     });
@@ -1240,12 +1250,13 @@ export default {
     const managerError = ref('');
     const managerSuccess = ref('');
 
-    const handleCreateManager = () => {
+    const handleCreateManager = async () => {
       managerError.value = '';
       managerSuccess.value = '';
 
       if (!newManagerForm.value.name || !newManagerForm.value.email || !newManagerForm.value.phone || 
-          !newManagerForm.value.branchId || !newManagerForm.value.userId || !newManagerForm.value.password) {
+          !newManagerForm.value.skills || !newManagerForm.value.role || !newManagerForm.value.dob || !newManagerForm.value.doj ||
+          !newManagerForm.value.branchName || !newManagerForm.value.userId || !newManagerForm.value.password) {
         managerError.value = 'All fields are required';
         return;
       }
@@ -1255,21 +1266,61 @@ export default {
         return;
       }
 
-      const newManager = {
-        id: managers.value.length + 1,
-        name: newManagerForm.value.name,
-        email: newManagerForm.value.email,
-        phone: newManagerForm.value.phone,
-        branchId: newManagerForm.value.branchId,
-        userId: newManagerForm.value.userId,
-        password: newManagerForm.value.password,
-        createdDate: new Date().toISOString().split('T')[0]
-      };
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        managerError.value = 'You are not authenticated. Please log in again.';
+        return;
+      }
 
-      managers.value.push(newManager);
-      managerSuccess.value = `Manager "${newManagerForm.value.name}" created successfully!`;
-      resetManagerForm();
-      setTimeout(() => { managerSuccess.value = ''; }, 3000);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/create-manager`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authentication-Token': token,
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            fullname: newManagerForm.value.name,
+            email: newManagerForm.value.email,
+            phone: newManagerForm.value.phone,
+            skills: newManagerForm.value.skills,
+            role: newManagerForm.value.role,
+            dob: newManagerForm.value.dob,
+            doj: newManagerForm.value.doj,
+            branch_name: newManagerForm.value.branchName,
+            username: newManagerForm.value.userId,
+            password: newManagerForm.value.password,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          managerError.value = data.message || 'Failed to create manager';
+          return;
+        }
+
+        managers.value.push({
+          id: managers.value.length + 1,
+          name: newManagerForm.value.name,
+          email: newManagerForm.value.email,
+          phone: newManagerForm.value.phone,
+          skills: newManagerForm.value.skills,
+          role: newManagerForm.value.role,
+          dob: newManagerForm.value.dob,
+          doj: newManagerForm.value.doj,
+          branchName: newManagerForm.value.branchName,
+          userId: newManagerForm.value.userId,
+          createdDate: new Date().toISOString().split('T')[0],
+        });
+
+        managerSuccess.value = data.message || `Manager "${newManagerForm.value.name}" created successfully!`;
+        resetManagerForm();
+        fetchManagers(); // Refresh the managers list
+        setTimeout(() => { managerSuccess.value = ''; }, 3000);
+      } catch (error) {
+        managerError.value = 'Unable to connect to server. Please try again.';
+      }
     };
 
     const resetManagerForm = () => {
@@ -1277,25 +1328,69 @@ export default {
         name: '',
         email: '',
         phone: '',
-        branchId: '',
+        skills: '',
+        role: '',
+        dob: '',
+        doj: '',
+        branchName: '',
         userId: '',
         password: ''
       };
     };
 
-    const deleteManager = (managerId) => {
+    const deleteManager = async (managerId) => {
       if (confirm('Are you sure you want to delete this manager?')) {
-        managers.value = managers.value.filter(m => m.id !== managerId);
+        const token = localStorage.getItem('authToken');
+        if (!token) {
+          alert('You are not authenticated. Please log in again.');
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/manager/${managerId}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authentication-Token': token,
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (response.ok) {
+            managers.value = managers.value.filter(m => m.id !== managerId);
+            alert('Manager deleted successfully');
+          } else {
+            const data = await response.json();
+            alert(data.message || 'Failed to delete manager');
+          }
+        } catch (error) {
+          alert('Unable to delete manager. Please try again.');
+        }
       }
     };
 
-    const getManagerBranch = (branchId) => {
-      const branch = ownerData.value.branches.find(b => b.id === branchId);
-      return branch ? branch.name : 'Unknown Branch';
+    const getManagerStats = (managerId) => {
+      // Calculate stats for this manager
+      // In a real application, you would fetch this from the API
+      // For now, return placeholder stats
+      return {
+        customers: Math.floor(Math.random() * 100) + 10,
+        bookings: Math.floor(Math.random() * 200) + 20,
+        revenue: Math.floor(Math.random() * 50000) + 5000,
+      };
+    };
+
+    const getManagerBranch = (branchName) => {
+      // Manager branch name is directly available from the manager object
+      return branchName || 'Unassigned';
     };
 
     // Change password
     const showChangePasswordModal = ref(false);
+    const showManagerPassword = ref(false);
+    const showCurrentPassword = ref(false);
+    const showNewPassword = ref(false);
+    const showConfirmPassword = ref(false);
     const passwordForm = ref({
       currentPassword: '',
       newPassword: '',
@@ -1304,7 +1399,7 @@ export default {
     const passwordError = ref('');
     const passwordSuccess = ref('');
 
-    const handleChangePassword = () => {
+    const handleChangePassword = async () => {
       passwordError.value = '';
       passwordSuccess.value = '';
 
@@ -1333,17 +1428,46 @@ export default {
         return;
       }
 
-      passwordSuccess.value = 'Password changed successfully!';
-      
-      setTimeout(() => {
-        passwordForm.value = {
-          currentPassword: '',
-          newPassword: '',
-          confirmPassword: ''
-        };
-        passwordSuccess.value = '';
-        showChangePasswordModal.value = false;
-      }, 1500);
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        passwordError.value = 'You are not authenticated. Please log in again.';
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/change-password`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            'Authentication-Token': token,
+          },
+          body: JSON.stringify({
+            current_password: passwordForm.value.currentPassword,
+            new_password: passwordForm.value.newPassword,
+            confirm_password: passwordForm.value.confirmPassword,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          passwordError.value = data.message || 'Failed to change password';
+          return;
+        }
+
+        passwordSuccess.value = data.message || 'Password changed successfully!';
+        setTimeout(() => {
+          passwordForm.value = {
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: ''
+          };
+          passwordSuccess.value = '';
+          showChangePasswordModal.value = false;
+        }, 1500);
+      } catch (error) {
+        passwordError.value = 'Unable to connect to server. Please try again.';
+      }
     };
 
     return {
@@ -1355,26 +1479,11 @@ export default {
       totalCustomers,
       hoveredBar,
       avgRevenuePerBooking,
-      avgCustomersPerBranch,
       overallPerformance,
       businessHealth,
       businessHealthColor,
       getStatusBadgeClass,
-      showEditForm,
-      editForm,
-      editingBranchId,
-      handleEditBranch,
-      handleSaveBranch,
-      handleDeleteBranch,
       handleLogout,
-      selectedBranchId,
-      selectedBranch,
-      branchSalesReport,
-      branchBookingsReport,
-      branchStaffReport,
-      branchInventoryReport,
-      branchFinancialReport,
-      branchFeedbackReport,
       managers,
       newManagerForm,
       managerError,
@@ -1382,17 +1491,34 @@ export default {
       handleCreateManager,
       deleteManager,
       getManagerBranch,
+      fetchManagers,
+      getManagerStats,
       resetManagerForm,
       showChangePasswordModal,
+      showManagerPassword,
+      showCurrentPassword,
+      showNewPassword,
+      showConfirmPassword,
       passwordForm,
       passwordError,
       passwordSuccess,
       handleChangePassword,
-      newBranchForm,
-      branchError,
-      branchSuccess,
-      handleCreateBranch,
-      resetBranchForm
+      ownerReports,
+      ownerReportsLoading,
+      ownerReportsError,
+      ownerReportIcons,
+      ownerPeriodLabels,
+      fetchOwnerReports,
+      ownerDownloadReport,
+      ownerAnalyticsView,
+      ownerAnalyticsData,
+      ownerAnalyticsLoading,
+      ownerAnalyticsError,
+      ownerChartLine,
+      ownerChartBar,
+      ownerChartPie,
+      openOwnerAnalytics,
+      closeOwnerAnalytics,
     };
   }
 };
@@ -1405,11 +1531,11 @@ export default {
 
 :root {
   --gold: #d4af37;
-  --bg: #1a1a1a;
-  --card-bg: #2a2a2a;
-  --text: #e0e0e0;
-  --border: #444;
-  --light-bg: #3a3a3a;
+  --bg: #f6f2e9;
+  --card-bg: #fffaf0;
+  --text: #2f2a23;
+  --border: #d9cfbf;
+  --light-bg: #efe7d8;
   --success: #4caf50;
   --danger: #f44336;
   --warning: #ff9800;
@@ -1571,7 +1697,7 @@ export default {
 }
 
 .stat-label {
-  color: #999;
+  color: #6f675a;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1637,10 +1763,105 @@ export default {
   transition: all 0.3s ease;
 }
 
+.form-input::placeholder {
+  color: #746a5c;
+  opacity: 1;
+}
+
 .form-input:focus {
   outline: none;
   border-color: var(--gold);
   box-shadow: 0 0 8px rgba(212, 175, 55, 0.3);
+}
+
+.manager-form-subtitle {
+  margin: 8px 0 0;
+  color: #6f675a;
+  font-size: 13px;
+}
+
+.manager-form {
+  max-width: 900px;
+}
+
+.manager-form-layout {
+  display: grid;
+  gap: 16px;
+}
+
+.manager-form-section {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: linear-gradient(180deg, rgba(255, 252, 246, 0.92), rgba(249, 241, 227, 0.96));
+}
+
+.manager-section-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8a6a1f;
+}
+
+.manager-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+}
+
+.manager-form-item {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(120, 102, 70, 0.18);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.manager-form-item-full {
+  grid-column: span 2;
+}
+
+.manager-form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #3a332a;
+}
+
+.manager-form-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  color: #7c7261;
+}
+
+.manager-form-error {
+  color: #ef4444;
+  padding: 12px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+  margin-top: 14px;
+}
+
+.manager-form-success {
+  color: #22c55e;
+  padding: 12px;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: 8px;
+  margin-top: 14px;
+}
+
+.manager-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 6px;
+}
+
+.manager-form-btn {
+  min-width: 150px;
 }
 
 .error-message {
@@ -1738,22 +1959,22 @@ table tbody tr:hover {
 
 .badge-success {
   background-color: rgba(76, 175, 80, 0.2);
-  color: #81c784;
+  color: #256b2a;
 }
 
 .badge-danger {
   background-color: rgba(244, 67, 54, 0.2);
-  color: #ff8a8a;
+  color: #a3342b;
 }
 
 .badge-warning {
   background-color: rgba(255, 152, 0, 0.2);
-  color: #ffb74d;
+  color: #9a5b00;
 }
 
 .badge-info {
   background-color: rgba(33, 150, 243, 0.2);
-  color: #64b5f6;
+  color: #1f5ea8;
 }
 
 .report-item {
@@ -1783,7 +2004,7 @@ table tbody tr:hover {
 }
 
 .text-muted {
-  color: #999;
+  color: #6f675a;
   font-size: 13px;
 }
 
@@ -1808,6 +2029,22 @@ table tbody tr:hover {
 
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  .manager-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manager-form-item-full {
+    grid-column: span 1;
+  }
+
+  .manager-form-actions {
+    flex-direction: column;
+  }
+
+  .manager-form-btn {
+    width: 100%;
   }
 }
   .modal-overlay {
@@ -1900,7 +2137,7 @@ table tbody tr:hover {
 
   .form-hint {
     font-size: 12px;
-    color: #999;
+    color: #6f675a;
     margin-top: 4px;
   }
 

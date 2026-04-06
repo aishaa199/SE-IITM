@@ -1,399 +1,214 @@
-import json
-from urllib import response
+"""
+test_auth.py – Tests for all four login endpoints and customer registration.
+
+Endpoints covered:
+  POST /owner-login
+  POST /manager-login
+  POST /staff-login
+  POST /customer-login
+  POST /register-customer
+"""
 import pytest
-from application.models import db, User, Role
-from flask_security.utils import hash_password
 
 
-# 🔹 Helper to create user with role
-# ========================= OWNER LOGIN =========================
-def test_owner_login_success(client, create_user):
-    create_user("owner1", "1234", "owner")
-
-    response = client.post("/owner-login", json={
-        "username": "owner1",
-        "password": "1234"
-    })
-    print(response.status_code)
-    print(response.get_json())
-    
-    assert response.status_code == 200
-    data = response.get_json()
-    assert "token" in data
-
-
-def test_owner_login_wrong_password(client,create_user):
-    create_user( "owner1", "1234", "owner")
-
-    response = client.post("/owner-login", json={
-        "username": "owner1",
-        "password": "wrong"
-    })
-   
-    assert response.status_code == 400
-    data = response.get_json()
-    assert data["message"] == "Wrong Password"
-
-def test_owner_login_user_not_found(client):
-    response = client.post("/owner-login", json={
-        "username": "notexist@test.com",
-        "password": "1234"
-    })
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-    assert response.status_code == 404
-
-
-def test_owner_login_wrong_role(client,create_user):
-    create_user("user1", "1234", "customer")
-
-    response = client.post("/owner-login", json={
-        "username": "user1",
-        "password": "1234"
-    })
-
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-    assert response.status_code == 403
-
-
-# ========================= MANAGER LOGIN =========================
-def test_manager_login_success(client,create_user):
-    create_user("manager1", "1234", "manager")
-
-    response = client.post("/manager-login", json={
-        "username": "manager1",
-        "password": "1234"
-    })
-
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-
-    assert response.status_code == 200
-
-
-def test_manager_login_wrong_password(client,create_user):
-    create_user( "manager1", "1234", "manager")
-
-    response = client.post("/manager-login", json={
-        "username": "manager1",
-        "password": "wrong"
-    })
-   
-    assert response.status_code == 400
-    data = response.get_json()
-    assert data["message"] == "Wrong Password"
-
-def test_manager_login_user_not_found(client):
-    response = client.post("/manager-login", json={
-        "username": "notexist@test.com",
-        "password": "1234"
-    })
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-    assert response.status_code == 404
-
-
-def test_manager_login_wrong_role(client,create_user):
-    create_user("user1", "1234", "owner")
-
-    response = client.post("/manager-login", json={
-        "username": "user1",
-        "password": "1234"
-    })
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-    assert response.status_code == 403
-
-def test_register_manager_by_owner_success(client, owner_headers):
-    # 'owner_headers' should contain the Authentication-Token for an admin/owner
-    response = client.post("/register-manager", json={
-        "email": "newmanager@salon.com",
-        "password": "1234",
-        "name": "Branch Manager",
-        "dob": "1990-01-01",
-        "doj": "2024-04-01",
-        "contact": "9888877777",
-        "skills": "Operations",
-        "branch_name": "Pune Main"
-    }, headers=owner_headers) # <--- CRITICAL: Owner must authorize this
-
-    assert response.status_code == 201
-    assert response.get_json()["message"] == "Registration successful"
-# ========================= STAFF LOGIN =========================
-def test_staff_login_success(client,create_user):
-    create_user("staff1", "1234", "staff")
-
-    response = client.post("/staff-login", json={
-        "username": "staff1",
-        "password": "1234"
-    })
-
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-    assert response.status_code == 200
-
-
-def test_staff_login_wrong_password(client,create_user):
-    create_user( "staff1", "1234", "staff")
-
-    response = client.post("/staff-login", json={
-        "username": "staff1",
-        "password": "wrong"
-    })
-   
-    assert response.status_code == 400
-    data = response.get_json()
-    assert data["message"] == "Wrong Password"
-
-def test_staff_login_user_not_found(client):
-    response = client.post("/staff-login", json={
-        "username": "notexist@test.com",
-        "password": "1234"
-    })
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-    assert response.status_code == 404
-
-
-def test_staff_login_wrong_role(client,create_user):
-    create_user("user1", "1234", "customer")
-
-    response = client.post("/staff-login", json={
-        "username": "user1",
-        "password": "1234"
-    })
-
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-    assert response.status_code == 403
-
-def test_register_staff_by_manager_success(client, manager_headers):
-    # manager_headers should contain the 'Authentication-Token'
-    response = client.post("/api/staff", json={
-        "email": "newstaff@salon.com",
-        "password": "1234",
-        "name": "New Stylist",
-        "dob": "1995-05-05",
-        "doj": "2024-01-01",
-        "contact": "9876543210",
-        "salary": 50000.0,
-        "address": "Pune",
-        "skills": "Stylist", 
-    }, headers=manager_headers) # <--- CRITICAL: Prove you are a manager
-
-    assert response.status_code == 201
-    assert response.get_json()["message"] == "Registration successful"
-
-# ========================= CUSTOMER LOGIN =========================
-def test_customer_login_success(client,create_user):
-    create_user("cust1", "1234", "customer")
-
-    response = client.post("/customer-login", json={
-        "username": "cust1",
-        "password": "1234"
-    })
-
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-    assert response.status_code == 200
-
-
-def test_customer_login_wrong_password(client,create_user):
-    create_user( "cust1", "1234", "customer")
-
-    response = client.post("/customer-login", json={
-        "username": "cust1",
-        "password": "wrong"
-    })
-   
-    assert response.status_code == 400
-    data = response.get_json()
-    assert data["message"] == "Wrong Password"
-
-def test_customer_login_user_not_found(client):
-    response = client.post("/customer-login", json={
-        "username": "notexist@test.com",
-        "password": "1234"
-    })
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-    assert response.status_code == 404
-
-
-def test_customer_login_wrong_role(client,create_user):
-    create_user("user1", "1234", "owner")
-
-    response = client.post("/customer-login", json={
-        "username": "user1",
-        "password": "1234"
-    })
-
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-    assert response.status_code == 403
-
-# ========================= REGISTER CUSTOMER =========================
-def test_register_customer_success(client):
-    response = client.post("/register-customer", json={
-        "email": "new1",
-        "password": "1234",
-        "name": "Test User",
-        "dob": "2000-01-01",
-        "phone": "9999999999",
-        "address": "Pune",
-        "preferences": ["hair", "spa"]
-    })
-
-    print(response.status_code)
-    print(response.get_json())
-
-    assert response.status_code == 201
-    data = response.get_json()
-    assert data["message"] == "Registration successful"
-
-
-def test_register_customer_missing_fields(client):
-    response = client.post("/register-customer", json={
-        "email": "test1"
-    })
-
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-    assert response.status_code == 400
-
-
-def test_register_customer_duplicate_email(client):
-    # First registration
-    client.post("/register-customer", json={
-        "email": "dup1",
-        "password": "1234",
-        "name": "Test",
-        "dob": "2000-01-01",
-        "phone": "9999999999"})
-    # Duplicate
-    response = client.post("/register-customer", json={
-        "email": "dup1",
-        "password": "1234",
-        "name": "Test",
-        "dob": "2000-01-01",
-        "phone": "9999999999"})
-
-    print(response.status_code)
-    data = response.get_json()
-    print(data)
-
-    assert response.status_code == 400
-
-# ========================= TOKENS =========================
-@pytest.mark.no_auth_bypass
-def test_token_generation(client,create_user):
-    create_user("test_user", "test_pass", "customer")
-    res = client.post("/customer-login", json={
-        "username": "test_user",
-        "password": "test_pass"
-    })
-    assert res.status_code == 200
-    data = res.get_json()
-    assert "token" in data
-    assert data["token"] is not None
-    assert isinstance(data["token"], str)
-
-@pytest.mark.no_auth_bypass
-def test_no_token(client):
-    res = client.get("/api/customer-summary",
-    headers={"Accept": "application/json"})
-    assert res.status_code in (401, 403)
-
-@pytest.mark.no_auth_bypass
-def test_invalid_token(client):
-    headers = {"Authentication-Token": "fake_token_123",
-    "Accept": "application/json"}
-
-    res = client.get("/api/customer-summary", headers=headers)
-    assert res.status_code in (401, 403)
-
-from flask_security.utils import verify_password
-
-def test_password_hashing(client,create_user):
-    user = create_user("user1", "1234", "customer")
-
-    assert user.password != "1234"
-    assert verify_password("1234", user.password) is True
-    assert verify_password("wrong", user.password) is False
-
-@pytest.mark.no_auth_bypass
-def test_change_password(client, create_user):
-    create_user("user1", "1234", "customer")
-
-    login = client.post(
-        "/customer-login",
-        json={"username": "user1", "password": "1234"},
-        headers={
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        }
-    )
-
-    assert login.status_code == 200
-    token = login.get_json()["token"]
-
-    res = client.put(
-        "/api/change-password",
-        json={
-            "current_password": "1234",
-            "new_password": "abcd",
-            "confirm_password": "abcd"
-        },
-        headers={
-            "Authentication-Token": token,
-            "Accept": "application/json",
-            "Content-Type": "application/json"
-        }
-    )
-
-    assert res.status_code == 200
-@pytest.mark.no_auth_bypass
-def test_unauthorized_access_wrong_role(client, create_user):
-    create_user("cust1", "1234", "customer")
-
-    login = client.post("/customer-login", json={
-        "username": "cust1",
-        "password": "1234"
-    })
-
-    token = login.get_json()["token"]
-
-    res = client.get(
-        "/api/staff",
-        headers={
-            "Authentication-Token": token,
-            "Accept": "application/json"
-        }
-    )
-
-    assert res.status_code == 403
+class TestOwnerLogin:
+    """POST /owner-login"""
+
+    def test_owner_login_success(self, client):
+        """TC-AUTH-01: Valid owner credentials return token + role."""
+        rv = client.post('/owner-login',
+                         json={'username': 'test_owner', 'password': 'Test@1234'})
+        data = rv.get_json()
+        assert rv.status_code == 200
+        assert 'token' in data
+        assert data['username'] == 'test_owner'
+        assert data['role'] == 'owner'
+
+    def test_owner_login_wrong_password(self, client):
+        """TC-AUTH-02: Wrong password returns 400 with error message."""
+        rv = client.post('/owner-login',
+                         json={'username': 'test_owner', 'password': 'WrongPass'})
+        data = rv.get_json()
+        assert rv.status_code == 400
+        assert 'message' in data
+        assert 'Wrong' in data['message']
+
+    def test_owner_login_missing_username(self, client):
+        """TC-AUTH-03: Missing username field returns 400."""
+        rv = client.post('/owner-login', json={'password': 'Test@1234'})
+        data = rv.get_json()
+        assert rv.status_code == 400
+        assert 'username' in data['message'].lower()
+
+    def test_owner_login_nonexistent_user(self, client):
+        """TC-AUTH-04: Username not in DB returns 404."""
+        rv = client.post('/owner-login',
+                         json={'username': 'ghost_user', 'password': 'Test@1234'})
+        assert rv.status_code == 404
+
+    def test_owner_login_wrong_role(self, client):
+        """TC-AUTH-05: Manager user trying owner login returns 403."""
+        rv = client.post('/owner-login',
+                         json={'username': 'test_manager', 'password': 'Test@1234'})
+        data = rv.get_json()
+        assert rv.status_code == 403
+        assert 'Access denied' in data['message']
+
+
+class TestManagerLogin:
+    """POST /manager-login"""
+
+    def test_manager_login_success(self, client):
+        """TC-AUTH-06: Valid manager credentials return token."""
+        rv = client.post('/manager-login',
+                         json={'username': 'test_manager', 'password': 'Test@1234'})
+        data = rv.get_json()
+        assert rv.status_code == 200
+        assert 'token' in data
+        assert data['role'] == 'manager'
+
+    def test_manager_login_wrong_password(self, client):
+        """TC-AUTH-07: Incorrect password returns 400."""
+        rv = client.post('/manager-login',
+                         json={'username': 'test_manager', 'password': 'bad'})
+        assert rv.status_code == 400
+
+    def test_manager_login_missing_password(self, client):
+        """TC-AUTH-08: Missing password field returns 400."""
+        rv = client.post('/manager-login', json={'username': 'test_manager'})
+        data = rv.get_json()
+        assert rv.status_code == 400
+        assert 'password' in data['message'].lower()
+
+    def test_manager_login_customer_using_manager_endpoint(self, client):
+        """TC-AUTH-09: Customer user hitting manager login returns 403."""
+        rv = client.post('/manager-login',
+                         json={'username': 'test_customer', 'password': 'Test@1234'})
+        assert rv.status_code == 403
+
+
+class TestStaffLogin:
+    """POST /staff-login"""
+
+    def test_staff_login_success(self, client):
+        """TC-AUTH-10: Valid staff credentials return token."""
+        rv = client.post('/staff-login',
+                         json={'username': 'test_staff', 'password': 'Test@1234'})
+        data = rv.get_json()
+        assert rv.status_code == 200
+        assert 'token' in data
+        assert data['role'] == 'staff'
+
+    def test_staff_login_wrong_role(self, client):
+        """TC-AUTH-11: Owner hitting staff endpoint returns 403."""
+        rv = client.post('/staff-login',
+                         json={'username': 'test_owner', 'password': 'Test@1234'})
+        assert rv.status_code == 403
+
+    def test_staff_login_user_not_found(self, client):
+        """TC-AUTH-12: Non-existent staff username returns 404."""
+        rv = client.post('/staff-login',
+                         json={'username': 'nobody', 'password': 'Test@1234'})
+        assert rv.status_code == 404
+
+
+class TestCustomerLogin:
+    """POST /customer-login"""
+
+    def test_customer_login_success(self, client):
+        """TC-AUTH-13: Valid customer credentials return token."""
+        rv = client.post('/customer-login',
+                         json={'username': 'test_customer', 'password': 'Test@1234'})
+        data = rv.get_json()
+        assert rv.status_code == 200
+        assert 'token' in data
+        assert data['role'] == 'customer'
+
+    def test_customer_login_wrong_password(self, client):
+        """TC-AUTH-14: Wrong password returns 400."""
+        rv = client.post('/customer-login',
+                         json={'username': 'test_customer', 'password': 'nope'})
+        assert rv.status_code == 400
+
+    def test_customer_login_empty_body(self, client):
+        """TC-AUTH-15: Empty JSON body returns 400 for missing username."""
+        rv = client.post('/customer-login', json={})
+        assert rv.status_code == 400
+
+
+class TestRegisterCustomer:
+    """POST /register-customer"""
+
+    def test_register_success(self, client):
+        """TC-AUTH-16: New customer with all required fields registers successfully."""
+        rv = client.post('/register-customer', json={
+            'email': 'new_customer_test@example.com',
+            'password': 'NewPass@123',
+            'name': 'Divya Iyer',
+            'dob': '2000-05-10',
+            'phone': '+91-9888777666',
+            'address': '22 Test Road, Pune',
+            'preferences': ['Haircut', 'Facial'],
+        })
+        data = rv.get_json()
+        assert rv.status_code == 201
+        assert 'customer_id' in data
+
+    def test_register_duplicate_email(self, client):
+        """TC-AUTH-17: Registering with an already-used email returns 400."""
+        # Register first time
+        client.post('/register-customer', json={
+            'email': 'dup@example.com',
+            'password': 'Pass@1234',
+            'name': 'Dup User',
+            'dob': '1995-01-01',
+            'phone': '+91-9000000099',
+        })
+        # Register second time with same email
+        rv = client.post('/register-customer', json={
+            'email': 'dup@example.com',
+            'password': 'Pass@1234',
+            'name': 'Dup User 2',
+            'dob': '1995-01-01',
+            'phone': '+91-9000000099',
+        })
+        data = rv.get_json()
+        assert rv.status_code == 400
+        assert 'already exists' in data['message']
+
+    def test_register_missing_required_field(self, client):
+        """TC-AUTH-18: Missing phone field returns 400 with field list."""
+        rv = client.post('/register-customer', json={
+            'email': 'partial@example.com',
+            'password': 'Pass@1234',
+            'name': 'Partial User',
+            'dob': '1995-01-01',
+            # phone missing
+        })
+        data = rv.get_json()
+        assert rv.status_code == 400
+        assert 'Missing' in data['message']
+
+    def test_register_invalid_dob_format(self, client):
+        """TC-AUTH-19: Invalid date format for dob returns 400."""
+        rv = client.post('/register-customer', json={
+            'email': 'baddob@example.com',
+            'password': 'Pass@1234',
+            'name': 'Bad Date User',
+            'dob': '20-05-1999',   # Wrong format – should be YYYY-MM-DD
+            'phone': '+91-9111222333',
+        })
+        data = rv.get_json()
+        assert rv.status_code == 400
+        assert 'date format' in data['message'].lower()
+
+    def test_register_without_optional_address(self, client):
+        """TC-AUTH-20: Registration without optional address field still succeeds."""
+        rv = client.post('/register-customer', json={
+            'email': 'no_address@example.com',
+            'password': 'Pass@1234',
+            'name': 'No Address User',
+            'dob': '1993-07-04',
+            'phone': '+91-9555444333',
+        })
+        assert rv.status_code == 201

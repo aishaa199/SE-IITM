@@ -1,213 +1,206 @@
+"""
+conftest.py – shared pytest fixtures for Glow Suite backend tests.
+
+Uses an in-memory SQLite database so tests never touch the real DB.
+"""
 import pytest
-from main import app
-from application.models import db, Role
+import sys
+import os
+from datetime import date
 
-@pytest.fixture(autouse=False)
-def bypass_auth(monkeypatch,request):
-    if "no_auth_bypass" in request.node.keywords:
-        return
-    def fake_decorator(*args, **kwargs):
-        def wrapper(fn):
-            return fn
-        return wrapper
+# Make sure Python can find the backend package
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-    # patch everywhere
-    monkeypatch.setattr("application.views.auth_required", fake_decorator, raising=False)
-    monkeypatch.setattr("application.views.roles_required", fake_decorator, raising=False)
+from main import create_app
+from application.models import db as _db, Role, User, Staff, Customer, Service, \
+    Appointment, Product, Manager
+from application.sec import datastore
+from flask_security import hash_password
 
-    monkeypatch.setattr("application.resources.auth_required", fake_decorator, raising=False)
-    monkeypatch.setattr("application.resources.roles_required", fake_decorator, raising=False)
 
-    monkeypatch.setattr("flask_security.auth_required", fake_decorator, raising=False)
-    monkeypatch.setattr("flask_security.roles_required", fake_decorator, raising=False)
-    
-@pytest.fixture
-def app_fixture():
-    app.config["TESTING"] = True
-    app.config["SECURITY_REDIRECT_BEHAVIOR"] = "spa"
-    app.config["SECURITY_UNAUTHORIZED_VIEW"] = None
-    # ADD THESE TWO LINES:
-    app.config["WTF_CSRF_ENABLED"] = False 
-    app.config["SECURITY_TOKEN_AUTHENTICATION_HEADER"] = "Authentication-Token"
-    return app
+# ─────────────────────────────────────────────────────────────────────────────
+# App & DB fixtures
+# ─────────────────────────────────────────────────────────────────────────────
 
-@pytest.fixture
-def client(app_fixture):
-    with app_fixture.app_context():
-        db.create_all()
+@pytest.fixture(scope='session')
+def app():
+    """Create a test Flask application with an isolated in-memory database."""
+    test_app = create_app()
+    test_app.config.update({
+        'TESTING': True,
+        'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
+        'WTF_CSRF_ENABLED': False,
+        'SECURITY_PASSWORD_SALT': 'test-salt',
+        'SECRET_KEY': 'test-secret',
+        # Disable external AI calls in tests
+        'ANTHROPIC_API_KEY': 'test-key',
+    })
+    with test_app.app_context():
+        _db.create_all()
+        _seed_test_data(test_app)
+    yield test_app
 
-        roles = ["owner", "manager", "staff", "customer"]
-        for r in roles:
-            if not Role.query.filter_by(name=r).first():
-                db.session.add(Role(name=r))
 
-        db.session.commit()
+@pytest.fixture(scope='session')
+def client(app):
+    """Flask test client (session-scoped — shared across all tests)."""
+    return app.test_client()
 
-        yield app_fixture.test_client()
 
-        db.session.remove()
-        db.drop_all()
+@pytest.fixture(scope='session')
+def db(app):
+    with app.app_context():
+        yield _db
 
-from application.models import User
-from flask_security.utils import hash_password
-@pytest.fixture
-def headers_for_role(client, create_user):
-    def _get_headers(role_name):
-        username = f"test{role_name}" 
-        password = "password123"
-        
-        create_user(username, password, role_name)
-        
-        # Use the role-specific login route you defined: /owner-login, /manager-login, etc.
-        login_url = f"/{role_name}-login"
-        res = client.post(login_url, json={
-            "username": username,
-            "password": password
-        })
-        
-        data = res.get_json()
 
-        if res.status_code != 200:
-            pytest.fail(f"Login failed for {role_name} at {login_url}. Status: {res.status_code}, Error: {data}")
+# ─────────────────────────────────────────────────────────────────────────────
+# Seed helper – creates minimal roles + users for each role
+# ─────────────────────────────────────────────────────────────────────────────
 
-        # Try to find the token based on your different possible response structures
-        token = None
-        if "token" in data:
-            token = data["token"]
-        elif "response" in data and "user" in data["response"]:
-            token = data["response"]["user"].get("authentication_token")
-            
-        if not token:
-            pytest.fail(f"Could not find token in response. Data: {data}")
-            
-        return {
-            "Authentication-Token": token,
-            "Content-Type": "application/json"
-        }
-            
-    return _get_headers
+def _seed_test_data(app):
+    with app.app_context():
+        # Roles
+        for role_name in ['owner', 'manager', 'staff', 'customer']:
+            if not Role.query.filter_by(name=role_name).first():
+                _db.session.add(Role(name=role_name))
+        _db.session.commit()
 
-@pytest.fixture
-def manager_headers(headers_for_role):
-    return headers_for_role("manager")
+        # Owner user
+        _create_user('test_owner', 'owner@test.com', 'Test@1234', 'owner')
 
-@pytest.fixture
-def owner_headers(headers_for_role):
-    return headers_for_role("owner")
+        # Manager user + Manager profile
+        mgr_user = _create_user('test_manager', 'mgr@test.com', 'Test@1234', 'manager')
+        if not Manager.query.get(mgr_user.id):
+            _db.session.add(Manager(
+                manager_id=mgr_user.id,
+                manager_name='Test Manager',
+                manager_email='mgr@test.com',
+                manager_contact='+91-9000000001',
+                manager_skills='Operations',
+                manager_role='Manager',
+                manager_dob=date(1985, 1, 1),
+                manager_doj=date(2023, 1, 1),
+                branch_name='Test Branch',
+            ))
+        _db.session.commit()
 
-@pytest.fixture
-def staff_headers(headers_for_role):
-    return headers_for_role("staff")
+        # Staff user + Staff profile
+        stf_user = _create_user('test_staff', 'staff@test.com', 'Test@1234', 'staff')
+        if not Staff.query.get(stf_user.id):
+            _db.session.add(Staff(
+                staff_id=stf_user.id,
+                staff_name='Test Stylist',
+                staff_contact='+91-9000000002',
+                staff_email='staff@test.com',
+                staff_skills='Haircut, Facial',
+                staff_role='Stylist',
+                staff_dob=date(1995, 6, 15),
+                staff_doj=date(2023, 3, 1),
+                staff_salary=30000,
+            ))
+        _db.session.commit()
 
-@pytest.fixture
-def customer_headers(headers_for_role):
-    return headers_for_role("customer")
-@pytest.fixture
-def create_user():
-    def _create_user(username, password, role_name):
-        from application.sec import datastore # Ensure this points to your datastore
-        
-        # Check if user already exists to avoid duplicate seed errors
-        user = datastore.find_user(username=username)
-        if not user:
-            # Create user via datastore
-            user = datastore.create_user(
-                username=username,
-                password=hash_password(password),
-                active=True
-            )
-            db.session.commit()
+        # Customer user + Customer profile
+        cust_user = _create_user('test_customer', 'cust@test.com', 'Test@1234', 'customer')
+        if not Customer.query.get(cust_user.id):
+            _db.session.add(Customer(
+                customer_id=cust_user.id,
+                customer_name='Test Customer',
+                customer_contact='+91-9000000003',
+                customer_dob=date(1998, 8, 20),
+                customer_email='cust@test.com',
+                customer_address='12 Test Street, Bengaluru',
+                number_of_visits=3,
+                customer_type='Regular',
+                customer_preferences='Haircut',
+                customer_available_rewards=100,
+                total_spend=4500.0,
+            ))
+        _db.session.commit()
 
-        # Check if user already has the role
-        role = Role.query.filter_by(name=role_name).first()
-        if role not in user.roles:
-            datastore.add_role_to_user(user, role)
-            db.session.commit()
-        
-        # Force a refresh to ensure roles are loaded
-        db.session.refresh(user)
-        return user
+        # One active service
+        if not Service.query.first():
+            _db.session.add(Service(
+                service_desc='Ladies Haircut & Styling',
+                service_category='Hair',
+                service_price=550.0,
+                service_duration=60,
+                service_products='Wella Shampoo',
+                service_rating=4.7,
+                no_of_reviews=128,
+            ))
+        _db.session.commit()
 
-    return _create_user
+        # One product
+        if not Product.query.first():
+            _db.session.add(Product(
+                product_desc='Wella Shampoo 1L',
+                product_category_name='Hair',
+                product_price=850.0,
+                product_min_qoh=5,
+                product_curr_qoh=20,
+                product_supplier_name='Wella India',
+                product_supplier_contact='+91-2266130000',
+                product_supplier_email='orders@wella.in',
+            ))
+        _db.session.commit()
 
-@pytest.fixture
-def get_token(client, create_user):
-    def _get_token(username, password, role):
-        create_user(username, password, role)
 
-        res = client.post(f"/{role}-login", json={
-            "username": username,
-            "password": password
-        })
+def _create_user(username, email, password, role_name):
+    existing = datastore.find_user(username=username)
+    if existing:
+        return existing
+    role = Role.query.filter_by(name=role_name).first()
+    user = datastore.create_user(
+        username=username,
+        password=hash_password(password),
+        active=True,
+    )
+    datastore.add_role_to_user(user, role)
+    _db.session.commit()
+    return user
 
-        return res.get_json()["token"]
 
-    return _get_token
+# ─────────────────────────────────────────────────────────────────────────────
+# Token fixtures – call login and return Bearer token string
+# ─────────────────────────────────────────────────────────────────────────────
 
-@pytest.fixture
-def create_customer( create_user):
-    def _create_customer(username, name, email):
-        # 1. Create the base User with 'customer' role
-        user = create_user(username, "password123", "customer")
-        
-        # 2. Create the Customer profile linked to that user
-        from application.models import Customer
-        from datetime import date
-        customer = Customer(
-            customer_id=user.id, # Link via PK/FK
-            customer_name=name,
-            customer_contact="1234567890",
-            customer_dob=date(1990, 1, 1),
-            customer_email=email,
-            customer_type="Regular"
-        )
-        db.session.add(customer)
-        db.session.commit()
-        return customer
-    return _create_customer
+def _login(client, endpoint, username, password):
+    rv = client.post(endpoint,
+                     json={'username': username, 'password': password},
+                     content_type='application/json')
+    assert rv.status_code == 200, f"Login failed: {rv.get_json()}"
+    return rv.get_json()['token']
 
-@pytest.fixture
-def create_staff(create_user):
-    def _create_staff(username, password, active=True):
-        user = create_user(username, password, "staff")
 
-        user.active = active
-        db.session.commit()
+@pytest.fixture(scope='session')
+def owner_token(client):
+    return _login(client, '/owner-login', 'test_owner', 'Test@1234')
 
-        from application.models import Staff
-        from datetime import date
 
-        staff = Staff(
-            user=user,  # ✅ correct relation
-            staff_name=username,
-            staff_contact="9999999999",
-            staff_email=f"{username}@test.com",
-            staff_skills="haircut",
-            staff_role="stylist",
-            staff_dob=date(2000, 1, 1),
-            staff_salary=10000
-        )
+@pytest.fixture(scope='session')
+def manager_token(client):
+    return _login(client, '/manager-login', 'test_manager', 'Test@1234')
 
-        db.session.add(staff)
-        db.session.commit()
 
-        return staff
+@pytest.fixture(scope='session')
+def staff_token(client):
+    return _login(client, '/staff-login', 'test_staff', 'Test@1234')
 
-    return _create_staff
 
-@pytest.fixture
-def create_attendance():
-    def _create_attendance(staff_id, dt):
-        from application.models import StaffAttendance
+@pytest.fixture(scope='session')
+def customer_token(client):
+    return _login(client, '/customer-login', 'test_customer', 'Test@1234')
 
-        record = StaffAttendance(
-            staff_id=staff_id,
-            register_datetime=dt
-        )
 
-        db.session.add(record)
-        db.session.commit()
+# ─────────────────────────────────────────────────────────────────────────────
+# Convenience helpers
+# ─────────────────────────────────────────────────────────────────────────────
 
-        return record
-
-    return _create_attendance
+def auth_headers(token):
+    """Return headers dict with both auth header styles Flask-Security accepts."""
+    return {
+        'Authorization': f'Bearer {token}',
+        'Authentication-Token': token,
+        'Content-Type': 'application/json',
+    }

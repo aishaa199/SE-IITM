@@ -1,4 +1,6 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
 from flask import Flask, render_template, request
 from flask_cors import CORS
@@ -26,10 +28,11 @@ def create_app():
         app.register_blueprint(views.main)
         restful_api.init_app(app)
 
-        # Check if database exists before creating and seeding
+        # create_all is idempotent — creates only tables that don't exist yet
         db_path = os.path.join(app.instance_path, 'sm_devdb.db')
-        if not os.path.exists(db_path):
-            db.create_all()
+        db_exists = os.path.exists(db_path)
+        db.create_all()
+        if not db_exists:
             seed_initial_data()
         
     return app

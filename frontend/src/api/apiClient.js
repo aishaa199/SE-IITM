@@ -12,6 +12,7 @@ export const apiClient = {
 
     if (token) {
       headers.Authorization = `Bearer ${token}`;
+      headers["Authentication-Token"] = token;
     }
 
     try {

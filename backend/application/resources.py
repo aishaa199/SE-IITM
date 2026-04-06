@@ -722,6 +722,8 @@ manager_fields = {
     'branch_name': fields.String
 }
 
+
+
 ################################## Manager API ############################################
 class ManagerResource(Resource):
 ################################## Fetch Manager ############################################
@@ -1479,6 +1481,10 @@ class SalonDailyAppointmentCountResource(Resource):
                 {"date": str(row.date), "count": row.count}
                 for row in results
             ]
+            
+            if not daily_counts:
+                return [], 200
+                
             return daily_counts, 200
         except Exception as e:
             return {"message": f"Error fetching appointment counts: {str(e)}"}, 500

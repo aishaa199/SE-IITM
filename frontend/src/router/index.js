@@ -49,6 +49,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/manager-dashboard',
+    name: 'manager-dashboard',
+    component: DashboardView,
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/staff-dashboard',
     name: 'staff-dashboard',
     component: StaffDashboard,
@@ -115,6 +121,8 @@ router.beforeEach((to, from, next) => {
     const userRole = appStore.user?.role?.toLowerCase()
     if (userRole === 'owner') {
       return next('/owner-dashboard')
+    } else if (userRole === 'manager') {
+      return next('/manager-dashboard')
     } else if (userRole === 'staff') {
       return next('/staff-dashboard')
     } else if (userRole === 'customer') {
