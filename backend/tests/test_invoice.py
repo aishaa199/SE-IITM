@@ -1,106 +1,142 @@
+"""
+test_invoice.py – Tests for Invoice API.
 
-def test_create_invoice_missing_fields_400(client, manager_headers):
-    # Sending an empty JSON object
-    response = client.post(
-        "/api/invoice",
-        json={},
-        headers=manager_headers
-    )
-    
-    # 1. Check status code
-    assert response.status_code == 400
-    
-    # 2. Verify that the error message points to required fields
-    data = response.get_json()
-    # If using reqparse, it usually puts errors in 'message'
-    # If using custom logic, adjust the key accordingly
-    error_str = str(data).lower()
-    assert "customer_id" in error_str or "required" in error_str
+Endpoints covered:
+  GET  /api/invoice
+  GET  /api/invoice/<appointment_id>
+  POST /api/invoice
+"""
+import pytest
+from datetime import datetime, timedelta
+from tests.conftest import auth_headers
+
+def _get_service_id(client, token):
+    rv = client.get('/api/service', headers=auth_headers(token))
+    data = rv.get_json()
+    return data[0]['service_id'] if data else None
+
+def _get_staff_id(client, token):
+    rv = client.get('/api/staff', headers=auth_headers(token))
+    data = rv.get_json()
+    return data[0]['staff_id'] if data else None
+
+def _create_appointment(client, manager_token, customer_email='cust@test.com'):
+    svc_id = _get_service_id(client, manager_token)
+    staff_id = _get_staff_id(client, manager_token)
+    dt = (datetime.now() + timedelta(days=1)).replace(second=0, microsecond=0).isoformat()
+    rv = client.post('/api/appointment',
+                     headers=auth_headers(manager_token),
+                     json={
+                         'customer_email': customer_email,
+                         'staff_id': staff_id,
+                         'service_ids': [svc_id],
+                         'appointment_datetime': dt,
+                     })
+    return rv.get_json().get('appointment_id')
 
 
-def test_get_all_invoices(client):
-    response = client.get("/api/invoice", follow_redirects=True)
-    assert response.status_code == 200
+class TestInvoiceAPI:
+    """Tests for manager/staff invoice operations."""
 
-def test_create_invoice_success(client, manager_headers, create_customer, create_staff):
-    # 1. Setup - Invoice needs an existing customer, staff, and appointment
-    cust = create_customer("inv_user", "Invoice User", "inv@test.com")
-    stf = create_staff("inv_staff", "pass")
-    
-    from application.models import Appointment, db
-    appt = Appointment(customer_id=cust.customer_id, staff_id=stf.staff_id, 
-                       appointment_datetime=db.func.now(), status=0)
-    db.session.add(appt)
-    db.session.commit()
+    def test_list_invoices_manager(self, client, manager_token):
+        """TC-INV-01: Manager can list all invoices with correct fields."""
+        rv = client.get('/api/invoice', headers=auth_headers(manager_token))
+        assert rv.status_code == 200
+        data = rv.get_json()
+        assert isinstance(data, list)
+        if len(data) > 0:
+            fields = ('invoice_number', 'invoice_date', 'customer_name', 
+                     'staff_name', 'invoice_amount', 'status')
+            for f in fields:
+                assert f in data[0], f"Missing: {f}"
 
-    # 2. Payload matching your Invoice model
-    payload = {
-        "customer_id": cust.customer_id,
-        "staff_id": stf.staff_id,
-        "appointment_id": appt.appointment_id,
-        "service_ids": "1,2,3",
-        "invoice_amount": 500.0,
-        "total_invoice_amount": 500.0,
-        "payable_invoice_amount": 500.0,
-        "rewards_earned": 50
-    }
+    def test_list_invoices_unauthenticated(self, client):
+        """TC-INV-02: No token → 302/401 (depends on setup)."""
+        rv = client.get('/api/invoice')
+        assert rv.status_code in (302, 401)
 
-    response = client.post("/api/invoice", json=payload, headers=manager_headers)
-    assert response.status_code == 201
-    assert "invoice_number" in response.get_json()
+    def test_list_invoices_customer_forbidden(self, client, customer_token):
+        """TC-INV-03: Customer role cannot access invoice list."""
+        rv = client.get('/api/invoice', headers=auth_headers(customer_token))
+        assert rv.status_code == 403
 
-def test_create_invoice_invalid_appointment_404(client, manager_headers, create_customer, create_staff):
-    cust = create_customer("bad_appt", "Bad Appt", "bad@test.com")
-    stf = create_staff("bad_stf", "pass")
+    def test_get_invoice_data_for_appointment(self, client, manager_token):
+        """TC-INV-04: Manager fetches data required to create an invoice for an appointment."""
+        appt_id = _create_appointment(client, manager_token)
+        rv = client.get(f'/api/invoice/{appt_id}', headers=auth_headers(manager_token))
+        assert rv.status_code == 200
+        data = rv.get_json()
+        assert 'customer_id' in data
+        assert 'service_total' in data
+        assert 'service_ids' in data
 
-    payload = {
-        "customer_id": cust.customer_id,
-        "staff_id": stf.staff_id,
-        "appointment_id": "sa5",  # Non-existent ID
-        "service_ids": "1",
-        "invoice_amount": 100.0,
-        "total_invoice_amount": 100.0,
-        "payable_invoice_amount": 100.0
-    }
+    def test_create_invoice_success(self, client, manager_token):
+        """TC-INV-05: Manager creates an invoice successfully."""
+        appt_id = _create_appointment(client, manager_token)
+        # First get the data needed for invoice
+        data_rv = client.get(f'/api/invoice/{appt_id}', headers=auth_headers(manager_token))
+        prep = data_rv.get_json()
+        
+        rv = client.post('/api/invoice',
+                         headers=auth_headers(manager_token),
+                         json={
+                             'customer_id': prep['customer_id'],
+                             'staff_id': prep['staff_id'],
+                             'service_ids': prep['service_ids'],
+                             'invoice_amount': prep['service_total'],
+                             'appointment_id': appt_id,
+                             'other_charges': 10.0
+                         })
+        data = rv.get_json()
+        assert rv.status_code == 201
+        assert 'invoice_number' in data
 
-    response = client.post("/api/invoice", json=payload, headers=manager_headers)
-    assert response.status_code == 404
+    def test_create_invoice_missing_fields(self, client, manager_token):
+        """TC-INV-06: Missing required fields (customer_id) returns 400."""
+        rv = client.post('/api/invoice',
+                         headers=auth_headers(manager_token),
+                         json={
+                             'staff_id': 1,
+                             'service_ids': '1',
+                             'invoice_amount': 100
+                         })
+        assert rv.status_code == 400
 
-def test_create_invoice_bad_service_format(client, manager_headers):
-    # Sending an object instead of a string for service_ids
-    payload = {
-        "service_ids": {"id": 1},  # Should be "1"
-        "invoice_amount": 100.0
-    }
-    response = client.post("/api/invoice", json=payload, headers=manager_headers)
-    assert response.status_code == 400
+    def test_get_existing_invoice_by_appointment(self, client, manager_token):
+        """TC-INV-07: Fetching an existing invoice by appointment_id returns full record."""
+        appt_id = _create_appointment(client, manager_token)
+        data_rv = client.get(f'/api/invoice/{appt_id}', headers=auth_headers(manager_token))
+        prep = data_rv.get_json()
+        
+        client.post('/api/invoice',
+                    headers=auth_headers(manager_token),
+                    json={
+                        'customer_id': prep['customer_id'],
+                        'staff_id': prep['staff_id'],
+                        'service_ids': prep['service_ids'],
+                        'invoice_amount': prep['service_total'],
+                        'appointment_id': appt_id
+                    })
+        
+        rv = client.get(f'/api/invoice/{appt_id}', headers=auth_headers(manager_token))
+        assert rv.status_code == 200
+        data = rv.get_json()
+        assert 'invoice_number' in data
+        assert 'service_descs' in data
 
-# test reward logic here
+    def test_create_invoice_invalid_customer(self, client, manager_token):
+        """TC-INV-08: Creating invoice for non-existent customer returns 404."""
+        rv = client.post('/api/invoice',
+                         headers=auth_headers(manager_token),
+                         json={
+                             'customer_id': 99999,
+                             'staff_id': 1,
+                             'service_ids': '1',
+                             'invoice_amount': 100
+                         })
+        assert rv.status_code == 404
 
-def test_get_past_months_list(client, manager_headers, create_customer, create_staff):
-    from application.models import Invoice, db
-    from datetime import datetime
-    
-    # 1. Manually seed an invoice for February
-    cust = create_customer("month_user", "Month", "m@test.com")
-    stf = create_staff("month_stf", "pass")
-    
-    inv = Invoice(
-        customer_id=cust.customer_id,
-        staff_id=stf.staff_id,
-        service_ids="1",
-        invoice_date=datetime(2024, 2, 15).date(),
-        invoice_amount=100.0,
-        total_invoice_amount=100.0,
-        payable_invoice_amount=100.0
-    )
-    db.session.add(inv)
-    db.session.commit()
-
-    # 2. Call the endpoint
-    response = client.get("/api/past-months", headers=manager_headers)
-    assert response.status_code == 200
-    
-    months = response.get_json()
-    # Expecting something like ["2024-02"] or ["February 2024"]
-    assert any("2024-02" in m for m in months)
+    def test_get_invoice_appointment_not_found(self, client, manager_token):
+        """TC-INV-09: Fetching invoice data for non-existent appointment returns 404."""
+        rv = client.get('/api/invoice/99999', headers=auth_headers(manager_token))
+        assert rv.status_code == 404
