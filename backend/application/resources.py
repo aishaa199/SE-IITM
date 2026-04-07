@@ -1245,7 +1245,10 @@ class AppointmentResource(Resource):
                 appointment.staff_id = staff_id
             
             if datetime_str:
-                appointment.appointment_datetime = datetime.fromisoformat(datetime_str)
+                new_datetime = datetime.fromisoformat(datetime_str)
+                if appointment.appointment_datetime != new_datetime:
+                    appointment.appointment_datetime = new_datetime
+                    appointment.status = 4 # Set to Rescheduled if datetime changes
             
             if 'service_ids' in data:
                 if service_ids:
@@ -1524,6 +1527,34 @@ class SalonDailyAppointmentCountResource(Resource):
         except Exception as e:
             return {"message": f"Error fetching appointment counts: {str(e)}"}, 500
 
+################################## Staff Dashboard API ##############################
+class StaffDashboard(Resource):
+    @auth_required("token")
+    @roles_required("staff")
+    def get(self):
+        # Fetch the staff ID of the current user
+        staff_id = current_user.id
+        today = date.today()
+        
+        # 1. Total number of appointments today
+        total_appointments_today = Appointment.query.filter(
+            Appointment.staff_id == staff_id,
+            db.func.date(Appointment.appointment_datetime) == today
+        ).count()
+        
+        # 2. Total number of completed appointments today
+        # Assuming status 3 is 'Completed' based on context in resources.py
+        completed_appointments_today = Appointment.query.filter(
+            Appointment.staff_id == staff_id,
+            db.func.date(Appointment.appointment_datetime) == today,
+            Appointment.status == 1
+        ).count()
+        
+        return {
+            "total_appointments_today": total_appointments_today,
+            "completed_appointments_today": completed_appointments_today
+        }, 200
+
 ################################## Customer Appointment APIs ##############################
 
 ###################################### For customer to fetch a specific appoint ment data ################
@@ -1551,13 +1582,14 @@ class CustomerAppointment(Resource):
         if not appointment:
             return {"message": "Appointment not found or unauthorized"}, 404
         
-        if appointment.status != 0:
-            return {"message": "Only 'Booked' appointments can be updated"}, 400
+        if appointment.status not in [0, 4]:
+            return {"message": "Only 'Booked' and 'Rescheduled' appointments can be updated"}, 400
 
         data = request.get_json()
         staff_id = data.get('staff_id')
         service_ids = data.get('service_ids')
         datetime_str = data.get('appointment_datetime')
+        status = 4 # Rescheduled status when customer updates the appointment
 
         try:
             if staff_id is not None:
@@ -1565,7 +1597,8 @@ class CustomerAppointment(Resource):
             
             if datetime_str:
                 appointment.appointment_datetime = datetime.fromisoformat(datetime_str)
-            
+            if status:
+                appointment.status = status
             if service_ids is not None:
                 if not isinstance(service_ids, list):
                     return {"message": "service_ids must be a list of integers"}, 400
@@ -1589,8 +1622,8 @@ class CustomerAppointment(Resource):
         if not appointment:
             return {"message": "Appointment not found or unauthorized"}, 404
         
-        if appointment.status != 0:
-            return {"message": "Only 'Booked' appointments can be cancelled/deleted"}, 400
+        if appointment.status not in [0, 4]:
+            return {"message": "Only 'Booked' and 'Rescheduled' appointments can be cancelled/deleted"}, 400
             
         try:
             db.session.delete(appointment)
@@ -2516,8 +2549,8 @@ class InvoiceResource(Resource):
         invoice_amount = data.get('invoice_amount')
         other_charges = data.get('other_charges', 0.0)
         discount_percentage_input = data.get('discount_percentage', 0.0)
-        # Always set status to 0 (Pending) when creating a new invoice
-        status = 0 
+        # Always set status to 1 (Completed) when creating a new invoice
+        status = 1
         
         # If appointment_id is provided in URL, use it; otherwise check body
         target_appointment_id = appointment_id or data.get('appointment_id')
@@ -2723,6 +2756,7 @@ api.add_resource(ServiceResource, '/service', '/service/<int:service_id>')
 api.add_resource(AppointmentResource, '/appointment', '/appointment/<int:appointment_id>')
 api.add_resource(SalonConfigResource, '/salon-config', '/salon-config/<int:setting_id>')
 api.add_resource(StaffAppointmentResource, '/staff-appointments')
+api.add_resource(StaffDashboard, '/staff-dashboard')
 api.add_resource(StaffCustomerReview, '/staff-customer-reviews')
 api.add_resource(ManagerStaffAttendance, '/manager-staff-attendance')
 api.add_resource(StaffAttendanceResource, '/staff-attendance')
