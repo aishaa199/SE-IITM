@@ -2207,6 +2207,7 @@ invoice_fields = {
     'service_ids': fields.String,
     'service_descs': fields.String,
     'other_charges': fields.Float,
+    'discount_percentage': fields.Float,
     'rewards_earned': fields.Integer,
     'rewards_utilized': fields.Integer,
     'current_reward_points': fields.Integer,
@@ -2220,9 +2221,15 @@ class InvoiceResource(Resource):
     @auth_required("token")
     @roles_accepted("manager", "staff")
     def get(self, appointment_id=None):
+        # If appointment_id is provided, check its status immediately
+        if appointment_id:
+            appointment = Appointment.query.get(appointment_id)
+            if not appointment:
+                return {"message": "Appointment not found"}, 404
+            invalidate_expired_points(appointment.customer_id)
         """
         Fetch data for an invoice based on appointment_id.
-        If no appointment_id is provided, return all existing invoices.
+        If no appointment_id is provided, return all appointments that haven't been invoiced yet.
         """
         # Determine customer_id to update rewards if appointment_id is provided
         if appointment_id:
@@ -2272,43 +2279,28 @@ class InvoiceResource(Resource):
                 "service_total": service_total
             }, 200
         
-        invoices = Invoice.query.all()
+        # Change: Filter out appointments that already have an invoice
+        invoiced_appointment_ids = db.session.query(Invoice.appointment_id).filter(Invoice.appointment_id != None).all()
+        invoiced_appointment_ids = [r[0] for r in invoiced_appointment_ids]
+        
+        # Get all appointments that do NOT have an invoice and have status 0 or 4
+        pending_appointments = Appointment.query.filter(
+            ~Appointment.appointment_id.in_(invoiced_appointment_ids),
+            Appointment.status.in_([0, 4])
+        ).all()
+        
         result = []
-        for inv in invoices:
-            # Manually construct data to ensure fields are populated correctly
-            inv_data = {
-                "invoice_number": inv.invoice_number,
-                "invoice_date": str(inv.invoice_date),
-                "customer_id": inv.customer_id,
-                "customer_name": inv.customer.customer_name if inv.customer else "Unknown",
-                "staff_id": inv.staff_id,
-                "staff_name": inv.staff.staff_name if inv.staff else "Unknown",
-                "service_ids": inv.service_ids,
-                "other_charges": inv.other_charges,
-                "rewards_earned": inv.rewards_earned,
-                "rewards_utilized": inv.rewards_utilized,
-                "current_reward_points": inv.current_reward_points,
-                "invoice_amount": inv.invoice_amount,
-                "total_charges": inv.total_invoice_amount,
-                "status": inv.status
-            }
-            
-            # Fetch service descriptions for comma separated service_ids
-            if inv.service_ids:
-                try:
-                    clean_sids = str(inv.service_ids).strip()
-                    s_ids = [int(sid.strip()) for sid in clean_sids.split(",") if sid.strip()]
-                    services = Service.query.filter(Service.service_id.in_(s_ids)).all()
-                    s_map = {s.service_id: s.service_desc for s in services}
-                    inv_data["service_descs"] = ", ".join([s_map.get(sid, "Unknown") for sid in s_ids])
-                except Exception:
-                    inv_data["service_descs"] = ""
-            else:
-                inv_data["service_descs"] = ""
-                
-            result.append(inv_data)
+        for appt in pending_appointments:
+            result.append({
+                "appointment_id": appt.appointment_id,
+                "customer_name": appt.customer.customer_name if appt.customer else "Unknown",
+                "staff_name": appt.staff.staff_name if appt.staff else "Not Assigned",
+                "datetime": appt.appointment_datetime.isoformat(),
+                "status": appt.status
+            })
             
         return result, 200
+
 
 ################################## Create Invoice #####################################
     @auth_required("token")
@@ -2324,6 +2316,7 @@ class InvoiceResource(Resource):
         service_ids = data.get('service_ids')
         invoice_amount = data.get('invoice_amount')
         other_charges = data.get('other_charges', 0.0)
+        discount_percentage_input = data.get('discount_percentage', 0.0)
         # Always set status to 0 (Pending) when creating a new invoice
         status = 0 
         
@@ -2352,7 +2345,12 @@ class InvoiceResource(Resource):
         
         total_invoice_amount = float(invoice_amount) + float(other_charges)
         
-        # Calculate rewards utilization
+        # Apply additional discount if provided
+        if discount_percentage_input > 0:
+            discount_amount_input = total_invoice_amount * (float(discount_percentage_input) / 100)
+            total_invoice_amount -= discount_amount_input
+
+        # Calculate rewards utilization (Using the final total_invoice_amount after all discounts)
         rewards_utilized_points, rem_reward_points, payable_invoice_amount = calculate_reward_value(total_invoice_amount, current_reward_points)
         
 
@@ -2392,6 +2390,7 @@ class InvoiceResource(Resource):
                 invoice_date=date.today(),
                 invoice_amount=invoice_amount,
                 other_charges=other_charges,
+                discount_percentage=discount_percentage_input,
                 rewards_earned=total_rewards_earned,
                 rewards_utilized=int(rewards_utilized_points),
                 current_reward_points=current_reward_points,
@@ -2419,6 +2418,7 @@ class InvoiceResource(Resource):
         except Exception as e:
             db.session.rollback()
             return {"message": f"Failed to create invoice: {str(e)}"}, 500
+
 
 ################################## Today's Appointments API ################################
 
@@ -2456,6 +2456,61 @@ class TodaysAppointmentsResource(Resource):
         except Exception as e:
             return {"message": f"Error fetching today's appointments: {str(e)}"}, 500
 
+
+class GetAppointmentIDsForInvoice(Resource):
+    @auth_required("token")
+    @roles_accepted("manager", "staff")
+    def get(self):
+        """
+        Fetch all appointments from appointment table where status is either 0 or 4.
+        """
+        appointments = Appointment.query.filter(Appointment.status.in_([0, 4])).all()
+        
+        result = []
+        for appt in appointments:
+            result.append({
+                "appointment_id": appt.appointment_id,
+                "customer_name": appt.customer.customer_name if appt.customer else "Unknown",
+                "staff_name": appt.staff.staff_name if appt.staff else "Not Assigned",
+                "datetime": appt.appointment_datetime.isoformat(),
+                "status": appt.status
+            })
+            
+        return result, 200
+
+############################################## To get all the invoices from invoice table for manager and staff ##############################################
+class GetAllInvoices(Resource):
+    @auth_required("token")
+    @roles_accepted("manager", "staff")
+    def get(self):
+        """
+        Fetch all the invoices from invoice table.
+        """
+        invoices = Invoice.query.all()
+        
+        result = []
+        for inv in invoices:
+            result.append({
+                "invoice_number": inv.invoice_number,
+                "invoice_date": str(inv.invoice_date),
+                "customer_id": inv.customer_id,
+                "customer_name": inv.customer.customer_name if inv.customer else "Unknown",
+                "staff_id": inv.staff_id,
+                "staff_name": inv.staff.staff_name if inv.staff else "Unknown",
+                "service_ids": inv.service_ids,
+                "other_charges": inv.other_charges,
+                "discount_percentage": inv.discount_percentage,
+                "rewards_earned": inv.rewards_earned,
+                "rewards_utilized": inv.rewards_utilized,
+                "current_reward_points": inv.current_reward_points,
+                "invoice_amount": inv.invoice_amount,
+                "total_charges": inv.total_invoice_amount,
+                "status": inv.status,
+                "appointment_id": inv.appointment_id
+            })
+            
+        return result, 200
+
 #############################################################################################
 # Add API resources to the app
 
@@ -2483,3 +2538,5 @@ api.add_resource(OrderResource, '/order', '/order/<int:order_id>')
 api.add_resource(InvoiceResource, '/invoice', '/invoice/<int:appointment_id>')
 api.add_resource(FinanceResource, '/finance')
 api.add_resource(TodaysAppointmentsResource, '/todays-appointments')
+api.add_resource(GetAppointmentIDsForInvoice, "/get-appointments-for-invoice")
+api.add_resource(GetAllInvoices, "/get-all-invoices")

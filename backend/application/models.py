@@ -131,6 +131,7 @@ class Invoice(db.Model):
     rewards_utilized = db.Column(db.Integer, nullable=False, default=0)
     current_reward_points = db.Column(db.Integer, nullable=False, default=0)
     invoice_amount = db.Column(db.Float, nullable=False)
+    discount_percentage = db.Column(db.Float, nullable=True, default=0.0)
     total_invoice_amount = db.Column(db.Float, nullable=False)
     payable_invoice_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.Integer, nullable=False, default=0) # 0: Pending, 1: Invoiced, 2: Sent

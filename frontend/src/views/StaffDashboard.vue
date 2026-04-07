@@ -257,15 +257,41 @@
                 ⏳ Loading appointments...
               </div>
 
-              <!-- Filter input -->
-              <div v-else style="margin-bottom: 16px">
-                <input 
-                  v-model="appointmentCustomerFilter"
-                  type="text" 
-                  placeholder="🔍 Filter by customer name or service..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
+              <!-- Filter and Sort input -->
+              <div v-else style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end">
+                <div style="flex: 1; max-width: 400px">
+                  <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px">Filter</label>
+                  <input 
+                    v-model="appointmentCustomerFilter"
+                    type="text" 
+                    placeholder="Filter by customer name or service..." 
+                    class="form-input"
+                    style="width: 100%"
+                  />
+                </div>
+                <div style="max-width: 200px">
+                  <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px">Sort By</label>
+                  <select v-model="appointmentSortBy" class="form-input" style="width: 100%">
+                    <option value="date">Date & Time</option>
+                    <option value="customer">Customer Name</option>
+                    <option value="status">Status</option>
+                    <option value="amount">Amount</option>
+                  </select>
+                </div>
+                <div style="max-width: 140px">
+                  <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px">Order</label>
+                  <select v-model="appointmentSortOrder" class="form-input" style="width: 100%">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                  </select>
+                </div>
+                <button 
+                  @click="appointmentCustomerFilter = ''"
+                  class="btn btn-outline"
+                  style="padding: 8px 16px; font-size: 12px"
+                >
+                  Clear
+                </button>
               </div>
               
               <!-- Empty state -->
@@ -315,14 +341,7 @@
         <!-- ORDER PRODUCTS VIEW -->
         <div v-if="currentView === 'order-products'" class="fade-in">
           <!-- Order Tabs -->
-          <div style="display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 12px">
-            <button 
-              @click="orderTab = 'new-orders'"
-              :style="{ background: orderTab === 'new-orders' ? 'var(--gold)' : 'transparent', color: orderTab === 'new-orders' ? 'white' : 'var(--text)', borderBottom: 'none', padding: '8px 16px', borderRadius: 'var(--radius)', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '500' }"
-            >
-              📦 New Orders
-            </button>
-          </div>
+    
 
           <!-- NEW ORDERS TAB -->
           <div v-if="orderTab === 'new-orders'" class="card">
@@ -644,37 +663,52 @@
         <form @submit.prevent="handleChangePassword">
           <div class="form-group">
             <label for="current-password">Current Password</label>
-            <input 
-              id="current-password"
-              v-model="passwordForm.currentPassword" 
-              type="password" 
-              placeholder="Enter current password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="current-password"
+                v-model="passwordForm.currentPassword" 
+                :type="showCurrentPassword ? 'text' : 'password'" 
+                placeholder="Enter current password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showCurrentPassword = !showCurrentPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showCurrentPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label for="new-password">New Password</label>
-            <input 
-              id="new-password"
-              v-model="passwordForm.newPassword" 
-              type="password" 
-              placeholder="Enter new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="new-password"
+                v-model="passwordForm.newPassword" 
+                :type="showNewPassword ? 'text' : 'password'" 
+                placeholder="Enter new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showNewPassword = !showNewPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showNewPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
             <div class="form-hint">At least 8 characters</div>
           </div>
           <div class="form-group">
             <label for="confirm-password">Confirm Password</label>
-            <input 
-              id="confirm-password"
-              v-model="passwordForm.confirmPassword" 
-              type="password" 
-              placeholder="Confirm new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="confirm-password"
+                v-model="passwordForm.confirmPassword" 
+                :type="showConfirmPassword ? 'text' : 'password'" 
+                placeholder="Confirm new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showConfirmPassword = !showConfirmPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showConfirmPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
           <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
@@ -787,6 +821,9 @@ const API_BASE_URL = "http://localhost:5000";
 const currentView = ref("dashboard");
 const sidebarOpen = ref(false);
 const showChangePasswordModal = ref(false);
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 const showProfileMenu = ref(false);
 const showProfileEditModal = ref(false);
 const showAppointmentDetailsModal = ref(false);
@@ -842,6 +879,8 @@ const fetchedAttendance = ref([]);
 
 // Filter states
 const appointmentCustomerFilter = ref("");
+const appointmentSortBy = ref("date"); // date, customer, status, amount
+const appointmentSortOrder = ref("asc"); // asc, desc
 const orderProductFilter = ref("");
 
 // Get current month
@@ -866,6 +905,61 @@ const getDayName = (dateString) => {
 };
 
 // Fetch appointments from API
+const fetchStaffInfo = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/staff`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const staffList = await response.json();
+      if (staffList && staffList.length > 0) {
+        const staff = staffList[0]; // Get first staff (current user)
+        
+        // Update staffData with real backend values
+        staffData.staffId = staff.staff_id || null;
+        staffData.name = staff.staff_name || "N/A";
+        staffData.role = staff.staff_role || "Staff";
+        staffData.email = staff.staff_email || "N/A";
+        staffData.phone = staff.staff_contact || "N/A";
+        staffData.dob = staff.staff_dob || "Not provided";
+        staffData.skills = staff.staff_skills || "Not provided";
+        staffData.cumulativeRating = staff.staff_cumulative_rating || 0;
+        staffData.totalReviews = staff.no_of_reviews || 0;
+        
+        console.log("Staff info updated from backend:", staffData);
+      }
+    } else {
+      console.error("Failed to fetch staff info:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching staff info:", error);
+  }
+};
+
+const updateTodayStats = () => {
+  // Calculate stats from actual appointments
+  const completedCount = fetchedTodayAppointments.value.filter(a => a.status === "completed").length;
+  const totalCount = fetchedTodayAppointments.value.length;
+  
+  staffData.todayStats = {
+    appointmentsCount: totalCount,
+    completedCount: completedCount,
+    cancelledCount: 0
+  };
+};
+
 const fetchAppointmentsByMode = async (mode = "today") => {
   appointmentLoading.value = true;
   appointmentError.value = "";
@@ -881,8 +975,7 @@ const fetchAppointmentsByMode = async (mode = "today") => {
 
     if (mode === "today") {
       // Fetch only today's appointments
-      const today = new Date().toISOString().split('T')[0];
-      const url = `${API_BASE_URL}/api/staff-appointments?date=${today}`;
+      const url = `${API_BASE_URL}/api/staff-appointments?mode=today`;
       
       const response = await fetch(url, {
         method: "GET",
@@ -913,42 +1006,35 @@ const fetchAppointmentsByMode = async (mode = "today") => {
       const data = await response.json();
       appointmentsList = data;
     } else {
-      // Fetch all future appointments - fetch next 5 days
-      const allAppointments = [];
-      const baseDate = new Date();
+      // Fetch all appointments
+      const url = `${API_BASE_URL}/api/staff-appointments?mode=all`;
       
-      // Fetch appointments for next 5 days
-      for (let i = 0; i < 5; i++) {
-        const fetchDate = new Date(baseDate);
-        fetchDate.setDate(fetchDate.getDate() + i);
-        const dateStr = fetchDate.toISOString().split('T')[0];
-        
-        const url = `${API_BASE_URL}/api/staff-appointments?date=${dateStr}`;
-        
-        try {
-          const response = await fetch(url, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-              "Authentication-Token": token
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data && data.length > 0) {
-              allAppointments.push(...data);
-            }
-          } else if (response.status === 404) {
-            // No appointments on this date, continue to next day
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "Authentication-Token": token
           }
-        } catch (error) {
-          // Handle fetch error silently, continue to next date
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          appointmentsList = data || [];
+        } else if (response.status === 404) {
+          // No appointments at all
+          appointmentsList = [];
+        } else {
+          appointmentError.value = "Failed to fetch all appointments";
+          appointmentLoading.value = false;
+          return;
         }
+      } catch (error) {
+        appointmentError.value = "Error fetching appointments: " + error.message;
+        appointmentLoading.value = false;
+        return;
       }
-      
-      appointmentsList = allAppointments;
     }
 
     // Transform API response into UI format
@@ -975,6 +1061,8 @@ const fetchAppointmentsByMode = async (mode = "today") => {
       fetchedTodayAppointments.value = formattedAppointments;
       // Update mock data for backward compatibility
       staffData.todayAppointments = formattedAppointments;
+      // Update today stats with real data
+      updateTodayStats();
     } else if (mode === "all") {
       fetchedAllAppointments.value = formattedAppointments;
       // Update mock data for backward compatibility
@@ -1103,16 +1191,47 @@ const attendanceStats = computed(() => {
 // Filtered appointments & orders
 const filteredAppointments = computed(() => {
   // Use fetched appointments based on current mode
-  const appointments = appointmentMode.value === "today" 
+  let appointments = appointmentMode.value === "today" 
     ? fetchedTodayAppointments.value 
     : fetchedAllAppointments.value;
   
-  if (!appointmentCustomerFilter.value.trim()) return appointments;
-  const searchTerm = appointmentCustomerFilter.value.toLowerCase();
-  return appointments.filter(appt =>
-    appt.customerName.toLowerCase().includes(searchTerm) ||
-    appt.service.toLowerCase().includes(searchTerm)
-  );
+  // Apply filter
+  if (appointmentCustomerFilter.value.trim()) {
+    const searchTerm = appointmentCustomerFilter.value.toLowerCase();
+    appointments = appointments.filter(appt =>
+      appt.customerName.toLowerCase().includes(searchTerm) ||
+      appt.service.toLowerCase().includes(searchTerm)
+    );
+  }
+  
+  // Apply sorting
+  const sorted = [...appointments];
+  const sortBy = appointmentSortBy.value;
+  const isAscending = appointmentSortOrder.value === "asc";
+  
+  if (sortBy === "date") {
+    sorted.sort((a, b) => {
+      const dateA = new Date(a.date + " " + a.time);
+      const dateB = new Date(b.date + " " + b.time);
+      return isAscending ? dateA - dateB : dateB - dateA;
+    });
+  } else if (sortBy === "customer") {
+    sorted.sort((a, b) => {
+      const cmp = a.customerName.localeCompare(b.customerName);
+      return isAscending ? cmp : -cmp;
+    });
+  } else if (sortBy === "status") {
+    sorted.sort((a, b) => {
+      const cmp = a.status.localeCompare(b.status);
+      return isAscending ? cmp : -cmp;
+    });
+  } else if (sortBy === "amount") {
+    sorted.sort((a, b) => {
+      return isAscending ? a.amount - b.amount : b.amount - a.amount;
+    });
+  }
+  
+  return sorted;
 });
 
 const filteredOrders = computed(() => {
@@ -1276,6 +1395,10 @@ const staffData = {
     { id: 1, productId: 2, quantity: 5, serviceId: 3, status: "pending", date: "2026-03-05" },
     { id: 2, productId: 1, quantity: 2, serviceId: 4, status: "completed", date: "2026-03-04" },
   ],
+  // Rating data from backend
+  staffId: null,
+  cumulativeRating: 0,
+  totalReviews: 0,
 };
 
 const pageTitle = computed(() => {
@@ -1317,29 +1440,39 @@ const getOrderStatusBadgeClass = (status) => {
   return badges[status] || "badge-gray";
 };
 
-// Get ratings received by current staff member
-const currentStaffId = 1; // Amara Osei - would come from authenticated user in production
-
+// Get ratings received by current staff member from backend data
 const staffRatings = computed(() => {
-  const staffFeedbacks = appStore.data.feedbacks.filter(f => f.staffId === currentStaffId);
-  if (staffFeedbacks.length === 0) return { feedbacks: [], averageRating: 0 };
+  // Use cumulative rating from staff data fetched from backend
+  const cumulativeRating = staffData.cumulativeRating || 0;
+  const totalReviews = staffData.totalReviews || 0;
   
-  const totalRating = staffFeedbacks.reduce((sum, f) => sum + f.rating, 0);
-  const averageRating = (totalRating / staffFeedbacks.length).toFixed(1);
+  // For now, we don't have individual review details from backend
+  // This would need a dedicated endpoint if detailed reviews are needed
+  // Using mock feedbacks as placeholder until backend provides detailed reviews
+  let feedbacks = [];
   
-  // Enrich feedbacks with customer names
-  const enrichedFeedbacks = staffFeedbacks.map(f => {
-    const customer = appStore.data.customers.find(c => c.id === f.customerId);
-    return {
-      ...f,
-      customerName: customer ? customer.name : "Anonymous Customer"
-    };
-  });
+  // If we have reviews from appStore, use them; otherwise empty
+  if (appStore.data && appStore.data.reviews && appStore.data.reviews.length > 0) {
+    feedbacks = appStore.data.reviews
+      .filter(r => r.staff_id === staffData.staffId)
+      .slice(0, 5) // Show last 5 reviews
+      .map(r => {
+        const customer = appStore.data.customers?.find(c => c.id === r.customer_id);
+        return {
+          id: r.review_id,
+          rating: r.rating,
+          customerId: r.customer_id,
+          customerName: customer ? customer.customer_name : "Anonymous",
+          comment: r.review || "No comment provided",
+          date: r.invoice_date || new Date().toISOString()
+        };
+      });
+  }
   
   return {
-    feedbacks: enrichedFeedbacks,
-    averageRating: parseFloat(averageRating),
-    totalRatings: staffFeedbacks.length
+    feedbacks: feedbacks,
+    averageRating: parseFloat(cumulativeRating),
+    totalRatings: totalReviews
   };
 });
 
@@ -1775,6 +1908,9 @@ const handleClickOutside = (e) => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  
+  // Fetch staff info and widget data
+  fetchStaffInfo();
   
   // Fetch today's appointments on mount
   fetchAppointmentsByMode("today");
