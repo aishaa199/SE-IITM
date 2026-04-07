@@ -6,7 +6,7 @@ Uses an in-memory SQLite database so tests never touch the real DB.
 import pytest
 import sys
 import os
-from datetime import date
+from datetime import date,datetime
 
 # Make sure Python can find the backend package
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -33,7 +33,8 @@ def app():
         'SECURITY_PASSWORD_SALT': 'test-salt',
         'SECRET_KEY': 'test-secret',
         # Disable external AI calls in tests
-        'ANTHROPIC_API_KEY': 'test-key',
+        # Change this line in your app fixture:
+        'ANTHROPIC_API_KEY': os.getenv('ANTHROPIC_API_KEY', 'test-key'),
     })
     with test_app.app_context():
         _db.drop_all()
@@ -145,7 +146,25 @@ def _seed_test_data(app):
                 product_supplier_email='orders@wella.in',
             ))
         _db.session.commit()
-
+        cust_user = User.query.filter_by(username='test_customer').first()
+        stf_user = User.query.filter_by(username='test_staff').first()
+        service = Service.query.first()
+        # Add one appointment so the Daily Briefing has data to summarize
+        if not Appointment.query.first():
+            new_appointment = Appointment(
+                customer_id=cust_user.id,
+                staff_id=stf_user.id,
+                appointment_datetime=datetime.now(), # Combined field
+                status=0, # 0 for Booked
+                feedback_given=False
+            )
+            
+            # 3. Add the service via the relationship list
+            if service:
+                new_appointment.services.append(service)
+            
+            _db.session.add(new_appointment)
+            _db.session.commit()
 
 def _create_user(username, email, password, role_name):
     existing = datastore.find_user(username=username)

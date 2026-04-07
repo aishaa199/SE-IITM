@@ -25,15 +25,16 @@ class TestAIAssistant:
         # 2. Retrieve tasks
         list_rv = client.get('/ai/manager-tasks', headers=auth_headers(manager_token))
         assert list_rv.status_code == 200
-        tasks = list_rv.get_json()
+        data = list_rv.get_json()
+        tasks = data.get('tasks', []) # Get the list from the 'tasks' key
         assert isinstance(tasks, list)
 
     def test_patch_task_status(self, client, manager_token):
         """TC-AI-03: Manager marks an AI-generated task as completed."""
         # Ensure a task exists
         client.post('/ai/generate-manager-tasks', headers=auth_headers(manager_token))
-        tasks = client.get('/ai/manager-tasks', headers=auth_headers(manager_token)).get_json()
-        
+        data = client.get('/ai/manager-tasks', headers=auth_headers(manager_token)).get_json()
+        tasks = data.get('tasks', [])
         if tasks:
             tid = tasks[0]['task_id']
             rv = client.patch(f'/tasks/{tid}', 
