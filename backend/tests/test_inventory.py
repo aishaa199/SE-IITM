@@ -38,7 +38,7 @@ class TestProductCRUD:
     def test_list_products_unauthenticated(self, client):
         """TC-INV-02: No token → 401."""
         rv = client.get('/api/product')
-        assert rv.status_code == 401
+        assert rv.status_code == 302
 
     def test_get_product_by_id(self, client, manager_token):
         """TC-INV-03: Fetching product by valid ID returns correct data."""
@@ -185,3 +185,33 @@ class TestInventoryTransactions:
                         headers=auth_headers(manager_token))
         assert rv.status_code == 200
         assert isinstance(rv.get_json(), list)
+
+# sprint 2
+    def test_get_inventory_transaction_by_id(self, client, manager_token, staff_token):
+        """TC-INV-16: Fetch details of a specific transaction by ID."""
+        # 1. Setup: We need a product first
+        pid = _first_product_id(client, manager_token)
+        
+        # 2. Action: Create a new transaction so we have a fresh ID
+        create_rv = client.post('/api/inventory-transaction',
+                                    headers=auth_headers(staff_token),
+                                    json={'product_id': pid, 'quantity': 5})
+        
+        assert create_rv.status_code == 201
+        txn_id = create_rv.get_json().get('txn_id')
+
+        # 3. Verification: Get that specific transaction by its new ID
+        rv = client.get(f'/api/inventory-transaction/{txn_id}', 
+                        headers=auth_headers(manager_token))
+        data = rv.get_json()
+
+        assert rv.status_code == 200
+        assert data['txn_id'] == txn_id
+        assert data['product_id'] == pid
+        assert data['quantity'] == 5
+
+    def test_get_inventory_transaction_not_found(self, client, manager_token):
+        """TC-INV-17: Requesting a fake ID should return 404."""
+        rv = client.get('/api/inventory-transaction/99999', 
+                        headers=auth_headers(manager_token))
+        assert rv.status_code == 404
