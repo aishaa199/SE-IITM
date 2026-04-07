@@ -36,6 +36,7 @@ def app():
         'ANTHROPIC_API_KEY': 'test-key',
     })
     with test_app.app_context():
+        _db.drop_all()
         _db.create_all()
         _seed_test_data(test_app)
     yield test_app
