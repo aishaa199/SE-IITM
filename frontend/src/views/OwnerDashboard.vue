@@ -37,6 +37,9 @@
       </div>
 
       <div class="sidebar-footer">
+        <div style="display: flex; justify-content: center; margin-bottom: 12px;">
+          <ThemeToggle />
+        </div>
         <button class="btn btn-secondary w-full" @click="showChangePasswordModal = true" style="margin-top: auto; margin-bottom: 8px">
           🔑 Change Password
         </button>
@@ -283,7 +286,7 @@
                       <span style="font-weight: 600">Monthly Growth Rate</span>
                       <span style="color: #22c55e; font-weight: 700; font-size: 18px">↑ 12.5%</span>
                     </div>
-                    <div style="height: 12px; background: #444; border-radius: 6px; overflow: hidden">
+                    <div style="height: 12px; background: var(--surface-raised); border-radius: 6px; overflow: hidden">
                       <div style="height: 100%; width: 65%; background: linear-gradient(90deg, #22c55e, #16a34a); border-radius: 6px; box-shadow: 0 0 12px rgba(34, 197, 94, 0.4)"></div>
                     </div>
                   </div>
@@ -293,7 +296,7 @@
                       <span style="font-weight: 600">Customer Satisfaction</span>
                       <span style="color: #3b82f6; font-weight: 700; font-size: 18px">⭐ 4.8/5.0</span>
                     </div>
-                    <div style="height: 12px; background: #444; border-radius: 6px; overflow: hidden">
+                    <div style="height: 12px; background: var(--surface-raised); border-radius: 6px; overflow: hidden">
                       <div style="height: 100%; width: 96%; background: linear-gradient(90deg, #3b82f6, #1d4ed8); border-radius: 6px; box-shadow: 0 0 12px rgba(59, 130, 246, 0.4)"></div>
                     </div>
                   </div>
@@ -303,7 +306,7 @@
                       <span style="font-weight: 600">Staff Performance</span>
                       <span style="color: #f59e0b; font-weight: 700; font-size: 18px">⚡ Excellent</span>
                     </div>
-                    <div style="height: 12px; background: #444; border-radius: 6px; overflow: hidden">
+                    <div style="height: 12px; background: var(--surface-raised); border-radius: 6px; overflow: hidden">
                       <div style="height: 100%; width: 88%; background: linear-gradient(90deg, #f59e0b, #d97706); border-radius: 6px; box-shadow: 0 0 12px rgba(245, 158, 11, 0.4)"></div>
                     </div>
                   </div>
@@ -313,7 +316,7 @@
                       <span style="font-weight: 600">Booking Pipeline</span>
                       <span style="color: #ec4899; font-weight: 700; font-size: 18px">📅 42</span>
                     </div>
-                    <div style="height: 12px; background: #444; border-radius: 6px; overflow: hidden">
+                    <div style="height: 12px; background: var(--surface-raised); border-radius: 6px; overflow: hidden">
                       <div style="height: 100%; width: 78%; background: linear-gradient(90deg, #ec4899, #be185d); border-radius: 6px; box-shadow: 0 0 12px rgba(236, 72, 153, 0.4)"></div>
                     </div>
                   </div>
@@ -935,9 +938,11 @@ import { Chart, registerables } from 'chart.js';
 Chart.register(...registerables);
 import { useRouter } from 'vue-router';
 import { useAppStore } from '@/stores/appStore';
+import ThemeToggle from '@/components/ThemeToggle.vue';
 
 export default {
   name: 'OwnerDashboard',
+  components: { ThemeToggle },
   setup() {
     const router = useRouter();
     const appStore = useAppStore();
@@ -1638,7 +1643,7 @@ export default {
 }
 
 .change-password-modal {
-  background: #1A1A1A;
+  background: var(--surface);
   color: var(--text);
   border-radius: 20px;
   box-shadow: 0 28px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,175,55,0.18);
@@ -1770,8 +1775,8 @@ export default {
 }
 
 .form-input::placeholder {
-  color: rgba(255, 255, 255, 0.28);
-  opacity: 1;
+  color: var(--text-muted);
+  opacity: 0.6;
 }
 
 .form-input:focus {
@@ -2081,8 +2086,8 @@ table tbody tr:hover {
   }
 
   .modal-content {
-    background: #1A1A1A;
-    border: 1px solid rgba(212,175,55,0.18);
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: var(--radius);
     box-shadow: 0 28px 80px rgba(0,0,0,0.65);
     width: 100%;

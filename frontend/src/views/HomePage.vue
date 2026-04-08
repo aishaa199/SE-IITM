@@ -11,6 +11,7 @@
         <a href="#features" class="nav-link">Services</a>
         <a href="#about"    class="nav-link">About</a>
         <a href="#contact"  class="nav-link">Contact</a>
+        <ThemeToggle />
         <router-link to="/login/customer" class="nav-link btn btn-gold" style="color: #000000;">
           Start Now
         </router-link>
@@ -49,7 +50,7 @@
           <router-link to="/login/customer" class="btn btn-gold btn-lg">
             Begin Your Journey
           </router-link>
-          <a href="#features" class="btn btn-ghost" style="color: rgba(255,255,255,0.5); font-size: 12px; letter-spacing: 0.12em">
+          <a href="#features" class="btn btn-ghost" style="color: var(--text-muted); font-size: 12px; letter-spacing: 0.12em">
             Discover More ↓
           </a>
         </div>
@@ -99,7 +100,7 @@
         <h2 class="section-title" style="color: var(--ivory)">
           Everything Your Salon<br><em style="font-style:italic; color: var(--gold-pale)">Deserves</em>
         </h2>
-        <p class="section-subtitle" style="color: rgba(255,255,255,0.4)">
+        <p class="section-subtitle" style="color: var(--text-muted)">
           From appointment booking to financial analytics — a complete ecosystem 
           designed with the precision of a master craftsperson.
         </p>
@@ -143,7 +144,7 @@
               <span class="check-icon">✦</span> {{ f }}
             </li>
           </ul>
-          <router-link :to="role.link" class="btn btn-outline" style="font-size: 10px; border-color: rgba(201,169,110,0.3); color: rgba(255,255,255,0.5); width: 100%; margin-top: auto">
+          <router-link :to="role.link" class="btn btn-outline" style="font-size: 10px; border-color: var(--border-strong); color: var(--text-muted); width: 100%; margin-top: auto">
             Enter Portal →
           </router-link>
         </div>
@@ -176,7 +177,7 @@
       <p class="cta-subtitle">Join hundreds of luxury salons already running on Glow Suite.</p>
       <div style="display: flex; gap: 16px; justify-content: center; flex-wrap: wrap">
         <router-link to="/login/customer" class="btn btn-gold btn-lg">Start Free Trial</router-link>
-        <router-link to="/login/manager"  class="btn btn-outline" style="border-color: rgba(201,169,110,0.35); color: rgba(255,255,255,0.55); padding: 15px 36px; font-size: 13px">
+        <router-link to="/login/manager"  class="btn btn-outline" style="border-color: var(--border-strong); color: var(--text-muted); padding: 15px 36px; font-size: 13px">
           Manager Login
         </router-link>
       </div>
@@ -226,6 +227,7 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 const router = useRouter()
 
 const marqueeItems = [
@@ -290,7 +292,7 @@ const roles = [
 
 .hero-stat-label {
   font-size: 10px;
-  color: rgba(255,255,255,0.35);
+  color: var(--text-muted);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   margin-top: 5px;
@@ -311,7 +313,8 @@ const roles = [
   position: absolute;
   bottom: 40px;
   left: 60px;
-  color: rgba(255,255,255,0.2);
+  color: var(--text-muted);
+  opacity: 0.5;
   font-size: 8.5px;
   letter-spacing: 0.25em;
   text-transform: uppercase;
@@ -413,7 +416,7 @@ const roles = [
 
 .testimonial-role {
   font-size: 11px;
-  color: rgba(255,255,255,0.3);
+  color: var(--text-muted);
   letter-spacing: 0.06em;
   margin-top: 3px;
 }

@@ -2,6 +2,11 @@
   <div class="login-page">
     <div class="login-bg-pattern"></div>
 
+    <!-- Theme toggle — top-right corner -->
+    <div style="position: fixed; top: 18px; right: 24px; z-index: 100;">
+      <ThemeToggle />
+    </div>
+
     <!-- Decorative elements -->
     <div class="login-deco login-deco-1"></div>
     <div class="login-deco login-deco-2"></div>
@@ -66,7 +71,7 @@
               @keydown.enter="login"
               autocomplete="current-password"
             />
-            <button type="button" @click="showLoginPassword = !showLoginPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: rgba(255,255,255,0.5); padding: 4px">
+            <button type="button" @click="showLoginPassword = !showLoginPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
               {{ showLoginPassword ? '👁️' : '👁️‍🗨️' }}
             </button>
           </div>
@@ -90,7 +95,7 @@
           <div class="login-divider">or</div>
           <button
             class="btn btn-outline w-full"
-            style="border-color: rgba(201,169,110,0.25); color: rgba(255,255,255,0.5); font-size: 11px; letter-spacing: 0.12em"
+            style="border-color: var(--border-strong); color: var(--text-muted); font-size: 11px; letter-spacing: 0.12em"
             @click="switchTab('register')"
           >
             Create Account
@@ -140,7 +145,7 @@
           <label class="form-label">Password *</label>
           <div style="position: relative; display: flex; align-items: center">
             <input v-model="regForm.password" :type="showRegPassword ? 'text' : 'password'" class="form-input" placeholder="Min. 8 characters" />
-            <button type="button" @click="showRegPassword = !showRegPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: rgba(255,255,255,0.5); padding: 4px">
+            <button type="button" @click="showRegPassword = !showRegPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
               {{ showRegPassword ? '👁️' : '👁️‍🗨️' }}
             </button>
           </div>
@@ -186,6 +191,7 @@
 import { ref, reactive, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useAppStore } from '@/stores/appStore'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const router    = useRouter()
 const route     = useRoute()
@@ -330,7 +336,7 @@ const register = async () => {
   gap: 6px;
   background: none;
   border: none;
-  color: rgba(255,255,255,0.35);
+  color: var(--text-muted);
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -394,7 +400,7 @@ const register = async () => {
   font-family: var(--font-display);
   font-style: italic;
   font-size: 12px;
-  color: rgba(255,255,255,0.12);
+  color: var(--divider);
   line-height: 1.7;
   letter-spacing: 0.01em;
 }

@@ -42,6 +42,9 @@
         </div>
       </nav>
       <div class="sidebar-footer">
+        <div style="display: flex; justify-content: center; padding: 8px 0 12px;">
+          <ThemeToggle />
+        </div>
         <div class="sidebar-user" @click="showProfileMenu = !showProfileMenu" style="cursor: pointer; position: relative">
           <div class="sidebar-avatar">{{ staffData.name[0] }}</div>
           <div>
@@ -808,6 +811,7 @@
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/appStore";
+import ThemeToggle from '@/components/ThemeToggle.vue';
 
 const router = useRouter();
 const API_BASE_URL = "http://localhost:5000";
@@ -1986,7 +1990,7 @@ onUnmounted(() => {
   outline: none;
 }
 
-.form-input::placeholder { color: rgba(255,255,255,0.22); }
+.form-input::placeholder { color: var(--text-muted); opacity: 0.6; }
 
 .form-input:focus {
   border-color: var(--gold);

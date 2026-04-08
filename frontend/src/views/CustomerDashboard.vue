@@ -57,6 +57,9 @@
         </div>
       </nav>
       <div class="sidebar-footer">
+        <div style="display: flex; justify-content: center; padding: 8px 0 12px;">
+          <ThemeToggle />
+        </div>
         <div class="sidebar-user" @click="showProfileMenu = !showProfileMenu" style="cursor: pointer; position: relative">
           <div class="sidebar-avatar">{{ customerData.name[0] }}</div>
           <div style="flex: 1">
@@ -1150,6 +1153,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/appStore";
 import { apiClient } from "../api/apiClient";
+import ThemeToggle from '@/components/ThemeToggle.vue';
 
 const router = useRouter();
 const appStore = useAppStore();
@@ -2260,7 +2264,7 @@ const handleCancelAppointment = async (appointmentId) => {
   outline: none;
 }
 
-.form-input::placeholder { color: rgba(255,255,255,0.22); }
+.form-input::placeholder { color: var(--text-muted); opacity: 0.6; }
 
 .form-input:focus {
   border-color: var(--gold);

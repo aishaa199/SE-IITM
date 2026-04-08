@@ -67,6 +67,9 @@
         </div>
       </nav>
       <div class="sidebar-footer">
+        <div style="display: flex; justify-content: center; padding: 8px 0 12px;">
+          <ThemeToggle />
+        </div>
         <div class="sidebar-user" @click="showProfileMenu = !showProfileMenu" style="cursor: pointer; position: relative">
           <div class="sidebar-avatar">{{ user.name?.[0] || user.userId?.[0] }}</div>
           <div style="flex: 1">
@@ -101,6 +104,7 @@
             <span>🔍</span>
             <input type="text" placeholder="Search..." />
           </div>
+          <ThemeToggle />
           <button class="notif-btn">🔔</button>
         </div>
       </div>
@@ -3505,6 +3509,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { Chart, registerables } from 'chart.js';
+import ThemeToggle from '@/components/ThemeToggle.vue';
 Chart.register(...registerables);
 import { useRouter } from "vue-router";
 import { useAppStore } from "@/stores/appStore";
@@ -8811,7 +8816,7 @@ onUnmounted(() => {
   background: transparent;
   color: var(--text);
 }
-.dropdown-search-input::placeholder { color: rgba(255,255,255,0.28); }
+.dropdown-search-input::placeholder { color: var(--text-muted); opacity: 0.6; }
 
 .dropdown-arrow {
   padding: 0 12px;
@@ -8979,7 +8984,7 @@ onUnmounted(() => {
   outline: none;
 }
 
-.form-input::placeholder { color: rgba(255,255,255,0.22); }
+.form-input::placeholder { color: var(--text-muted); opacity: 0.6; }
 
 .form-input:focus {
   border-color: var(--gold);
@@ -9057,8 +9062,8 @@ onUnmounted(() => {
   right: 30px;
   width: 380px;
   height: 500px;
-  background: #1A1A1A;
-  border: 1px solid rgba(212,175,55,0.18);
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: var(--shadow-xl);
   display: flex;
@@ -9162,7 +9167,7 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   padding: 12px;
-  background: #1A1A1A;
+  background: var(--surface);
   border-top: 1px solid var(--divider);
   border-radius: 0 0 14px 14px;
 }
@@ -9180,7 +9185,7 @@ onUnmounted(() => {
   transition: border-color 0.2s;
 }
 
-.ai-input-field::placeholder { color: rgba(255,255,255,0.25); }
+.ai-input-field::placeholder { color: var(--text-muted); opacity: 0.6; }
 
 .ai-input-field:focus {
   border-color: var(--gold);
