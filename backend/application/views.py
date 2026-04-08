@@ -4,7 +4,7 @@ from collections import Counter
 
 from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_restful import Api, Resource
-from flask_security import auth_required, roles_accepted, current_user, verify_password, hash_password
+from flask_security import auth_required, roles_accepted, current_user, verify_password, hash_password, logout_user
 from sqlalchemy import func
 from datetime import datetime, date, timedelta
 from werkzeug.security import check_password_hash
@@ -119,6 +119,14 @@ def customer_login():
         return jsonify({"token": user.get_auth_token(), "username": user.username, "role": user.roles[0].name})
     else:
         return jsonify({"message":"Wrong Password"}), 400
+
+#######################################################################################
+################################## Logout API ##############################
+@main.route('/logout', methods=['POST'])
+@auth_required("token")
+def logout():
+    logout_user()
+    return jsonify({"message": "Successfully logged out"}), 200
 
 #######################################################################################
 ################################## Customer Registration API ##############################

@@ -1160,7 +1160,7 @@ class AppointmentResource(Resource):
                     "staff_id": appt.staff_id,
                     "staff_name": appt.staff.staff_name if appt.staff else None,
                     "datetime": appt.appointment_datetime.isoformat(),
-                    "services": [{"id": s.service_id, "name": s.service_desc} 
+                    "services": [{"id": s.service_id, "name": s.service_desc, "price": s.service_price} 
                                  for s in appt.services if s.active_flg]
                 })
             return result
@@ -1246,7 +1246,10 @@ class AppointmentResource(Resource):
                 appointment.staff_id = staff_id
             
             if datetime_str:
-                appointment.appointment_datetime = datetime.fromisoformat(datetime_str)
+                new_datetime = datetime.fromisoformat(datetime_str)
+                if appointment.appointment_datetime != new_datetime:
+                    appointment.appointment_datetime = new_datetime
+                    appointment.status = 4 # Set to Rescheduled if datetime changes
             
             if 'service_ids' in data:
                 if service_ids:
@@ -1446,6 +1449,41 @@ class StaffAttendanceResource(Resource):
             db.session.rollback()
             return {"message": f"Failed to mark attendance: {str(e)}"}, 500
 
+################################## Staff Customer Review API ################################
+class StaffCustomerReview(Resource):
+    @auth_required("token")
+    @roles_required("staff")
+    def get(self):
+        # Fetch all customer reviews for the particular staff member who is logged in
+        target_staff_id = current_user.id
+        
+        staff = Staff.query.get(target_staff_id)
+        if not staff:
+            return {"message": "Staff profile not found"}, 404
+        
+        reviews = CustomerReview.query.filter_by(staff_id=target_staff_id).all()
+        
+        result = []
+        for review in reviews:
+            # Map service_ids string to service names
+            service_names = []
+            if review.service_ids:
+                s_ids = [int(sid.strip()) for sid in review.service_ids.split(",") if sid.strip().isdigit()]
+                services = Service.query.filter(Service.service_id.in_(s_ids)).all()
+                service_names = [s.service_desc for s in services]
+
+            result.append({
+                "review_id": review.review_id,
+                "customer_name": review.customer.customer_name,
+                "rating": review.rating,
+                "review": review.review,
+                "appointment_id": review.apppointment_id,
+                "service_ids": review.service_ids,
+                "service_names": service_names
+            })
+            
+        return result, 200
+
 ################################## Maintenance: Cleanup History ##############################
 class AppointmentHistoryCleanup(Resource):
     @auth_required("token")
@@ -1490,7 +1528,112 @@ class SalonDailyAppointmentCountResource(Resource):
         except Exception as e:
             return {"message": f"Error fetching appointment counts: {str(e)}"}, 500
 
+################################## Staff Dashboard API ##############################
+class StaffDashboard(Resource):
+    @auth_required("token")
+    @roles_required("staff")
+    def get(self):
+        # Fetch the staff ID of the current user
+        staff_id = current_user.id
+        today = date.today()
+        
+        # 1. Total number of appointments today
+        total_appointments_today = Appointment.query.filter(
+            Appointment.staff_id == staff_id,
+            db.func.date(Appointment.appointment_datetime) == today
+        ).count()
+        
+        # 2. Total number of completed appointments today
+        # Assuming status 3 is 'Completed' based on context in resources.py
+        completed_appointments_today = Appointment.query.filter(
+            Appointment.staff_id == staff_id,
+            db.func.date(Appointment.appointment_datetime) == today,
+            Appointment.status == 1
+        ).count()
+        
+        return {
+            "total_appointments_today": total_appointments_today,
+            "completed_appointments_today": completed_appointments_today
+        }, 200
+
 ################################## Customer Appointment APIs ##############################
+
+###################################### For customer to fetch a specific appoint ment data ################
+class CustomerAppointment(Resource):
+    @auth_required("token")
+    @roles_required("customer")
+    def get(self, appointment_id):
+        appointment = Appointment.query.filter_by(appointment_id=appointment_id, customer_id=current_user.id).first()
+        if not appointment:
+            return {"message": "Appointment not found or unauthorized"}, 404
+        
+        return {
+            "appointment_id": appointment.appointment_id,
+            "staff_id": appointment.staff_id,
+            "staff_name": appointment.staff.staff_name if appointment.staff else None,
+            "appointment_datetime": appointment.appointment_datetime.isoformat(),
+            "status": appointment.status,
+            "services": [{"service_id": s.service_id, "service_desc": s.service_desc, "service_price": s.service_price} 
+                         for s in appointment.services]
+        }
+
+###################################### For customer to update/reschedule a specific appointment  ################
+    def put(self, appointment_id):
+        appointment = Appointment.query.filter_by(appointment_id=appointment_id, customer_id=current_user.id).first()
+        if not appointment:
+            return {"message": "Appointment not found or unauthorized"}, 404
+        
+        if appointment.status not in [0, 4]:
+            return {"message": "Only 'Booked' and 'Rescheduled' appointments can be updated"}, 400
+
+        data = request.get_json()
+        staff_id = data.get('staff_id')
+        service_ids = data.get('service_ids')
+        datetime_str = data.get('appointment_datetime')
+        status = 4 # Rescheduled status when customer updates the appointment
+
+        try:
+            if staff_id is not None:
+                appointment.staff_id = staff_id
+            
+            if datetime_str:
+                appointment.appointment_datetime = datetime.fromisoformat(datetime_str)
+            if status:
+                appointment.status = status
+            if service_ids is not None:
+                if not isinstance(service_ids, list):
+                    return {"message": "service_ids must be a list of integers"}, 400
+                
+                services = Service.query.filter(Service.service_id.in_(service_ids), Service.active_flg == True).all()
+                if len(services) != len(set(service_ids)):
+                    return {"message": "Some services were either not found or are inactive"}, 400
+                appointment.services = services
+
+            db.session.commit()
+            return {"message": "Appointment updated successfully"}
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to update appointment: {str(e)}"}, 500
+
+###################################### For customer to delete a specific appointment  ################
+    @auth_required("token")
+    @roles_required("customer")
+    def delete(self, appointment_id):
+        appointment = Appointment.query.filter_by(appointment_id=appointment_id, customer_id=current_user.id).first()
+        if not appointment:
+            return {"message": "Appointment not found or unauthorized"}, 404
+        
+        if appointment.status not in [0, 4]:
+            return {"message": "Only 'Booked' and 'Rescheduled' appointments can be cancelled/deleted"}, 400
+            
+        try:
+            db.session.delete(appointment)
+            db.session.commit()
+            return {"message": "Appointment cancelled and deleted successfully"}
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to delete appointment: {str(e)}"}, 500
+
 class CustomerUpcomingAppointmentsResource(Resource):
     @auth_required("token")
     @roles_required("customer")
@@ -1507,17 +1650,20 @@ class CustomerUpcomingAppointmentsResource(Resource):
 
         result = []
         for appt in booked_appointments:
-            staff_name = appt.staff.staff_name if appt.staff else "Not Assigned"
-            appt_time = appt.appointment_datetime.isoformat()
-            for service in appt.services:
-                result.append({
-                    "appointment_id": appt.appointment_id,
-                    "service_name": service.service_desc,
-                    "staff_name": staff_name,
-                    "datetime": appt_time,
-                    "price": service.service_price,
-                    "status": appt.status
-                })
+            result.append({
+                "appointment_id": appt.appointment_id,
+                "staff_name": appt.staff.staff_name if appt.staff else "Not Assigned",
+                "datetime": appt.appointment_datetime.isoformat(),
+                "status": appt.status,
+                "services": [
+                    {
+                        "service_id": s.service_id,
+                        "service_name": s.service_desc,
+                        "price": s.service_price
+                    } for s in appt.services
+                ],
+                "total_price": sum(s.service_price for s in appt.services)
+            })
 
         return result, 200
 
@@ -1656,52 +1802,138 @@ class CustomerSummaryResource(Resource):
 class CustomerReviewResource(Resource):
     @auth_required("token")
     @roles_required("customer")
-    def get(self):
+    def get(self, invoice_number=None):
         target_customer_id = current_user.id
-        # Fetch appointment_ids for current customer where feedback_given is False and appointment is completed/invoiced
-        pending_feedback = Appointment.query.filter(
-            Appointment.customer_id == target_customer_id,
-            Appointment.feedback_given == False,
-            Appointment.status.in_([1, 5]) # 1: Completed, 5: Invoiced
-        ).all()
+        
+        # Fetch invoices for current customer for which feedback_given is false in the appointment table
+        # We join Invoice with Appointment to check the feedback_given flag
+        query = db.session.query(Invoice).join(
+            Appointment, Invoice.appointment_id == Appointment.appointment_id
+        ).filter(
+            Invoice.customer_id == target_customer_id,
+            Appointment.feedback_given == False
+        )
+
+        if invoice_number:
+            query = query.filter(Invoice.invoice_number == invoice_number)
+        
+        pending_reviews = query.all()
         
         result = []
-        for appt in pending_feedback:
-            result.append({
-                "appointment_id": appt.appointment_id,
-                "datetime": appt.appointment_datetime.isoformat(),
-                "staff_name": appt.staff.staff_name if appt.staff else "Unknown",
-                "services": [s.service_desc for s in appt.services]
-            })
+        for inv in pending_reviews:
+            appt = inv.appointment
+            if appt:
+                result.append({
+                    "invoice_number": inv.invoice_number,
+                    "appointment_id": inv.appointment_id,
+                    "staff_name": appt.staff.staff_name if appt.staff else (inv.staff.staff_name if inv.staff else "Unknown"),
+                    "datetime": appt.appointment_datetime.isoformat(),
+                    "services": [s.service_desc for s in appt.services]
+                })
+        
+        if invoice_number and not result:
+            return {"message": "Invoice not found, unauthorized, or already reviewed"}, 404
+
         return result, 200
 
+################################# To Save Custmer Review ############################################
+    @auth_required("token")
+    @roles_required("customer")
+    def post(self, invoice_number):
+        target_customer_id = current_user.id
+        data = request.get_json()
+        
+        rating = data.get('rating')
+        review_text = data.get('review')
+
+        if rating is None:
+            return {"message": "Rating is required"}, 400
+
+        # Fetch invoice details for the specific invoice_number
+        invoice = Invoice.query.filter_by(
+            customer_id=target_customer_id,
+            invoice_number=invoice_number
+        ).first()
+
+        if not invoice:
+            return {"message": "Invoice not found or unauthorized"}, 404
+
+        appointment = invoice.appointment
+        if not appointment:
+            return {"message": "Associated appointment not found"}, 404
+
+        if appointment.feedback_given:
+            return {"message": "Feedback already given for this invoice"}, 400
+
+        if appointment.status not in [1, 5]:
+            return {"message": "Can only review completed or invoiced appointments"}, 400
+
+        try:
+            # Create CustomerReview record using fields from the Invoice table
+            new_review = CustomerReview(
+                customer_id=target_customer_id,
+                staff_id=invoice.staff_id,
+                apppointment_id=invoice.appointment_id,
+                invoice_number=invoice.invoice_number,
+                service_ids=invoice.service_ids,
+                rating=rating,
+                review=review_text
+            )
+            db.session.add(new_review)
+            
+            # Update Appointment feedback_given flag
+            appointment.feedback_given = True
+            
+            # Update Staff and Service ratings
+            update_staff_rating(invoice.staff_id, rating)
+            
+            # Use service_ids from invoice to update individual service ratings
+            if invoice.service_ids:
+                service_id_list = [int(sid.strip()) for sid in invoice.service_ids.split(",") if sid.strip().isdigit()]
+                for s_id in service_id_list:
+                    update_service_rating(s_id, rating)
+            
+            db.session.commit()
+            return {"message": "Review and rating submitted successfully"}, 201
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to submit review: {str(e)}"}, 500
+    
+########################### To fetch appointments for current customer where feedback_given ###########
 class CustomerReviewedAppointments(Resource):
     @auth_required("token")
     @roles_required("customer")
     def get(self):
         target_customer_id = current_user.id
-        # Fetch appointments for current customer where feedback_given is True
-        reviewed_appointments = Appointment.query.filter(
-            Appointment.customer_id == target_customer_id,
+        
+        # Fetch invoices for current customer joined with Appointment where feedback_given is True
+        # We join Invoice with Appointment to filter by the feedback_given flag and customer_id
+        reviewed_invoices = db.session.query(Invoice).join(
+            Appointment, Invoice.appointment_id == Appointment.appointment_id
+        ).filter(
+            Invoice.customer_id == target_customer_id,
             Appointment.feedback_given == True
         ).all()
         
         result = []
-        for appt in reviewed_appointments:
-            # Look for corresponding review in customer_review table using appointment_id
-            review = CustomerReview.query.filter_by(
-                customer_id=target_customer_id,
-                apppointment_id=appt.appointment_id
-            ).first()
-            
-            result.append({
-                "appointment_id": appt.appointment_id,
-                "datetime": appt.appointment_datetime.isoformat(),
-                "staff_name": appt.staff.staff_name if appt.staff else "Unknown",
-                "services": [s.service_desc for s in appt.services],
-                "rating": review.rating if review else None,
-                "review": review.review if review else "No review text"
-            })
+        for inv in reviewed_invoices:
+            appt = inv.appointment
+            if appt:
+                # Look for corresponding review in customer_review table using appointment_id or invoice_number
+                review = CustomerReview.query.filter_by(
+                    customer_id=target_customer_id,
+                    apppointment_id=appt.appointment_id
+                ).first()
+                
+                result.append({
+                    "invoice_number": inv.invoice_number,
+                    "appointment_id": appt.appointment_id,
+                    "staff_name": appt.staff.staff_name if appt.staff else "Unknown",
+                    "datetime": appt.appointment_datetime.isoformat(),
+                    "services": [s.service_desc for s in appt.services],
+                    "rating": review.rating if review else None,
+                    "review": review.review if review else "No review text"
+                })
         return result, 200
 
 ##################################### Saving Customer Reviews ######################################
@@ -2208,6 +2440,7 @@ invoice_fields = {
     'service_ids': fields.String,
     'service_descs': fields.String,
     'other_charges': fields.Float,
+    'discount_percentage': fields.Float,
     'rewards_earned': fields.Integer,
     'rewards_utilized': fields.Integer,
     'current_reward_points': fields.Integer,
@@ -2221,9 +2454,15 @@ class InvoiceResource(Resource):
     @auth_required("token")
     @roles_accepted("manager", "staff")
     def get(self, appointment_id=None):
+        # If appointment_id is provided, check its status immediately
+        if appointment_id:
+            appointment = Appointment.query.get(appointment_id)
+            if not appointment:
+                return {"message": "Appointment not found"}, 404
+            invalidate_expired_points(appointment.customer_id)
         """
         Fetch data for an invoice based on appointment_id.
-        If no appointment_id is provided, return all existing invoices.
+        If no appointment_id is provided, return all appointments that haven't been invoiced yet.
         """
         # Determine customer_id to update rewards if appointment_id is provided
         if appointment_id:
@@ -2273,43 +2512,28 @@ class InvoiceResource(Resource):
                 "service_total": service_total
             }, 200
         
-        invoices = Invoice.query.all()
+        # Change: Filter out appointments that already have an invoice
+        invoiced_appointment_ids = db.session.query(Invoice.appointment_id).filter(Invoice.appointment_id != None).all()
+        invoiced_appointment_ids = [r[0] for r in invoiced_appointment_ids]
+        
+        # Get all appointments that do NOT have an invoice and have status 0 or 4
+        pending_appointments = Appointment.query.filter(
+            ~Appointment.appointment_id.in_(invoiced_appointment_ids),
+            Appointment.status.in_([0, 4])
+        ).all()
+        
         result = []
-        for inv in invoices:
-            # Manually construct data to ensure fields are populated correctly
-            inv_data = {
-                "invoice_number": inv.invoice_number,
-                "invoice_date": str(inv.invoice_date),
-                "customer_id": inv.customer_id,
-                "customer_name": inv.customer.customer_name if inv.customer else "Unknown",
-                "staff_id": inv.staff_id,
-                "staff_name": inv.staff.staff_name if inv.staff else "Unknown",
-                "service_ids": inv.service_ids,
-                "other_charges": inv.other_charges,
-                "rewards_earned": inv.rewards_earned,
-                "rewards_utilized": inv.rewards_utilized,
-                "current_reward_points": inv.current_reward_points,
-                "invoice_amount": inv.invoice_amount,
-                "total_charges": inv.total_invoice_amount,
-                "status": inv.status
-            }
-            
-            # Fetch service descriptions for comma separated service_ids
-            if inv.service_ids:
-                try:
-                    clean_sids = str(inv.service_ids).strip()
-                    s_ids = [int(sid.strip()) for sid in clean_sids.split(",") if sid.strip()]
-                    services = Service.query.filter(Service.service_id.in_(s_ids)).all()
-                    s_map = {s.service_id: s.service_desc for s in services}
-                    inv_data["service_descs"] = ", ".join([s_map.get(sid, "Unknown") for sid in s_ids])
-                except Exception:
-                    inv_data["service_descs"] = ""
-            else:
-                inv_data["service_descs"] = ""
-                
-            result.append(inv_data)
+        for appt in pending_appointments:
+            result.append({
+                "appointment_id": appt.appointment_id,
+                "customer_name": appt.customer.customer_name if appt.customer else "Unknown",
+                "staff_name": appt.staff.staff_name if appt.staff else "Not Assigned",
+                "datetime": appt.appointment_datetime.isoformat(),
+                "status": appt.status
+            })
             
         return result, 200
+
 
 ################################## Create Invoice #####################################
     @auth_required("token")
@@ -2325,8 +2549,9 @@ class InvoiceResource(Resource):
         service_ids = data.get('service_ids')
         invoice_amount = data.get('invoice_amount')
         other_charges = data.get('other_charges', 0.0)
-        # Always set status to 0 (Pending) when creating a new invoice
-        status = 0 
+        discount_percentage_input = data.get('discount_percentage', 0.0)
+        # Always set status to 1 (Completed) when creating a new invoice
+        status = 1
         
         # If appointment_id is provided in URL, use it; otherwise check body
         target_appointment_id = appointment_id or data.get('appointment_id')
@@ -2353,7 +2578,12 @@ class InvoiceResource(Resource):
         
         total_invoice_amount = float(invoice_amount) + float(other_charges)
         
-        # Calculate rewards utilization
+        # Apply additional discount if provided
+        if discount_percentage_input > 0:
+            discount_amount_input = total_invoice_amount * (float(discount_percentage_input) / 100)
+            total_invoice_amount -= discount_amount_input
+
+        # Calculate rewards utilization (Using the final total_invoice_amount after all discounts)
         rewards_utilized_points, rem_reward_points, payable_invoice_amount = calculate_reward_value(total_invoice_amount, current_reward_points)
         
 
@@ -2393,6 +2623,7 @@ class InvoiceResource(Resource):
                 invoice_date=date.today(),
                 invoice_amount=invoice_amount,
                 other_charges=other_charges,
+                discount_percentage=discount_percentage_input,
                 rewards_earned=total_rewards_earned,
                 rewards_utilized=int(rewards_utilized_points),
                 current_reward_points=current_reward_points,
@@ -2420,6 +2651,7 @@ class InvoiceResource(Resource):
         except Exception as e:
             db.session.rollback()
             return {"message": f"Failed to create invoice: {str(e)}"}, 500
+
 
 ################################## Today's Appointments API ################################
 
@@ -2457,6 +2689,61 @@ class TodaysAppointmentsResource(Resource):
         except Exception as e:
             return {"message": f"Error fetching today's appointments: {str(e)}"}, 500
 
+
+class GetAppointmentIDsForInvoice(Resource):
+    @auth_required("token")
+    @roles_accepted("manager", "staff")
+    def get(self):
+        """
+        Fetch all appointments from appointment table where status is either 0 or 4.
+        """
+        appointments = Appointment.query.filter(Appointment.status.in_([0, 4])).all()
+        
+        result = []
+        for appt in appointments:
+            result.append({
+                "appointment_id": appt.appointment_id,
+                "customer_name": appt.customer.customer_name if appt.customer else "Unknown",
+                "staff_name": appt.staff.staff_name if appt.staff else "Not Assigned",
+                "datetime": appt.appointment_datetime.isoformat(),
+                "status": appt.status
+            })
+            
+        return result, 200
+
+############################################## To get all the invoices from invoice table for manager and staff ##############################################
+class GetAllInvoices(Resource):
+    @auth_required("token")
+    @roles_accepted("manager", "staff")
+    def get(self):
+        """
+        Fetch all the invoices from invoice table.
+        """
+        invoices = Invoice.query.all()
+        
+        result = []
+        for inv in invoices:
+            result.append({
+                "invoice_number": inv.invoice_number,
+                "invoice_date": str(inv.invoice_date),
+                "customer_id": inv.customer_id,
+                "customer_name": inv.customer.customer_name if inv.customer else "Unknown",
+                "staff_id": inv.staff_id,
+                "staff_name": inv.staff.staff_name if inv.staff else "Unknown",
+                "service_ids": inv.service_ids,
+                "other_charges": inv.other_charges,
+                "discount_percentage": inv.discount_percentage,
+                "rewards_earned": inv.rewards_earned,
+                "rewards_utilized": inv.rewards_utilized,
+                "current_reward_points": inv.current_reward_points,
+                "invoice_amount": inv.invoice_amount,
+                "total_charges": inv.total_invoice_amount,
+                "status": inv.status,
+                "appointment_id": inv.appointment_id
+            })
+            
+        return result, 200
+
 #############################################################################################
 # Add API resources to the app
 
@@ -2470,6 +2757,8 @@ api.add_resource(ServiceResource, '/service', '/service/<int:service_id>')
 api.add_resource(AppointmentResource, '/appointment', '/appointment/<int:appointment_id>')
 api.add_resource(SalonConfigResource, '/salon-config', '/salon-config/<int:setting_id>')
 api.add_resource(StaffAppointmentResource, '/staff-appointments')
+api.add_resource(StaffDashboard, '/staff-dashboard')
+api.add_resource(StaffCustomerReview, '/staff-customer-reviews')
 api.add_resource(ManagerStaffAttendance, '/manager-staff-attendance')
 api.add_resource(StaffAttendanceResource, '/staff-attendance')
 api.add_resource(AppointmentHistoryCleanup, '/cleanup-appointments')
@@ -2477,10 +2766,13 @@ api.add_resource(SalonDailyAppointmentCountResource, '/daily-appointment-count')
 api.add_resource(CustomerUpcomingAppointmentsResource, '/customer-upcoming-appointments')
 api.add_resource(CustomerHistoryAppointmentsResource, '/customer-history-appointments')
 api.add_resource(CustomerSummaryResource, '/customer-summary')
-api.add_resource(CustomerReviewResource, '/customer-review')
+api.add_resource(CustomerAppointment, '/customer/appointment/<int:appointment_id>')
+api.add_resource(CustomerReviewResource, '/customer-review', '/customer-review/<int:invoice_number>')
 api.add_resource(CustomerReviewedAppointments, '/customer-reviewed-appointments')
 api.add_resource(InventoryTransactionResource, '/inventory-transaction', '/inventory-transaction/<int:txn_id>')
 api.add_resource(OrderResource, '/order', '/order/<int:order_id>')
 api.add_resource(InvoiceResource, '/invoice', '/invoice/<int:appointment_id>')
 api.add_resource(FinanceResource, '/finance')
 api.add_resource(TodaysAppointmentsResource, '/todays-appointments')
+api.add_resource(GetAppointmentIDsForInvoice, "/get-appointments-for-invoice")
+api.add_resource(GetAllInvoices, "/get-all-invoices")
