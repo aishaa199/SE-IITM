@@ -4,7 +4,7 @@
     <div class="dashboard-sidebar">
       <div class="sidebar-header">
         <h2 style="color: var(--gold); font-size: 24px; margin: 0">👑 Owner Hub</h2>
-        <p style="color: #6f675a; margin: 8px 0 0 0; font-size: 12px">{{ ownerData.ownerName }}</p>
+        <p style="color: var(--text-muted); margin: 8px 0 0 0; font-size: 12px">{{ ownerData.ownerName }}</p>
       </div>
 
       <div class="sidebar-menu">
@@ -12,27 +12,27 @@
           :class="['nav-item', { active: currentView === 'overview' }]"
           @click="currentView = 'overview'"
         >
-          <span class="nav-icon">📊</span> Overview
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Overview
         </div>
 
         <div
           :class="['nav-item', { active: currentView === 'managers' }]"
           @click="currentView = 'managers'"
         >
-          <span class="nav-icon">⚙️</span> Manage Managers
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Manage Managers
         </div>
 
         <div
           :class="['nav-item', { active: currentView === 'reports' }]"
           @click="currentView = 'reports'"
         >
-          <span class="nav-icon">📊</span> Reports & Analytics
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span> Reports & Analytics
         </div>
         <div
           :class="['nav-item', { active: currentView === 'profile' }]"
           @click="currentView = 'profile'"
         >
-          <span class="nav-icon">👤</span> My Profile
+          <span class="nav-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> My Profile
         </div>
       </div>
 
@@ -105,7 +105,7 @@
                   </svg>
                   <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center">
                     <div style="font-size: 36px; font-weight: bold; color: var(--gold)">{{ totalCustomers }}</div>
-                    <div style="font-size: 12px; color: #6f675a">Total</div>
+                    <div style="font-size: 12px; color: var(--text-muted)">Total</div>
                   </div>
                 </div>
                 
@@ -151,7 +151,7 @@
                     <div v-if="hoveredBar === 'mon'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹500</div>
                   </div>
                   <div style="font-weight: 700">Mon</div>
-                  <div style="font-size: 12px; color: #6f675a">₹500</div>
+                  <div style="font-size: 12px; color: var(--text-muted)">₹500</div>
                 </div>
 
                 <!-- Tuesday -->
@@ -161,7 +161,7 @@
                     <div v-if="hoveredBar === 'tue'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹750</div>
                   </div>
                   <div style="font-weight: 700">Tue</div>
-                  <div style="font-size: 12px; color: #6f675a">₹750</div>
+                  <div style="font-size: 12px; color: var(--text-muted)">₹750</div>
                 </div>
 
                 <!-- Wednesday -->
@@ -171,7 +171,7 @@
                     <div v-if="hoveredBar === 'wed'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹600</div>
                   </div>
                   <div style="font-weight: 700">Wed</div>
-                  <div style="font-size: 12px; color: #6f675a">₹600</div>
+                  <div style="font-size: 12px; color: var(--text-muted)">₹600</div>
                 </div>
 
                 <!-- Thursday -->
@@ -181,7 +181,7 @@
                     <div v-if="hoveredBar === 'thu'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹800</div>
                   </div>
                   <div style="font-weight: 700">Thu</div>
-                  <div style="font-size: 12px; color: #6f675a">₹800</div>
+                  <div style="font-size: 12px; color: var(--text-muted)">₹800</div>
                 </div>
 
                 <!-- Friday -->
@@ -191,7 +191,7 @@
                     <div v-if="hoveredBar === 'fri'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹650</div>
                   </div>
                   <div style="font-weight: 700">Fri</div>
-                  <div style="font-size: 12px; color: #6f675a">₹650</div>
+                  <div style="font-size: 12px; color: var(--text-muted)">₹650</div>
                 </div>
               </div>
             </div>
@@ -423,14 +423,14 @@
                 </button>
                 <span style="font-size: 22px;">{{ ownerAnalyticsView.icon }}</span>
                 <div>
-                  <div style="font-weight: 700; font-size: 16px; color: #2D2D2D;">{{ ownerAnalyticsView.title }}</div>
-                  <div style="font-size: 12px; color: #8B7355;">{{ ownerAnalyticsView.periodLabel }}</div>
+                  <div style="font-weight: 700; font-size: 16px; color: var(--text);">{{ ownerAnalyticsView.title }}</div>
+                  <div style="font-size: 12px; color: var(--text-muted);">{{ ownerAnalyticsView.periodLabel }}</div>
                 </div>
               </div>
             </div>
 
             <!-- Loading / Error -->
-            <div v-if="ownerAnalyticsLoading" style="text-align: center; padding: 48px; color: #8B7355; font-size: 14px;">
+            <div v-if="ownerAnalyticsLoading" style="text-align: center; padding: 48px; color: var(--text-muted); font-size: 14px;">
               Loading analytics…
             </div>
             <div v-else-if="ownerAnalyticsError" style="text-align: center; padding: 32px; color: #e53e3e; font-size: 14px;">
@@ -443,15 +443,15 @@
               <div class="card" style="margin-bottom: 16px;">
                 <div class="card-body" style="display: flex; gap: 24px; flex-wrap: wrap;">
                   <div v-if="ownerAnalyticsData.total !== undefined">
-                    <div style="font-size: 11px; color: #8B7355; text-transform: uppercase; letter-spacing: 0.5px;">Total</div>
-                    <div style="font-size: 28px; font-weight: 800; color: #2D2D2D;">{{ ownerAnalyticsData.total }}</div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Total</div>
+                    <div style="font-size: 28px; font-weight: 800; color: var(--text);">{{ ownerAnalyticsData.total }}</div>
                   </div>
                   <div v-if="ownerAnalyticsData.total_revenue !== undefined">
-                    <div style="font-size: 11px; color: #8B7355; text-transform: uppercase; letter-spacing: 0.5px;">Revenue</div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Revenue</div>
                     <div style="font-size: 28px; font-weight: 800; color: #22c55e;">₹{{ ownerAnalyticsData.total_revenue?.toLocaleString('en-IN') }}</div>
                   </div>
                   <div v-if="ownerAnalyticsData.avg_rating !== undefined">
-                    <div style="font-size: 11px; color: #8B7355; text-transform: uppercase; letter-spacing: 0.5px;">Avg Rating</div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Avg Rating</div>
                     <div style="font-size: 28px; font-weight: 800; color: #d4af37;">{{ ownerAnalyticsData.avg_rating }} ★</div>
                   </div>
                 </div>
@@ -553,15 +553,15 @@
               </div>
               <div class="card-body">
                 <!-- Loading -->
-                <div v-if="ownerReportsLoading" style="text-align: center; padding: 32px; color: #8B7355;">
+                <div v-if="ownerReportsLoading" style="text-align: center; padding: 32px; color: var(--text-muted);">
                   Loading reports…
                 </div>
 
                 <!-- Empty -->
                 <div v-else-if="ownerReports.length === 0" style="text-align: center; padding: 32px;">
                   <div style="font-size: 40px; margin-bottom: 12px;">📭</div>
-                  <div style="color: #8B7355; font-size: 14px;">No reports shared by the manager yet.</div>
-                  <div style="color: #8B7355; font-size: 12px; margin-top: 6px;">Reports appear here when the manager clicks "Send to Owner" in the Reports section.</div>
+                  <div style="color: var(--text-muted); font-size: 14px;">No reports shared by the manager yet.</div>
+                  <div style="color: var(--text-muted); font-size: 12px; margin-top: 6px;">Reports appear here when the manager clicks "Send to Owner" in the Reports section.</div>
                 </div>
 
                 <!-- Reports list -->
@@ -569,19 +569,19 @@
                   <div
                     v-for="report in ownerReports"
                     :key="report.id"
-                    style="display: flex; align-items: center; gap: 14px; padding: 12px 10px; border-radius: 8px; border: 1px solid #e8e0d5; margin-bottom: 8px; background: white; transition: background 0.15s;"
-                    @mouseenter="$event.currentTarget.style.background='#f9f5f0'"
-                    @mouseleave="$event.currentTarget.style.background='white'"
+                    style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); margin-bottom: 8px; background: var(--surface); transition: all 0.2s;"
+                    @mouseenter="$event.currentTarget.style.background='rgba(212,175,55,0.07)'; $event.currentTarget.style.borderColor='rgba(212,175,55,0.30)'"
+                    @mouseleave="$event.currentTarget.style.background='var(--surface)'; $event.currentTarget.style.borderColor='rgba(212,175,55,0.15)'"
                   >
-                    <div style="font-size: 26px; flex-shrink: 0;">
+                    <div style="font-size: 24px; flex-shrink: 0; width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:rgba(212,175,55,0.10); border-radius:8px; border:1px solid rgba(212,175,55,0.22);">
                       {{ ownerReportIcons[report.report_type] || '📄' }}
                     </div>
                     <div style="flex: 1; min-width: 0;">
-                      <div style="font-weight: 700; font-size: 14px; color: #2D2D2D;">
+                      <div style="font-weight: 600; font-size: 14px; color: var(--text);">
                         {{ report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1) }} Report
-                        <span style="margin-left: 6px; font-size: 10px; background: #e6f4ea; color: #276749; padding: 1px 8px; border-radius: 10px; font-weight: 600;">Shared</span>
+                        <span style="margin-left: 6px; font-size: 10px; background: rgba(39,103,73,0.15); color: #7ec8a0; padding: 2px 8px; border-radius: 10px; font-weight: 700; border: 1px solid rgba(39,103,73,0.25);">Shared</span>
                       </div>
-                      <div style="font-size: 12px; color: #8B7355; margin-top: 3px;">
+                      <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">
                         {{ ownerPeriodLabels[report.time_period] || report.time_period }}
                         &bull;
                         {{ new Date(report.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) }}
@@ -738,7 +738,7 @@
 
                 <!-- Status & Actions -->
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px">
-                  <span style="display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600">✓ Active</span>
+                  <span style="display: inline-block; background: rgba(45,138,78,0.15); color: #5cba7d; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; border: 1px solid rgba(45,138,78,0.28)">✓ Active</span>
                 </div>
                 <div style="display: flex; gap: 10px">
                   <button @click="deleteManager(manager.id)" style="flex: 1; padding: 10px 16px; background: #e74c3c; color: white; border: none; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.3s" @mouseenter="$event.target.style.backgroundColor='#c0392b'" @mouseleave="$event.target.style.backgroundColor='#e74c3c'">
@@ -1525,22 +1525,21 @@ export default {
 </script>
 
 <style scoped>
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
+/* ── Dark-theme token overrides for OwnerDashboard ── */
 :root {
-  --gold: #d4af37;
-  --bg: #f6f2e9;
-  --card-bg: #fffaf0;
-  --text: #2f2a23;
-  --border: #d9cfbf;
-  --light-bg: #efe7d8;
-  --success: #4caf50;
-  --danger: #f44336;
-  --warning: #ff9800;
-  --info: #2196f3;
-  --radius: 8px;
+  --gold:     #D4AF37;
+  --bg:       #0D0D0D;
+  --card-bg:  #1A1A1A;
+  --text:     #F5F1E8;
+  --border:   rgba(212,175,55,0.15);
+  --light-bg: rgba(255,255,255,0.05);
+  --success:  #5cba7d;
+  --danger:   #f08070;
+  --warning:  #f4a460;
+  --info:     #7eb8f7;
+  --radius:   14px;
 }
 
 .dashboard-container {
@@ -1552,13 +1551,12 @@ export default {
 
 .dashboard-sidebar {
   width: 280px;
-  background-color: var(--card-bg);
-  border-right: 1px solid var(--border);
+  background-color: var(--obsidian, #0D0D0D);
+  border-right: 1px solid rgba(212,175,55,0.12);
   padding: 20px;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
 }
 
 .sidebar-header {
@@ -1569,35 +1567,40 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
 .nav-item {
-  padding: 12px 16px;
-  border-radius: var(--radius);
+  padding: 11px 16px;
+  border-radius: 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 12px;
-  color: var(--text);
-  transition: all 0.3s ease;
-  border-left: 3px solid transparent;
+  color: rgba(255,255,255,0.45);
+  transition: all 0.25s ease;
+  border-left: 2px solid transparent;
   background-color: transparent;
+  font-size: 13px;
 }
 
 .nav-item:hover {
-  background-color: var(--light-bg);
-  border-left-color: var(--gold);
+  background-color: rgba(212,175,55,0.08);
+  border-left-color: rgba(212,175,55,0.4);
+  color: rgba(255,255,255,0.85);
 }
 
 .nav-item.active {
-  background-color: var(--light-bg);
+  background-color: rgba(212,175,55,0.10);
   border-left-color: var(--gold);
-  color: var(--gold);
+  color: #F0DEB0;
 }
 
 .nav-icon {
-  font-size: 18px;
+  font-size: 17px;
+  width: 20px;
+  text-align: center;
+  opacity: 0.8;
 }
 
 .sidebar-footer {
@@ -1611,6 +1614,7 @@ export default {
   flex: 1;
   overflow-y: auto;
   padding: 30px;
+  background: var(--bg);
 }
 
 .content-wrap {
@@ -1625,39 +1629,39 @@ export default {
 .change-password-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0,0,0,0.75);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(6px);
 }
 
 .change-password-modal {
-  background: #f8f6ef;
-  color: #2f2f2f;
-  border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  background: #1A1A1A;
+  color: var(--text);
+  border-radius: 20px;
+  box-shadow: 0 28px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(212,175,55,0.18);
   width: 100%;
   max-width: 400px;
-  padding: 24px;
-  border: 1px solid #ddd5c6;
+  padding: 28px;
+  border: 1px solid rgba(212,175,55,0.18);
 }
 
 .change-password-modal .form-input {
-  background-color: #fff;
-  border-color: #d7d1c2;
-  color: #2f2f2f;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-color: var(--border);
+  color: var(--text);
 }
 
 .change-password-modal .btn-secondary {
-  background-color: #f1ece0;
-  color: #2f2f2f;
-  border-color: #d7d1c2;
+  background-color: rgba(255, 255, 255, 0.06);
+  color: var(--text);
+  border-color: var(--border);
 }
 
 .change-password-modal .btn-secondary:hover {
-  background-color: #e8e1d2;
+  background-color: rgba(255, 255, 255, 0.10);
 }
 
 @keyframes fadeIn {
@@ -1697,7 +1701,7 @@ export default {
 }
 
 .stat-label {
-  color: #6f675a;
+  color: var(--text-muted);
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -1723,6 +1727,7 @@ export default {
   padding: 20px;
   border-bottom: 1px solid var(--border);
   background-color: rgba(212, 175, 55, 0.05);
+  color: var(--text);
 }
 
 .card-title {
@@ -1733,6 +1738,7 @@ export default {
 
 .card-body {
   padding: 20px;
+  color: var(--text);
 }
 
 .form-grid {
@@ -1764,7 +1770,7 @@ export default {
 }
 
 .form-input::placeholder {
-  color: #746a5c;
+  color: rgba(255, 255, 255, 0.28);
   opacity: 1;
 }
 
@@ -1776,7 +1782,7 @@ export default {
 
 .manager-form-subtitle {
   margin: 8px 0 0;
-  color: #6f675a;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -1793,7 +1799,7 @@ export default {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
-  background: linear-gradient(180deg, rgba(255, 252, 246, 0.92), rgba(249, 241, 227, 0.96));
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .manager-section-title {
@@ -1801,7 +1807,7 @@ export default {
   font-size: 14px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: #8a6a1f;
+  color: var(--gold-bright);
 }
 
 .manager-form-grid {
@@ -1811,8 +1817,8 @@ export default {
 }
 
 .manager-form-item {
-  background: rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(120, 102, 70, 0.18);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 12px;
 }
@@ -1826,14 +1832,14 @@ export default {
   margin-bottom: 8px;
   font-weight: 600;
   font-size: 13px;
-  color: #3a332a;
+  color: var(--text);
 }
 
 .manager-form-hint {
   display: block;
   margin-top: 6px;
   font-size: 11px;
-  color: #7c7261;
+  color: var(--text-muted);
 }
 
 .manager-form-error {
@@ -1958,23 +1964,27 @@ table tbody tr:hover {
 }
 
 .badge-success {
-  background-color: rgba(76, 175, 80, 0.2);
-  color: #256b2a;
+  background-color: rgba(45, 138, 78, 0.15);
+  color: #5cba7d;
+  border: 1px solid rgba(45,138,78,0.28);
 }
 
 .badge-danger {
-  background-color: rgba(244, 67, 54, 0.2);
-  color: #a3342b;
+  background-color: rgba(192, 57, 43, 0.15);
+  color: #f08070;
+  border: 1px solid rgba(192,57,43,0.28);
 }
 
 .badge-warning {
-  background-color: rgba(255, 152, 0, 0.2);
-  color: #9a5b00;
+  background-color: rgba(211, 84, 0, 0.15);
+  color: #f4a460;
+  border: 1px solid rgba(211,84,0,0.28);
 }
 
 .badge-info {
-  background-color: rgba(33, 150, 243, 0.2);
-  color: #1f5ea8;
+  background-color: rgba(41, 128, 185, 0.15);
+  color: #7eb8f7;
+  border: 1px solid rgba(41,128,185,0.28);
 }
 
 .report-item {
@@ -2004,7 +2014,7 @@ table tbody tr:hover {
 }
 
 .text-muted {
-  color: #6f675a;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
@@ -2071,9 +2081,10 @@ table tbody tr:hover {
   }
 
   .modal-content {
-    background: white;
+    background: #1A1A1A;
+    border: 1px solid rgba(212,175,55,0.18);
     border-radius: var(--radius);
-    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 28px 80px rgba(0,0,0,0.65);
     width: 100%;
     max-width: 420px;
     max-height: 90vh;
@@ -2137,7 +2148,7 @@ table tbody tr:hover {
 
   .form-hint {
     font-size: 12px;
-    color: #6f675a;
+    color: var(--text-muted);
     margin-top: 4px;
   }
 

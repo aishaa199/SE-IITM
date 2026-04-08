@@ -1,7 +1,7 @@
 <template>
   <div class="content-layout">
     <!-- Mobile Menu Toggle -->
-    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: white; border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
+    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="3" y1="6" x2="21" y2="6"></line>
         <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -24,13 +24,13 @@
           :class="['nav-item', { active: currentView === 'dashboard' }]"
           @click="currentView = 'dashboard'; sidebarOpen = false"
         >
-          <span class="nav-icon">📊</span> Dashboard
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
         </div>
         <div
           :class="['nav-item', { active: currentView === 'appointments' }]"
           @click="currentView = 'appointments'; sidebarOpen = false"
         >
-          <span class="nav-icon">📅</span> My Appointments
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> My Appointments
         </div>
 
         <div class="nav-section">Operations</div>
@@ -38,7 +38,7 @@
           :class="['nav-item', { active: currentView === 'order-products' }]"
           @click="currentView = 'order-products'; sidebarOpen = false"
         >
-          <span class="nav-icon">📦</span> Order Products
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span> Order Products
         </div>
       </nav>
       <div class="sidebar-footer">
@@ -51,16 +51,10 @@
           <div style="font-size: 18px">▼</div>
 
           <!-- Profile Dropdown Menu -->
-          <div v-if="showProfileMenu" style="position: absolute; bottom: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; margin-bottom: 8px">
-            <button @click="currentView = 'profile'; showProfileMenu = false" style="width: 100%; padding: 12px 16px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid var(--border)">
-              👤 Profile
-            </button>
-            <button @click="showChangePasswordModal = true; showProfileMenu = false" style="width: 100%; padding: 12px 16px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid var(--border)">
-              🔑 Change Password
-            </button>
-            <button @click="handleLogout" style="width: 100%; padding: 12px 16px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px">
-              🚪 Logout
-            </button>
+          <div v-if="showProfileMenu" class="profile-dropdown" @click.stop>
+            <button class="profile-menu-item" @click="currentView = 'profile'; showProfileMenu = false">👤 Profile</button>
+            <button class="profile-menu-item" @click="showChangePasswordModal = true; showProfileMenu = false">🔑 Change Password</button>
+            <button class="profile-menu-item profile-menu-danger" @click="handleLogout">🚪 Logout</button>
           </div>
         </div>
       </div>
@@ -1932,9 +1926,21 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* ── Local token overrides for dark theme ── */
+:root, * {
+  --light-bg:  rgba(255,255,255,0.05);
+  --radius:    14px;
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --success:   #5cba7d;
+  --warning:   #f4a460;
+  --info:      #7eb8f7;
+}
+
 .booking-item {
   padding: 12px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--divider);
+  color: var(--text);
 }
 
 .booking-item:last-child {
@@ -1942,14 +1948,14 @@ onUnmounted(() => {
 }
 
 .booking-time {
-  background: var(--gold);
-  color: white;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
+  background: rgba(212,175,55,0.12);
+  border: 1px solid rgba(212,175,55,0.28);
+  color: var(--gold-bright);
+  padding: 5px 10px;
+  border-radius: var(--r-full);
   font-weight: 600;
-  color: var(--charcoal);
   white-space: nowrap;
-  background: var(--ivory);
+  font-size: 12px;
 }
 
 .form-group {
@@ -1958,32 +1964,39 @@ onUnmounted(() => {
 
 .form-group label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--charcoal);
-  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 7px;
 }
 
 .form-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-family: inherit;
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
+  outline: none;
 }
 
+.form-input::placeholder { color: rgba(255,255,255,0.22); }
+
 .form-input:focus {
-  outline: none;
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(229, 170, 84, 0.1);
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.10);
 }
 
 .form-input:disabled {
-  background-color: var(--ivory);
+  background-color: rgba(255,255,255,0.03);
   color: var(--text-muted);
+  cursor: not-allowed;
 }
 
 .form-hint {
@@ -1994,20 +2007,20 @@ onUnmounted(() => {
 
 .error-message {
   padding: 10px 12px;
-  background: rgba(231, 76, 60, 0.1);
-  border-left: 3px solid #e74c3c;
+  background: rgba(192,57,43,0.10);
+  border-left: 3px solid rgba(192,57,43,0.6);
   border-radius: var(--radius-sm);
-  color: #c0392b;
+  color: #f08070;
   font-size: 13px;
   margin-top: 12px;
 }
 
 .success-message {
   padding: 10px 12px;
-  background: rgba(39, 174, 96, 0.1);
-  border-left: 3px solid #27ae60;
+  background: rgba(39,174,96,0.10);
+  border-left: 3px solid rgba(39,174,96,0.6);
   border-radius: var(--radius-sm);
-  color: #229954;
+  color: #5cba7d;
   font-size: 13px;
   margin-top: 12px;
 }
@@ -2037,9 +2050,10 @@ onUnmounted(() => {
 }
 
 .modal-content {
-  background: white;
+  background: var(--surface);
+  border: 1px solid rgba(212,175,55,0.18);
   border-radius: var(--radius-md);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xl);
   width: 100%;
   max-width: 420px;
   max-height: 90vh;
@@ -2048,14 +2062,8 @@ onUnmounted(() => {
 }
 
 @keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
 .modal-header {
@@ -2063,20 +2071,22 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--divider);
 }
 
 .modal-title {
   font-size: 18px;
-  font-weight: 600;
-  color: var(--charcoal);
+  font-weight: 500;
+  color: var(--text);
   margin: 0;
+  font-family: var(--font-display);
 }
 
 .modal-close {
   background: none;
-  border: none;
-  font-size: 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 18px;
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;
@@ -2085,11 +2095,12 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s;
+  transition: all 0.2s;
 }
 
 .modal-close:hover {
-  color: var(--charcoal);
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
 .modal-body {
@@ -2106,7 +2117,7 @@ onUnmounted(() => {
   align-items: center;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: white;
+  background: rgba(255,255,255,0.04);
   cursor: text;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -2138,29 +2149,31 @@ onUnmounted(() => {
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
+  background: #1E1E1E;
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   max-height: 250px;
   overflow-y: auto;
   z-index: 10;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  box-shadow: var(--shadow-md);
 }
 
 .dropdown-option {
   padding: 12px 12px;
   cursor: pointer;
-  border-bottom: 1px solid var(--light-bg);
+  border-bottom: 1px solid var(--divider);
   transition: background-color 0.2s;
+  color: var(--text);
+  font-size: 13px;
 }
 
 .dropdown-option:hover {
-  background-color: var(--light-bg);
+  background-color: rgba(212,175,55,0.08);
 }
 
 .dropdown-option.selected {
-  background-color: rgba(229, 170, 84, 0.15);
+  background-color: rgba(212, 175, 55, 0.12);
   border-left: 3px solid var(--gold);
   padding-left: 9px;
 }
