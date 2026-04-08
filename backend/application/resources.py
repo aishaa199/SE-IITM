@@ -2722,6 +2722,18 @@ class GetAllInvoices(Resource):
         
         result = []
         for inv in invoices:
+            # Resolve service names based on service_ids (comma-separated string)
+            service_names = ""
+            if inv.service_ids:
+                try:
+                    # Convert comma-separated string to list of integers
+                    id_list = [int(sid.strip()) for sid in inv.service_ids.split(",") if sid.strip()]
+                    # Query service descriptions
+                    services = Service.query.filter(Service.service_id.in_(id_list)).all()
+                    service_names = ", ".join([s.service_desc for s in services])
+                except Exception:
+                    service_names = "Unknown Service"
+
             result.append({
                 "invoice_number": inv.invoice_number,
                 "invoice_date": str(inv.invoice_date),
@@ -2730,6 +2742,7 @@ class GetAllInvoices(Resource):
                 "staff_id": inv.staff_id,
                 "staff_name": inv.staff.staff_name if inv.staff else "Unknown",
                 "service_ids": inv.service_ids,
+                "service_names": service_names,
                 "other_charges": inv.other_charges,
                 "discount_percentage": inv.discount_percentage,
                 "rewards_earned": inv.rewards_earned,
