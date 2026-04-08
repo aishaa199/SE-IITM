@@ -1,7 +1,7 @@
 <template>
   <div class="content-layout">
     <!-- Mobile Menu Toggle -->
-    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: white; border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
+    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="3" y1="6" x2="21" y2="6"></line>
         <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -20,89 +20,50 @@
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section">Appointment & Services</div>
-        <div
-          :class="['nav-item', { active: currentView === 'dashboard' }]"
-          @click="currentView = 'dashboard'; sidebarOpen = false"
-        >
-          <span class="nav-icon">📊</span> Dashboard
+        <div :class="['nav-item', { active: currentView === 'dashboard' }]" @click="currentView = 'dashboard'; sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'bookings' }]"
-          @click="currentView = 'bookings'; sidebarOpen = false"
-        >
-          <span class="nav-icon">📅</span> Appointments
+        <div :class="['nav-item', { active: currentView === 'bookings' }]" @click="currentView = 'bookings'; sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Appointments
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'services' }]"
-          @click="currentView = 'services'; sidebarOpen = false"
-        >
-          <span class="nav-icon">💇</span> Services
+        <div :class="['nav-item', { active: currentView === 'services' }]" @click="currentView = 'services'; sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span> Services
         </div>
 
         <div class="nav-section">Management</div>
-        <div
-          :class="['nav-item', { active: currentView === 'customers' }]"
-          @click="currentView = 'customers'; sidebarOpen = false"
-        >
-          <span class="nav-icon">👥</span> Customers
+        <div :class="['nav-item', { active: currentView === 'customers' }]" @click="currentView = 'customers'; sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Customers
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'staff-by-day' }]"
-          @click="currentView = 'staff-by-day'; sidebarOpen = false"
-        >
-          <span class="nav-icon">📅</span> Staff by Day
+        <div :class="['nav-item', { active: currentView === 'staff-by-day' }]" @click="currentView = 'staff-by-day'; sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg></span> Staff by Day
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'staff' }]"
-          @click="currentView = 'staff'; sidebarOpen = false"
-        >
-          <span class="nav-icon">👔</span> Staff
+        <div :class="['nav-item', { active: currentView === 'staff' }]" @click="currentView = 'staff'; sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Staff
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'rewards' }]"
-          @click="currentView = 'rewards'; fetchRewardsSettings(); sidebarOpen = false"
-        >
-          <span class="nav-icon">🎁</span> Rewards
+        <div :class="['nav-item', { active: currentView === 'rewards' }]" @click="currentView = 'rewards'; fetchRewardsSettings(); sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span> Rewards
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'invoices' }]"
-          @click="currentView = 'invoices'; fetchInvoices(); sidebarOpen = false"
-        >
-          <span class="nav-icon">📄</span> Invoices
+        <div :class="['nav-item', { active: currentView === 'invoices' }]" @click="currentView = 'invoices'; fetchInvoices(); sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span> Invoices
         </div>
 
         <div class="nav-section">Operations</div>
-        <div
-          :class="['nav-item', { active: currentView === 'inventory' }]"
-          @click="currentView = 'inventory'"
-        >
-          <span class="nav-icon">📦</span> Inventory
+        <div :class="['nav-item', { active: currentView === 'inventory' }]" @click="currentView = 'inventory'">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Inventory
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'orders' }]"
-          @click="currentView = 'orders'"
-        >
-          <span class="nav-icon">📮</span> Orders
+        <div :class="['nav-item', { active: currentView === 'orders' }]" @click="currentView = 'orders'">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Orders
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'finance' }]"
-          @click="handleFinanceAccess"
-        >
-          <span class="nav-icon">💰</span> Finance
+        <div :class="['nav-item', { active: currentView === 'finance' }]" @click="handleFinanceAccess">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Finance
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'reports' }]"
-          @click="handleReportsAccess"
-        >
-          <span class="nav-icon">📄</span> Download Reports
+        <div :class="['nav-item', { active: currentView === 'reports' }]" @click="handleReportsAccess">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> Download Reports
         </div>
 
         <div class="nav-section">Settings</div>
-        <div
-          :class="['nav-item', { active: currentView === 'settings' }]"
-          @click="currentView = 'settings'; fetchSalonConfig()"
-        >
-          <span class="nav-icon">⚙️</span> Salon Settings
+        <div :class="['nav-item', { active: currentView === 'settings' }]" @click="currentView = 'settings'; fetchSalonConfig()">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Salon Settings
         </div>
       </nav>
       <div class="sidebar-footer">
@@ -115,14 +76,14 @@
           <div style="font-size: 18px">▼</div>
           
           <!-- Profile Dropdown Menu -->
-          <div v-if="showProfileMenu" class="profile-dropdown" @click.stop style="position: absolute; bottom: 100%; left: 0; width: 220px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 -2px 8px rgba(0,0,0,0.1); margin-bottom: 8px; z-index: 1000">
-            <button class="profile-menu-item" @click="openProfileEdit(); showProfileMenu = false" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--charcoal); transition: background-color 0.2s; border-bottom: 1px solid var(--border-color)">
+          <div v-if="showProfileMenu" class="profile-dropdown" @click.stop>
+            <button class="profile-menu-item" @click="openProfileEdit(); showProfileMenu = false">
               👤 Profile Edit
             </button>
-            <button class="profile-menu-item" @click="showChangePasswordModal = true; showProfileMenu = false" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--charcoal); transition: background-color 0.2s; border-bottom: 1px solid var(--border-color)">
+            <button class="profile-menu-item" @click="showChangePasswordModal = true; showProfileMenu = false">
               🔑 Change Password
             </button>
-            <button class="profile-menu-item" @click="handleLogout" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: #e74c3c; transition: background-color 0.2s">
+            <button class="profile-menu-item profile-menu-danger" @click="handleLogout">
               🚪 Logout
             </button>
           </div>
@@ -153,76 +114,76 @@
           <div v-if="!briefingDismissed" style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #8B6914 0%, #C9A96E 60%, #b8945a 100%); box-shadow: 0 4px 20px rgba(139,105,20,0.35); border: 1px solid rgba(255,220,140,0.3);">
 
             <!-- Loading state -->
-            <div v-if="briefingLoading" style="padding: 32px; text-align: center; color: #1A1A1A;">
+            <div v-if="briefingLoading" style="padding: 32px; text-align: center; color: rgba(255,255,255,0.9);">
               <div style="font-size: 30px; margin-bottom: 10px;">✨</div>
-              <div style="font-size: 14px; opacity: 0.7;">Generating your AI briefing…</div>
+              <div style="font-size: 14px; opacity: 0.8;">Generating your AI briefing…</div>
             </div>
 
             <!-- Error state -->
-            <div v-else-if="briefingError" style="padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; color: #1A1A1A;">
-              <span style="font-size: 14px; opacity: 0.8;">⚠️ {{ briefingError }}</span>
+            <div v-else-if="briefingError" style="padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; color: rgba(255,255,255,0.9);">
+              <span style="font-size: 14px; opacity: 0.85;">⚠️ {{ briefingError }}</span>
               <div style="display: flex; gap: 8px;">
-                <button @click="fetchBriefing()" style="background: rgba(26,26,26,0.12); border: 1px solid rgba(26,26,26,0.25); color: #1A1A1A; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">Retry</button>
-                <button @click="briefingDismissed = true" style="background: transparent; border: none; color: rgba(26,26,26,0.5); cursor: pointer; font-size: 18px; line-height: 1;">✕</button>
+                <button @click="fetchBriefing()" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">Retry</button>
+                <button @click="briefingDismissed = true" style="background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 18px; line-height: 1;">✕</button>
               </div>
             </div>
 
             <!-- Briefing content -->
-            <div v-else-if="briefingData" style="padding: 24px; color: #1A1A1A;">
+            <div v-else-if="briefingData" style="padding: 24px; color: rgba(255,255,255,0.92);">
               <!-- Header row -->
               <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                 <div>
-                  <div style="font-size: 20px; font-weight: 700; margin-bottom: 4px; color: #1A1A1A;">{{ briefingData.greeting }}</div>
-                  <div style="font-size: 14px; color: #2D2D2D; opacity: 0.8;">{{ briefingData.summary }}</div>
+                  <div style="font-size: 20px; font-weight: 700; margin-bottom: 4px; color: #fff;">{{ briefingData.greeting }}</div>
+                  <div style="font-size: 14px; color: rgba(255,255,255,0.75);">{{ briefingData.summary }}</div>
                 </div>
                 <div style="display: flex; gap: 8px; flex-shrink: 0; margin-left: 16px;">
-                  <button @click="fetchBriefing()" title="Refresh briefing" style="background: rgba(26,26,26,0.1); border: 1px solid rgba(26,26,26,0.2); color: #1A1A1A; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center;">↻</button>
-                  <button @click="briefingDismissed = true" title="Dismiss" style="background: rgba(26,26,26,0.1); border: 1px solid rgba(26,26,26,0.2); color: #1A1A1A; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center;">✕</button>
+                  <button @click="fetchBriefing()" title="Refresh briefing" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center;">↻</button>
+                  <button @click="briefingDismissed = true" title="Dismiss" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center;">✕</button>
                 </div>
               </div>
 
               <!-- Divider -->
-              <div style="height: 1px; background: rgba(26,26,26,0.15); margin-bottom: 18px;"></div>
+              <div style="height: 1px; background: rgba(255,255,255,0.18); margin-bottom: 18px;"></div>
 
               <!-- Insights + Recommendations columns -->
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div>
-                  <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #4A4A4A; margin-bottom: 10px;">Key Insights</div>
+                  <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 10px;">Key Insights</div>
                   <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-                    <li v-for="(insight, i) in briefingData.insights" :key="'ins-' + i" style="font-size: 13px; padding-left: 18px; position: relative; color: #1A1A1A; line-height: 1.45;">
-                      <span style="position: absolute; left: 0; color: #4A3000; font-size: 16px; line-height: 1;">•</span>{{ insight }}
+                    <li v-for="(insight, i) in briefingData.insights" :key="'ins-' + i" style="font-size: 13px; padding-left: 18px; position: relative; color: rgba(255,255,255,0.88); line-height: 1.45;">
+                      <span style="position: absolute; left: 0; color: #F0DEB0; font-size: 16px; line-height: 1;">•</span>{{ insight }}
                     </li>
                   </ul>
                 </div>
                 <div>
-                  <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #4A4A4A; margin-bottom: 10px;">Recommendations</div>
+                  <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 10px;">Recommendations</div>
                   <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-                    <li v-for="(rec, i) in briefingData.recommendations" :key="'rec-' + i" style="font-size: 13px; padding-left: 18px; position: relative; color: #1A1A1A; line-height: 1.45;">
-                      <span style="position: absolute; left: 0; color: #2D5A27; font-size: 14px; line-height: 1.1;">→</span>{{ rec }}
+                    <li v-for="(rec, i) in briefingData.recommendations" :key="'rec-' + i" style="font-size: 13px; padding-left: 18px; position: relative; color: rgba(255,255,255,0.88); line-height: 1.45;">
+                      <span style="position: absolute; left: 0; color: #7ec8a0; font-size: 14px; line-height: 1.1;">→</span>{{ rec }}
                     </li>
                   </ul>
                 </div>
               </div>
 
-              <div v-if="briefingData.ai_error" style="margin-top: 14px; font-size: 11px; color: rgba(26,26,26,0.4);">Note: AI unavailable — showing data-driven fallback.</div>
+              <div v-if="briefingData.ai_error" style="margin-top: 14px; font-size: 11px; color: rgba(255,255,255,0.4);">Note: AI unavailable — showing data-driven fallback.</div>
             </div>
 
             <!-- Initial state (no data yet, not loading) -->
-            <div v-else style="padding: 28px; text-align: center; color: #1A1A1A;">
+            <div v-else style="padding: 28px; text-align: center; color: rgba(255,255,255,0.9);">
               <div style="font-size: 28px; margin-bottom: 10px;">🤖</div>
-              <div style="font-size: 14px; opacity: 0.7; margin-bottom: 16px;">Get your AI-powered daily briefing</div>
-              <button @click="fetchBriefing()" style="background: rgba(26,26,26,0.12); border: 1px solid rgba(26,26,26,0.25); color: #1A1A1A; padding: 8px 22px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">Generate Briefing</button>
+              <div style="font-size: 14px; opacity: 0.75; margin-bottom: 16px;">Get your AI-powered daily briefing</div>
+              <button @click="fetchBriefing()" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); color: #fff; padding: 8px 22px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">Generate Briefing</button>
             </div>
           </div>
           <!-- End AI Daily Briefing Card -->
 
           <!-- AI Task Checklist Card -->
-          <div style="margin-bottom: 24px; background: white; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
-            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+          <div style="margin-bottom: 24px; background: var(--surface); border-radius: 14px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--divider); display: flex; justify-content: space-between; align-items: center;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 18px;">✅</span>
-                <span style="font-weight: 700; font-size: 15px; color: var(--charcoal);">Today's AI Tasks</span>
-                <span v-if="managerTasks.length > 0" style="background: var(--gold); color: white; border-radius: 10px; padding: 1px 8px; font-size: 11px; font-weight: 600;">{{ pendingTasks.length }} left</span>
+                <span style="font-weight: 600; font-size: 15px; color: var(--text); letter-spacing: 0.01em;">Today's AI Tasks</span>
+                <span v-if="managerTasks.length > 0" style="background: rgba(212,175,55,0.15); color: var(--gold-bright); border-radius: 10px; padding: 2px 8px; font-size: 11px; font-weight: 700; border: 1px solid rgba(212,175,55,0.28);">{{ pendingTasks.length }} left</span>
               </div>
               <button @click="generateManagerTasks" :disabled="tasksLoading" class="generate-tasks-btn">
                 <span v-if="tasksLoading">⏳ Generating…</span>
@@ -291,26 +252,26 @@
           </div>
 
           <!-- Available Staff Today -->
-          <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, var(--ivory) 0%, var(--cream) 100%); border-left: 4px solid var(--gold)">
+          <div class="card" style="margin-bottom: 24px; border-left: 3px solid var(--gold);">
             <div class="card-body">
               <div style="display: flex; align-items: center; gap: 12px">
                 <span style="font-size: 24px">👥</span>
                 <div style="flex: 1">
-                  <div style="font-weight: 600; color: var(--charcoal); margin-bottom: 8px; font-size: 16px">
+                  <div style="font-weight: 600; color: var(--text); margin-bottom: 10px; font-size: 15px; letter-spacing: 0.01em">
                     Available Staff Today
                   </div>
-                  <div v-if="todayAvailableStaff.length > 0" style="color: var(--charcoal); font-size: 15px">
-                    <div v-for="staff in todayAvailableStaff" :key="staff.id" style="margin-bottom: 12px">
+                  <div v-if="todayAvailableStaff.length > 0" style="font-size: 14px">
+                    <div v-for="staff in todayAvailableStaff" :key="staff.id" style="margin-bottom: 10px">
                       <div style="display: inline-block; margin-right: 16px">
-                        <span style="background: var(--gold); color: white; padding: 6px 12px; border-radius: 16px; font-size: 14px; font-weight: 600">✓ {{ staff.name }}</span>
+                        <span style="background: rgba(212,175,55,0.15); color: var(--gold-bright); padding: 5px 12px; border-radius: 16px; font-size: 13px; font-weight: 600; border: 1px solid rgba(212,175,55,0.28)">✓ {{ staff.name }}</span>
                       </div>
-                      <div style="font-size: 12px; color: var(--charcoal-light); margin-top: 2px">
+                      <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px">
                         {{ staff.skills || 'Skills not specified' }}
                       </div>
                     </div>
                   </div>
-                  <div v-else style="color: var(--charcoal-light); font-size: 14px">
-                    ℹ️ No staff available today
+                  <div v-else style="color: var(--text-muted); font-size: 14px">
+                    No staff available today
                   </div>
                 </div>
               </div>
@@ -804,9 +765,9 @@
                       <td style="font-size: 12px">{{ service.fromDate || '-' }}</td>
                       <td style="font-size: 12px">{{ service.toDate || '-' }}</td>
                       <td>
-                        <span v-if="getServiceStatus(service) === 'Active'" style="background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600">✓ Active</span>
-                        <span v-else-if="getServiceStatus(service) === 'Disabled'" style="background: #f8cccb; color: #c1272d; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600">⊘ Disabled</span>
-                        <span v-else style="background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600">✗ Inactive</span>
+                        <span v-if="getServiceStatus(service) === 'Active'" style="background: rgba(45,138,78,0.15); color: #5cba7d; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1px solid rgba(45,138,78,0.28)">✓ Active</span>
+                        <span v-else-if="getServiceStatus(service) === 'Disabled'" style="background: rgba(192,57,43,0.15); color: #f08070; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1px solid rgba(192,57,43,0.28)">⊘ Disabled</span>
+                        <span v-else style="background: rgba(192,57,43,0.10); color: #f08070; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1px solid rgba(192,57,43,0.22)">✗ Inactive</span>
                       </td>
                       <td class="text-muted" style="font-size: 12px">{{ service.productsRequired || "None" }}</td>
                       <td>{{ service.rating ? service.rating + ' ⭐' : 'No rating' }}</td>
@@ -963,7 +924,7 @@
                       <td><span class="badge" :style="{ background: customer.customerType === 'VIP' ? '#FFD700' : '#95a5a6', color: customer.customerType === 'VIP' ? '#000' : '#fff', padding: '4px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }">{{ customer.customerType || 'Normal' }}</span></td>
                       <td style="text-align: center; font-weight: 600; color: var(--success)">₹{{ customer.totalSpent || 0 }}</td>
                       <td style="text-align: center; font-weight: 600; color: var(--gold)">🎁 {{ customer.pointsBalance || 0 }}</td>
-                      <td style="font-size: 12px; color: #666">{{ customer.preferences || '-' }}</td>
+                      <td style="font-size: 12px; color: var(--text-muted)">{{ customer.preferences || '-' }}</td>
                       <td style="text-align: center; font-weight: 600">{{ customer.noOfVisits || 0 }}</td>
                       <td class="text-muted">{{ customer.address || "N/A" }}</td>
                       <td>{{ customer.registrationDate }}</td>
@@ -985,11 +946,11 @@
           </div>
 
           <!-- Edit Customer Modal -->
-          <div v-if="isEditingCustomer" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000" @click.self="cancelEditCustomer">
-            <div style="background: white; border-radius: 12px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3)">
+          <div v-if="isEditingCustomer" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 1000" @click.self="cancelEditCustomer">
+            <div style="background: var(--surface); border: 1px solid rgba(212,175,55,0.18); border-radius: 20px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-xl)">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px">
-                <h2 style="margin: 0; font-size: 24px; font-weight: 600">✎ Edit Customer</h2>
-                <button @click="cancelEditCustomer" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999">✕</button>
+                <h2 style="margin: 0; font-size: 22px; font-weight: 500; font-family: var(--font-display); color: var(--text)">Edit Customer</h2>
+                <button @click="cancelEditCustomer" style="background: none; border: 1px solid var(--border); border-radius: 6px; width:32px; height:32px; font-size: 18px; cursor: pointer; color: var(--text-muted); display:flex; align-items:center; justify-content:center; transition: all 0.2s">✕</button>
               </div>
 
               <!-- Customer Info Display -->
@@ -1009,7 +970,7 @@
                   </div>
                   <div>
                     <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">POINTS BALANCE</div>
-                    <div style="font-weight: 600; color: var(--primary)">{{ Math.round(editingCustomerData?.pointsBalance || 0) }}</div>
+                    <div style="font-weight: 600; color: var(--gold-bright)">{{ Math.round(editingCustomerData?.pointsBalance || 0) }}</div>
                   </div>
                 </div>
               </div>
@@ -1304,11 +1265,11 @@
           </div>
 
           <!-- Edit Staff Modal -->
-          <div v-if="isEditingStaff" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000" @click.self="cancelEditStaff">
-            <div style="background: white; border-radius: 12px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3)">
+          <div v-if="isEditingStaff" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 1000" @click.self="cancelEditStaff">
+            <div style="background: var(--surface); border: 1px solid rgba(212,175,55,0.18); border-radius: 20px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-xl)">
               <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px">
-                <h2 style="margin: 0; font-size: 24px; font-weight: 600">✎ Edit Staff</h2>
-                <button @click="cancelEditStaff" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999">✕</button>
+                <h2 style="margin: 0; font-size: 22px; font-weight: 500; font-family: var(--font-display); color: var(--text)">Edit Staff</h2>
+                <button @click="cancelEditStaff" style="background: none; border: 1px solid var(--border); border-radius: 6px; width:32px; height:32px; font-size: 18px; cursor: pointer; color: var(--text-muted); display:flex; align-items:center; justify-content:center; transition: all 0.2s">✕</button>
               </div>
 
               <!-- Staff Info Display -->
@@ -1484,7 +1445,7 @@
                     <tr v-for="staff in filteredStaff" :key="staff.id" @click="viewStaffBookings(staff)" style="cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.parentElement.style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.parentElement.style.backgroundColor = 'transparent'">
                       <td>{{ staff.name }}</td>
                       <td>{{ staff.role }}</td>
-                      <td><span style="font-size: 12px; color: #666">{{ staff.skills || '-' }}</span></td>
+                      <td><span style="font-size: 12px; color: var(--text-muted)">{{ staff.skills || '-' }}</span></td>
                       <td>{{ staff.email }}</td>
                       <td>{{ staff.phone }}</td>
                       <td>{{ staff.dob || '-' }}</td>
@@ -1804,7 +1765,7 @@
                     </tr>
                     <tr style="border-top: 2px solid var(--border)">
                       <td style="font-weight: 600; padding-top: 12px">Net Profit</td>
-                      <td style="text-align: right; font-weight: 600; padding-top: 12px; color: #27ae60">₹{{ Math.max(0, calculatedNetProfit).toLocaleString() }}</td>
+                      <td style="text-align: right; font-weight: 600; padding-top: 12px; color: #5cba7d">₹{{ Math.max(0, calculatedNetProfit).toLocaleString() }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1913,7 +1874,7 @@
                 </div>
                 <div class="form-group">
                   <label for="replen-supplier">Supplier</label>
-                  <input v-model="replenishmentForm.supplier" id="replen-supplier" type="text" class="form-input" placeholder="Auto-filled from product info" disabled style="background: var(--light-bg); color: #666; cursor: not-allowed" />
+                  <input v-model="replenishmentForm.supplier" id="replen-supplier" type="text" class="form-input" placeholder="Auto-filled from product info" disabled style="background: var(--light-bg); color: var(--text-muted); cursor: not-allowed" />
                   <small class="text-muted" style="font-size: 11px; margin-top: 4px">Auto-filled from product supplier information</small>
                 </div>
                 <div v-if="replenishmentError" class="error-message" style="margin-bottom: 12px">{{ replenishmentError }}</div>
@@ -2555,7 +2516,7 @@
                   >
                     {{ analyticsView.shared ? '✓ Shared with Owner' : analyticsView.sharing ? '⏳ Sharing...' : '📤 Send to Owner' }}
                   </button>
-                  <span v-if="shareMessage" style="font-size: 12px; color: #276749;">{{ shareMessage }}</span>
+                  <span v-if="shareMessage" style="font-size: 12px; color: #5cba7d;">{{ shareMessage }}</span>
                 </div>
               </div>
             </template>
@@ -2660,7 +2621,7 @@
                     <div style="flex: 1; min-width: 0;">
                       <div style="font-weight: 600; font-size: 14px; color: var(--charcoal);">
                         {{ report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1) }} Report
-                        <span v-if="report.shared" style="margin-left: 6px; font-size: 10px; background: #e6f4ea; color: #276749; padding: 1px 7px; border-radius: 10px; font-weight: 600;">Shared</span>
+                        <span v-if="report.shared" style="margin-left: 6px; font-size: 10px; background: rgba(45,138,78,0.15); color: #5cba7d; padding: 1px 7px; border-radius: 10px; font-weight: 600; border: 1px solid rgba(45,138,78,0.28);">Shared</span>
                       </div>
                       <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
                         {{ REPORT_PERIOD_LABELS[report.time_period] || report.time_period }} &bull; {{ new Date(report.created_at).toLocaleDateString() }}
@@ -3275,11 +3236,11 @@
           <div style="display: grid; gap: 8px">
             <div style="display: grid; grid-template-columns: 140px 1fr" v-if="selectedInvoice.rewards_earned > 0">
               <span style="color: var(--text-muted)">Rewards Earned:</span>
-              <span style="font-weight: 500; color: #27ae60">+{{ selectedInvoice.rewards_earned }} pts</span>
+              <span style="font-weight: 500; color: #5cba7d">+{{ selectedInvoice.rewards_earned }} pts</span>
             </div>
             <div style="display: grid; grid-template-columns: 140px 1fr" v-if="selectedInvoice.rewards_utilized > 0">
               <span style="color: var(--text-muted)">Rewards Used:</span>
-              <span style="font-weight: 500; color: #e74c3c">-{{ selectedInvoice.rewards_utilized }} pts</span>
+              <span style="font-weight: 500; color: #f08070">-{{ selectedInvoice.rewards_utilized }} pts</span>
             </div>
             <div style="display: grid; grid-template-columns: 140px 1fr">
               <span style="color: var(--text-muted)">Current Balance:</span>
@@ -8703,7 +8664,7 @@ onUnmounted(() => {
 }
 
 .report-item {
-  background: white;
+  background: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 20px;
@@ -8713,7 +8674,7 @@ onUnmounted(() => {
 
 .report-item:hover {
   border-color: var(--gold);
-  box-shadow: var(--shadow);
+  box-shadow: 0 8px 32px rgba(212,175,55,0.15);
 }
 
 .report-icon {
@@ -8724,14 +8685,14 @@ onUnmounted(() => {
 .report-title {
   font-weight: 600;
   font-size: 14px;
-  color: var(--charcoal);
+  color: var(--text);
   margin-bottom: 4px;
 }
 
 .calendar-date {
   padding: 10px 12px;
   border-radius: var(--radius-sm);
-  background: white;
+  background: rgba(255,255,255,0.04);
   border: 1px solid var(--border);
   font-size: 12px;
   color: var(--text);
@@ -8739,7 +8700,7 @@ onUnmounted(() => {
 }
 
 .calendar-date:hover {
-  background: var(--ivory);
+  background: rgba(212,175,55,0.08);
   border-color: var(--gold);
 }
 
@@ -8756,36 +8717,38 @@ onUnmounted(() => {
   justify-content: center;
   width: 20px;
   height: 20px;
-  background: var(--charcoal);
-  color: white;
+  background: rgba(212,175,55,0.2);
+  color: var(--gold-bright);
   border-radius: 50%;
   font-size: 11px;
   font-weight: 600;
 }
 
 .calendar-date.has-bookings .date-badge {
-  background: white;
+  background: var(--obsidian);
   color: var(--gold);
 }
 
 .booking-item {
   padding: 0 0 12px 0;
   font-size: 13px;
+  color: var(--text);
 }
 
 .booking-time {
-  background: var(--ivory);
+  background: rgba(212,175,55,0.12);
+  border: 1px solid rgba(212,175,55,0.28);
   border-radius: var(--radius-sm);
   padding: 6px 10px;
   font-weight: 600;
-  color: var(--charcoal);
+  color: var(--gold-bright);
   white-space: nowrap;
 }
 
 .calendar-date-horizontal {
   padding: 12px;
   border-radius: var(--radius-sm);
-  background: white;
+  background: rgba(255,255,255,0.04);
   border: 1px solid var(--border);
   text-align: center;
   cursor: pointer;
@@ -8798,25 +8761,25 @@ onUnmounted(() => {
 }
 
 .calendar-date-horizontal:hover {
-  background: var(--ivory);
+  background: rgba(212,175,55,0.08);
   border-color: var(--gold);
 }
 
 .calendar-date-horizontal.has-bookings {
-  background: var(--gold);
-  color: white;
+  background: rgba(212,175,55,0.15);
+  color: var(--gold-bright);
   border-color: var(--gold);
   font-weight: 600;
 }
 
 .calendar-date-horizontal.selected {
-  background: var(--charcoal);
-  color: white;
-  border-color: var(--charcoal);
+  background: linear-gradient(135deg, var(--gold-deep), var(--gold));
+  color: var(--obsidian);
+  border-color: transparent;
 }
 
 .calendar-date-horizontal.selected.has-bookings {
-  background: var(--charcoal);
+  background: linear-gradient(135deg, var(--gold-deep), var(--gold));
 }
 
 /* Custom Dropdown Styles */
@@ -8829,7 +8792,7 @@ onUnmounted(() => {
   align-items: center;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: white;
+  background: rgba(255,255,255,0.04);
   cursor: text;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -8846,7 +8809,9 @@ onUnmounted(() => {
   font-family: inherit;
   outline: none;
   background: transparent;
+  color: var(--text);
 }
+.dropdown-search-input::placeholder { color: rgba(255,255,255,0.28); }
 
 .dropdown-arrow {
   padding: 0 12px;
@@ -8861,29 +8826,31 @@ onUnmounted(() => {
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
+  background: #1E1E1E;
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   max-height: 250px;
   overflow-y: auto;
   z-index: 10;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  box-shadow: var(--shadow-md);
 }
 
 .dropdown-option {
   padding: 12px 12px;
   cursor: pointer;
-  border-bottom: 1px solid var(--light-bg);
+  border-bottom: 1px solid var(--divider);
   transition: background-color 0.2s;
+  color: var(--text);
+  font-size: 13px;
 }
 
 .dropdown-option:hover {
-  background-color: var(--light-bg);
+  background-color: rgba(212,175,55,0.08);
 }
 
 .dropdown-option.selected {
-  background-color: rgba(229, 170, 84, 0.15);
+  background-color: rgba(212, 175, 55, 0.12);
   border-left: 3px solid var(--gold);
   padding-left: 9px;
 }
@@ -8920,9 +8887,10 @@ onUnmounted(() => {
 }
 
 .modal-content {
-  background: white;
+  background: var(--surface);
+  border: 1px solid rgba(212,175,55,0.18);
   border-radius: var(--radius-md);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xl);
   width: 100%;
   max-width: 420px;
   max-height: 90vh;
@@ -8946,20 +8914,22 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--divider);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--charcoal);
+  color: var(--text);
   margin: 0;
+  font-family: var(--font-display);
 }
 
 .modal-close {
   background: none;
-  border: none;
-  font-size: 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 18px;
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;
@@ -8968,11 +8938,12 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s;
+  transition: all 0.2s;
 }
 
 .modal-close:hover {
-  color: var(--charcoal);
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
 .modal-body {
@@ -8986,27 +8957,34 @@ onUnmounted(() => {
 
 .form-group label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--charcoal);
-  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 7px;
 }
 
 .form-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-family: inherit;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   box-sizing: border-box;
+  outline: none;
 }
 
+.form-input::placeholder { color: rgba(255,255,255,0.22); }
+
 .form-input:focus {
-  outline: none;
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(229, 170, 84, 0.1);
+  background: rgba(212,175,55,0.04);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.10);
 }
 
 .form-hint {
@@ -9017,20 +8995,20 @@ onUnmounted(() => {
 
 .error-message {
   padding: 10px 12px;
-  background: rgba(231, 76, 60, 0.1);
-  border-left: 3px solid #e74c3c;
+  background: rgba(192, 57, 43, 0.10);
+  border-left: 3px solid rgba(192,57,43,0.6);
   border-radius: var(--radius-sm);
-  color: #c0392b;
+  color: #f08070;
   font-size: 13px;
   margin-top: 12px;
 }
 
 .success-message {
   padding: 10px 12px;
-  background: rgba(39, 174, 96, 0.1);
-  border-left: 3px solid #27ae60;
+  background: rgba(39, 174, 96, 0.10);
+  border-left: 3px solid rgba(39,174,96,0.6);
   border-radius: var(--radius-sm);
-  color: #229954;
+  color: #5cba7d;
   font-size: 13px;
   margin-top: 12px;
 }
@@ -9079,9 +9057,10 @@ onUnmounted(() => {
   right: 30px;
   width: 380px;
   height: 500px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  background: #1A1A1A;
+  border: 1px solid rgba(212,175,55,0.18);
+  border-radius: 14px;
+  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
   animation: slideUp 0.3s ease;
@@ -9132,7 +9111,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: #f9f9f9;
+  background: rgba(0,0,0,0.2);
 }
 
 .ai-chat-messages {
@@ -9173,18 +9152,19 @@ onUnmounted(() => {
 }
 
 .ai-message.assistant .ai-message-content {
-  background: #e8e8e8;
-  color: #333;
+  background: rgba(255,255,255,0.07);
+  color: var(--text);
   border-radius: 4px 10px 10px 10px;
+  border: 1px solid var(--border);
 }
 
 .ai-assistant-input {
   display: flex;
   gap: 8px;
   padding: 12px;
-  background: white;
-  border-top: 1px solid var(--border);
-  border-radius: 0 0 12px 12px;
+  background: #1A1A1A;
+  border-top: 1px solid var(--divider);
+  border-radius: 0 0 14px 14px;
 }
 
 .ai-input-field {
@@ -9195,28 +9175,33 @@ onUnmounted(() => {
   font-size: 13px;
   font-family: inherit;
   outline: none;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
   transition: border-color 0.2s;
 }
 
+.ai-input-field::placeholder { color: rgba(255,255,255,0.25); }
+
 .ai-input-field:focus {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(229, 170, 84, 0.1);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.10);
 }
 
 .ai-send-btn {
-  background: var(--gold);
-  color: white;
+  background: linear-gradient(135deg, var(--gold-deep), var(--gold));
+  color: var(--obsidian);
   border: none;
   border-radius: 6px;
   padding: 8px 14px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .ai-send-btn:hover {
-  background: #d4a574;
+  filter: brightness(1.1);
+  box-shadow: var(--shadow-gold);
 }
 
 .ai-send-btn:active {
@@ -9247,7 +9232,7 @@ onUnmounted(() => {
   cursor: pointer;
   transition: background 0.2s, opacity 0.2s;
 }
-.generate-tasks-btn:hover { background: var(--gold-dark); }
+.generate-tasks-btn:hover { background: var(--gold-deep); }
 .generate-tasks-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .task-section-label {
@@ -9269,16 +9254,16 @@ onUnmounted(() => {
   transition: background 0.15s;
   margin-bottom: 6px;
 }
-.task-item:hover { background: var(--light-bg); }
-.task-item.completed-task { opacity: 0.65; }
+.task-item:hover { background: rgba(212,175,55,0.06); }
+.task-item.completed-task { opacity: 0.55; }
 
 .task-checkbox {
   font-size: 18px;
   line-height: 1.2;
   flex-shrink: 0;
 }
-.pending-cb  { color: var(--gold-dark); }
-.completed-cb { color: #38a169; }
+.pending-cb  { color: var(--gold); }
+.completed-cb { color: #5cba7d; }
 
 .task-info {
   display: flex;
@@ -9288,27 +9273,27 @@ onUnmounted(() => {
 
 .task-description {
   font-size: 13px;
-  color: var(--charcoal);
+  color: var(--text);
   line-height: 1.4;
 }
 
 .task-badge {
   display: inline-block;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 1px 7px;
+  padding: 2px 8px;
   border-radius: 10px;
   width: fit-content;
-  background: #e8e0d5;
+  background: rgba(255,255,255,0.07);
   color: var(--text-muted);
 }
-.badge-appointments { background: #ebf4ff; color: #2b6cb0; }
-.badge-inventory    { background: #fff3cd; color: #856404; }
-.badge-feedback     { background: #fce8e8; color: #c53030; }
-.badge-staff        { background: #e6f4ea; color: #276749; }
-.badge-general      { background: #e8e0d5; color: var(--text-muted); }
+.badge-appointments { background: rgba(43,108,176,0.15); color: #7eb8f7; border: 1px solid rgba(43,108,176,0.25); }
+.badge-inventory    { background: rgba(133,100,4,0.15);  color: #e8c96a; border: 1px solid rgba(133,100,4,0.25); }
+.badge-feedback     { background: rgba(197,48,48,0.15);  color: #f98080; border: 1px solid rgba(197,48,48,0.25); }
+.badge-staff        { background: rgba(39,103,73,0.15);  color: #7ec8a0; border: 1px solid rgba(39,103,73,0.25); }
+.badge-general      { background: rgba(255,255,255,0.07); color: var(--text-muted); }
 
 /* ── Report Generation UI ───────────────────────────────────────────────── */
 .report-ai-msg {
@@ -9319,14 +9304,14 @@ onUnmounted(() => {
   margin-top: 4px;
 }
 .report-ai-msg--success {
-  background: #f0fff4;
-  border: 1px solid #c6f6d5;
-  color: #276749;
+  background: rgba(39,174,96,0.10);
+  border: 1px solid rgba(39,174,96,0.35);
+  color: #5cba7d;
 }
 .report-ai-msg--error {
-  background: #fff5f5;
-  border: 1px solid #fed7d7;
-  color: #c53030;
+  background: rgba(192,57,43,0.10);
+  border: 1px solid rgba(192,57,43,0.35);
+  color: #f08070;
 }
 
 .report-quick-row {
@@ -9380,7 +9365,7 @@ onUnmounted(() => {
   padding: 18px 16px 14px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: white;
+  background: var(--surface);
   transition: box-shadow 0.2s, border-color 0.2s;
 }
 .report-card:hover {

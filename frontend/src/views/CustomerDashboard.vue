@@ -1,7 +1,7 @@
 <template>
   <div class="content-layout">
     <!-- Mobile Menu Toggle -->
-    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: white; border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
+    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="3" y1="6" x2="21" y2="6"></line>
         <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -25,35 +25,35 @@
           @click.stop="currentView = 'dashboard'; sidebarOpen = false"
           style="cursor: pointer; user-select: none"
         >
-          <span class="nav-icon">📊</span> Dashboard
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
         </div>
         <div
           :class="['nav-item', { active: currentView === 'book-appointment' }]"
           @click.stop="currentView = 'book-appointment'; sidebarOpen = false"
           style="cursor: pointer; user-select: none"
         >
-          <span class="nav-icon">📅</span> Book Appointment
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg></span> Book Appointment
         </div>
         <div
           :class="['nav-item', { active: currentView === 'appointments' }]"
           @click.stop="currentView = 'appointments'; sidebarOpen = false"
           style="cursor: pointer; user-select: none"
         >
-          <span class="nav-icon">📋</span> My Appointments
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> My Appointments
         </div>
         <div
           :class="['nav-item', { active: currentView === 'feedback' }]"
           @click.stop="currentView = 'feedback'; sidebarOpen = false"
           style="cursor: pointer; user-select: none"
         >
-          <span class="nav-icon">💬</span> Feedback & Reviews
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Feedback & Reviews
         </div>
         <div
           :class="['nav-item', { active: currentView === 'services' }]"
           @click="currentView = 'services'; sidebarOpen = false"
           style="cursor: pointer; user-select: none; z-index: 10"
         >
-          <span class="nav-icon">💇</span> Browse Services
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span> Browse Services
         </div>
       </nav>
       <div class="sidebar-footer">
@@ -66,16 +66,10 @@
           <div style="font-size: 18px">▼</div>
           
           <!-- Profile Dropdown Menu -->
-          <div v-if="showProfileMenu" class="profile-dropdown" @click.stop style="position: absolute; bottom: 100%; left: 0; width: 220px; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 -2px 8px rgba(0,0,0,0.1); margin-bottom: 8px; z-index: 1000">
-            <button class="profile-menu-item" @click="currentView = 'profile'; showProfileMenu = false" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--charcoal); transition: background-color 0.2s; border-bottom: 1px solid var(--border)">
-              👤 Profile
-            </button>
-            <button class="profile-menu-item" @click="showChangePasswordModal = true; showProfileMenu = false" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--charcoal); transition: background-color 0.2s; border-bottom: 1px solid var(--border)">
-              🔑 Change Password
-            </button>
-            <button class="profile-menu-item" @click="handleLogout" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: #e74c3c; transition: background-color 0.2s">
-              🚪 Logout
-            </button>
+          <div v-if="showProfileMenu" class="profile-dropdown" @click.stop>
+            <button class="profile-menu-item" @click="currentView = 'profile'; showProfileMenu = false">👤 Profile</button>
+            <button class="profile-menu-item" @click="showChangePasswordModal = true; showProfileMenu = false">🔑 Change Password</button>
+            <button class="profile-menu-item profile-menu-danger" @click="handleLogout">🚪 Logout</button>
           </div>
         </div>
       </div>
@@ -194,7 +188,7 @@
               <div class="card-header" style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 18px;">🤖</span>
                 <h3 class="card-title" style="margin: 0;">AI Beauty Assistant</h3>
-                <span style="font-size: 11px; background: #e6f4ea; color: #276749; padding: 2px 8px; border-radius: 10px; font-weight: 600; margin-left: 4px;">AI Powered</span>
+                <span style="font-size: 11px; background: rgba(45,138,78,0.15); color: #5cba7d; padding: 2px 8px; border-radius: 10px; font-weight: 600; margin-left: 4px; border: 1px solid rgba(45,138,78,0.28);">AI Powered</span>
               </div>
               <!-- Quick prompt chips -->
               <div style="padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--border);">
@@ -501,7 +495,7 @@
               </div>
 
               <!-- Error State -->
-              <div v-else-if="servicesError" style="padding: 20px; background-color: #fee; border: 1px solid #fcc; border-radius: 8px; color: #c33; margin-bottom: 20px">
+              <div v-else-if="servicesError" style="padding: 20px; background-color: rgba(192,57,43,0.10); border: 1px solid rgba(192,57,43,0.28); border-radius: 8px; color: #f08070; margin-bottom: 20px">
                 <div style="font-weight: 600">⚠️ Error Loading Services</div>
                 <div style="font-size: 14px; margin-top: 8px">{{ servicesError }}</div>
               </div>
@@ -761,7 +755,7 @@
                 </div>
                 <div v-else>
                   <div style="display: grid; gap: 16px">
-                    <div v-for="review in reviewedAppointments" :key="review.appointment_id" style="padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: white">
+                    <div v-for="review in reviewedAppointments" :key="review.appointment_id" style="padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); transition: border-color 0.2s" @mouseenter="$event.currentTarget.style.borderColor='rgba(212,175,55,0.35)'" @mouseleave="$event.currentTarget.style.borderColor='rgba(212,175,55,0.15)'">
                       <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
                         <div>
                           <div style="font-weight: 600; font-size: 16px">{{ review.services.join(', ') }}</div>
@@ -777,7 +771,7 @@
                       <div class="text-muted" style="font-size: 12px; margin-bottom: 12px">
                         {{ new Date(review.datetime).toLocaleDateString() }}
                       </div>
-                      <div v-if="review.review" style="padding: 12px; background: var(--light-bg); border-radius: var(--radius); font-size: 14px; color: var(--charcoal)">
+                      <div v-if="review.review" style="padding: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; color: var(--text)">
                         "{{ review.review }}"
                       </div>
                       <div v-else style="padding: 12px; background: var(--light-bg); border-radius: var(--radius); font-size: 14px; color: var(--text-muted); font-style: italic">
@@ -962,15 +956,15 @@
               <button
                 type="button"
                 @click="showAiFeedbackPanel = !showAiFeedbackPanel; aiFeedbackError = ''"
-                style="font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--gold); background: #fffbea; color: #8B6914; cursor: pointer; font-weight: 600;"
+                style="font-size: 12px; padding: 4px 12px; border-radius: 12px; border: 1px solid rgba(212,175,55,0.4); background: rgba(212,175,55,0.10); color: var(--gold-bright); cursor: pointer; font-weight: 600;"
               >
                 ✨ {{ showAiFeedbackPanel ? 'Hide AI Writer' : 'Write with AI' }}
               </button>
             </div>
 
             <!-- AI Feedback Writer Panel -->
-            <div v-if="showAiFeedbackPanel" style="background: #fffbea; border: 1px solid #f0d060; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
-              <div style="font-size: 13px; font-weight: 600; color: #8B6914; margin-bottom: 10px;">✨ Select topics your feedback covers:</div>
+            <div v-if="showAiFeedbackPanel" style="background: rgba(212,175,55,0.07); border: 1px solid rgba(212,175,55,0.25); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--gold-bright); margin-bottom: 10px;">✨ Select topics your feedback covers:</div>
               <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
                 <button
                   v-for="kw in FEEDBACK_KEYWORDS"
@@ -981,9 +975,9 @@
                     fontSize: '12px',
                     padding: '5px 12px',
                     borderRadius: '14px',
-                    border: aiFeedbackKeywords.includes(kw) ? '2px solid var(--gold)' : '1px solid #ddd',
-                    background: aiFeedbackKeywords.includes(kw) ? 'var(--gold)' : 'white',
-                    color: aiFeedbackKeywords.includes(kw) ? 'white' : 'var(--charcoal)',
+                    border: aiFeedbackKeywords.includes(kw) ? '2px solid var(--gold)' : '1px solid rgba(212,175,55,0.25)',
+                    background: aiFeedbackKeywords.includes(kw) ? 'linear-gradient(135deg, var(--gold-deep), var(--gold))' : 'rgba(255,255,255,0.04)',
+                    color: aiFeedbackKeywords.includes(kw) ? 'var(--obsidian)' : 'var(--text-muted)',
                     cursor: 'pointer',
                     fontWeight: aiFeedbackKeywords.includes(kw) ? '600' : '400',
                     transition: 'all 0.15s',
@@ -2219,9 +2213,19 @@ const handleCancelAppointment = async (appointmentId) => {
 </script>
 
 <style scoped>
+/* ── Local token overrides ── */
+:root, * {
+  --light-bg:    rgba(255,255,255,0.05);
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-md:   14px;
+  --text-secondary: var(--text-muted);
+}
+
 .booking-item {
   padding: 12px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--divider);
+  color: var(--text);
 }
 
 .booking-item:last-child {
@@ -2234,32 +2238,39 @@ const handleCancelAppointment = async (appointmentId) => {
 
 .form-group label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--charcoal);
-  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 7px;
 }
 
 .form-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-family: inherit;
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
+  outline: none;
 }
 
+.form-input::placeholder { color: rgba(255,255,255,0.22); }
+
 .form-input:focus {
-  outline: none;
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(229, 170, 84, 0.1);
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.10);
 }
 
 .form-input:disabled {
-  background-color: var(--ivory);
+  background-color: rgba(255,255,255,0.03);
   color: var(--text-muted);
+  cursor: not-allowed;
 }
 
 .form-hint {
@@ -2270,20 +2281,20 @@ const handleCancelAppointment = async (appointmentId) => {
 
 .error-message {
   padding: 10px 12px;
-  background: rgba(231, 76, 60, 0.1);
-  border-left: 3px solid #e74c3c;
+  background: rgba(192,57,43,0.10);
+  border-left: 3px solid rgba(192,57,43,0.6);
   border-radius: var(--radius-sm);
-  color: #c0392b;
+  color: #f08070;
   font-size: 13px;
   margin-top: 12px;
 }
 
 .success-message {
   padding: 10px 12px;
-  background: rgba(39, 174, 96, 0.1);
-  border-left: 3px solid #27ae60;
+  background: rgba(39,174,96,0.10);
+  border-left: 3px solid rgba(39,174,96,0.6);
   border-radius: var(--radius-sm);
-  color: #229954;
+  color: #5cba7d;
   font-size: 13px;
   margin-top: 12px;
 }
@@ -2291,22 +2302,23 @@ const handleCancelAppointment = async (appointmentId) => {
 /* Detail Item Styles */
 .detail-item {
   padding: 12px;
-  background: var(--light-bg);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
 .detail-label {
   display: block;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 700;
   margin-bottom: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.12em;
 }
 
 .detail-value {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: var(--text);
   font-weight: 500;
 }
@@ -2318,7 +2330,8 @@ const handleCancelAppointment = async (appointmentId) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2327,18 +2340,15 @@ const handleCancelAppointment = async (appointmentId) => {
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .modal-content {
-  background: white;
+  background: var(--surface);
+  border: 1px solid rgba(212,175,55,0.18);
   border-radius: var(--radius-md);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xl);
   width: 100%;
   max-width: 420px;
   max-height: 90vh;
@@ -2347,14 +2357,8 @@ const handleCancelAppointment = async (appointmentId) => {
 }
 
 @keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
 .modal-header {
@@ -2362,20 +2366,22 @@ const handleCancelAppointment = async (appointmentId) => {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--divider);
 }
 
 .modal-title {
   font-size: 18px;
-  font-weight: 600;
-  color: var(--charcoal);
+  font-weight: 500;
+  color: var(--text);
   margin: 0;
+  font-family: var(--font-display);
 }
 
 .modal-close {
   background: none;
-  border: none;
-  font-size: 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 18px;
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;
