@@ -6,6 +6,7 @@ Endpoints covered:
   GET  /api/staff/<id>
   POST /api/staff
   PUT  /api/staff/<id>
+  GET  /api/staff-customer-reviews
   DELETE /api/staff/<id>
   GET  /api/staff-attendance
   POST /api/staff-attendance
@@ -144,3 +145,23 @@ class TestAttendance:
         rv = client.get('/api/manager-staff-attendance?date=2026-04-04',
                         headers=auth_headers(manager_token))
         assert rv.status_code == 200
+
+class TestStaffCustomerReview:
+    def test_get_staff_reviews_success(self, client, staff_token, setup_review):
+        """TC-REV-01: Logged-in staff retrieves their specific reviews and parsed service names."""
+        rv = client.get('/api/staff-customer-reviews', headers=auth_headers(staff_token))
+        data = rv.get_json()
+
+        assert rv.status_code == 200
+        assert isinstance(data, list)
+        assert len(data) > 0
+        assert data[0]['review'] == "Excellent professional service"
+        # Verifies the API successfully mapped the service_id string to a name
+        assert len(data[0]['service_names']) > 0
+
+    def test_get_staff_reviews_forbidden_for_customer(self, client, customer_token):
+        """TC-REV-02: Ensures customers are blocked from accessing the staff review list."""
+        rv = client.get('/api/staff-customer-reviews', headers=auth_headers(customer_token))
+        
+        # 403 Forbidden is the standard Flask-Security response for role mismatch
+        assert rv.status_code == 403

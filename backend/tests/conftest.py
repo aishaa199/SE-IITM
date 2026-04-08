@@ -282,6 +282,34 @@ def current_appt_id(client, db):
     db.session.add(new_appt)
     db.session.commit()
     return new_appt.appointment_id
+
+@pytest.fixture
+def setup_review(self, db, app):
+    """Fixture to inject a review into the DB without model imports in the test function."""
+    with app.app_context():
+        # We use the db.metadata to interact or get model classes if needed, 
+        # but usually, we can just use the session if the models are registered.
+        # Assuming models are available on the db object via your conftest setup:
+        User = db.Model.registry.references['User'].class_
+        Service = db.Model.registry.references['Service'].class_
+        Review = db.Model.registry.references['CustomerReview'].class_
+
+        staff = User.query.filter_by(username='test_staff').first()
+        cust = User.query.filter_by(username='test_customer').first()
+        svc = Service.query.first()
+
+        new_review = Review(
+            customer_id=cust.id,
+            staff_id=staff.id,
+            rating=5,
+            review="Excellent professional service",
+            apppointment_id=1,
+            service_ids=str(svc.service_id)
+        )
+        db.session.add(new_review)
+        db.session.commit()
+        return new_review
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Token fixtures – call login and return Bearer token string
 # ─────────────────────────────────────────────────────────────────────────────
