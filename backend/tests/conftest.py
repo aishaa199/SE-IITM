@@ -7,13 +7,13 @@ import pytest
 import sys
 import os
 from datetime import date,datetime
-
+import uuid
 # Make sure Python can find the backend package
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from main import create_app
 from application.models import db as _db, Role, User, Staff, Customer, Service, \
-    Appointment, Product, Manager
+    Appointment, Product, Manager, Invoice, SalonConfig, CustomerReward
 from application.sec import datastore
 from flask_security import hash_password
 
@@ -180,7 +180,83 @@ def _create_user(username, email, password, role_name):
     _db.session.commit()
     return user
 
+@pytest.fixture
+def create_customer(db):
+    def _make_customer(name="Test User", c_type="Regular", visits=0, rewards=0):
+        # 1. Create User
+        user = User(username=f"u_{uuid.uuid4().hex[:6]}", password="password")
+        db.session.add(user)
+        db.session.flush()
 
+        # 2. Create Customer
+        cust = Customer(
+            customer_id=user.id,
+            customer_name=name,
+            customer_contact="1234567890",
+            customer_dob=date(1990, 1, 1),
+            customer_email=f"e_{user.id}@test.com",
+            customer_type=c_type,
+            number_of_visits=visits,
+            customer_available_rewards=rewards # Total points
+        )
+        db.session.add(cust)
+
+        # 3. FIX: If rewards > 0, create an actual entry in the Reward table for FIFO logic
+        if rewards > 0:
+            reward_entry = CustomerReward(
+                customer_id=user.id,
+                credit_points=rewards,
+                expiry_date=datetime(2027, 12, 31),
+                valid_flg=True,
+                utilized_flg=False
+            )
+            db.session.add(reward_entry)
+
+        # 4. FIX: Ensure First-Time Bonus config exists
+        bonus_cfg = SalonConfig.query.filter_by(param_name='FIRST_TIME_BONUS').first()
+        if not bonus_cfg:
+            db.session.add(SalonConfig(
+                param_name='FIRST_TIME_BONUS',
+                param_value='20', # Giving 20 points for first timers
+                from_date=datetime.now()
+            ))
+
+        db.session.commit()
+        return cust
+    return _make_customer
+
+@pytest.fixture
+def setup_vip_config(db):
+    """Fixture to ensure SalonConfig exists with required NOT NULL dates."""
+    config = SalonConfig.query.filter_by(param_name='VIP_DISCOUNT_PERCENTAGE').first()
+    if not config:
+        config = SalonConfig(
+            param_name='VIP_DISCOUNT_PERCENTAGE',
+            param_value='15',
+            from_date=datetime.now(), # Required NOT NULL
+            to_date=datetime(2099, 12, 31)
+        )
+        db.session.add(config)
+    else:
+        config.param_value = '15'
+        config.from_date = datetime.now()
+    
+    db.session.commit()
+    return config
+
+@pytest.fixture
+def get_invoice(db):
+    """Fixture to fetch an invoice from DB by ID without importing the Model in the test."""
+    def _get_inv(invoice_number):
+        return Invoice.query.get(invoice_number)
+    return _get_inv
+
+@pytest.fixture
+def get_customer(db):
+    """Fixture to fetch a customer from DB by ID to check updated stats."""
+    def _get_cust(customer_id):
+        return Customer.query.get(customer_id)
+    return _get_cust
 # ─────────────────────────────────────────────────────────────────────────────
 # Token fixtures – call login and return Bearer token string
 # ─────────────────────────────────────────────────────────────────────────────

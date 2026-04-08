@@ -40,7 +40,7 @@ class TestInvoiceAPI:
 
     def test_list_invoices_manager(self, client, manager_token):
         """TC-INV-01: Manager can list all invoices with correct fields."""
-        rv = client.get('/api/invoice', headers=auth_headers(manager_token))
+        rv = client.get('/api/get-all-invoices', headers=auth_headers(manager_token))
         assert rv.status_code == 200
         data = rv.get_json()
         assert isinstance(data, list)
@@ -140,3 +140,105 @@ class TestInvoiceAPI:
         """TC-INV-09: Fetching invoice data for non-existent appointment returns 404."""
         rv = client.get('/api/invoice/99999', headers=auth_headers(manager_token))
         assert rv.status_code == 404
+
+    # sprint 2
+    import pytest
+
+# SPRINT 2: Business Logic Tests
+class TestInvoiceBusinessLogic:
+    """Tests for specialized invoice scenarios: VIP, Discounts, Rewards, and Bonuses."""
+
+    def test_create_invoice_vip_discount_logic(self, client, manager_token, create_customer, setup_vip_config, get_invoice):
+        """TC-INV-06: Verify VIP customer receives the salon's configured VIP discount."""
+        # 1. Setup: VIP config and VIP Customer are handled by fixtures
+        vip_cust = create_customer(name="VIP Test User", c_type="VIP", visits=10)
+
+        payload = {
+            'customer_id': vip_cust.customer_id,
+            'staff_id': 1,
+            'service_ids': "1,2",
+            'invoice_amount': 200.0,  # Expected VIP Discount: 15% of 200 = 30.0
+            'other_charges': 10.0,
+            'appointment_id': None
+        }
+
+        # 2. Act
+        rv = client.post('/api/invoice', headers=auth_headers(manager_token), json=payload)
+        data = rv.get_json()
+        
+        # 3. Assert
+        assert rv.status_code == 201
+        inv = get_invoice(data['invoice_number'])
+        
+        # Validation: Base (200 - 30) + 10 other charges = 180.0
+        assert inv.invoice_amount == 170.0
+        assert inv.total_invoice_amount == 180.0
+
+    def test_create_invoice_manual_discount_stacking(self, client, manager_token, create_customer, get_invoice):
+        """TC-INV-07: Verify manual discount percentage applies to the total."""
+        # Setup via fixture
+        cust = create_customer(name="Discount User", visits=5)
+
+        payload = {
+            'customer_id': cust.customer_id,
+            'staff_id': 1,
+            'service_ids': "1",
+            'invoice_amount': 100.0,
+            'other_charges': 20.0,
+            'discount_percentage': 10.0  # 10% off the 120.0 total
+        }
+
+        rv = client.post('/api/invoice', headers=auth_headers(manager_token), json=payload)
+        data = rv.get_json()
+        
+        assert rv.status_code == 201
+        inv = get_invoice(data['invoice_number'])
+        
+        # Validation: (100 + 20) * 0.9 = 108.0
+        assert inv.total_invoice_amount == 108.0
+
+    def test_create_invoice_rewards_utilization_fifo(self, client, manager_token, create_customer, get_invoice, get_customer):
+        """TC-INV-08: Verify that existing reward points reduce payable amount."""
+        # Setup via fixture with 50 rewards
+        cust = create_customer(name="Reward User", rewards=50, visits=2)
+
+        payload = {
+            'customer_id': cust.customer_id,
+            'staff_id': 1,
+            'service_ids': "1",
+            'invoice_amount': 150.0,
+            'other_charges': 0.0
+        }
+
+        rv = client.post('/api/invoice', headers=auth_headers(manager_token), json=payload)
+        data = rv.get_json()
+        
+        inv = get_invoice(data['invoice_number'])
+        updated_cust = get_customer(cust.customer_id)
+        
+        # Validation: Total 150, Rewards Used 50, Payable should be 100
+        assert inv.rewards_utilized == 50
+        assert inv.payable_invoice_amount == 100.0
+        assert updated_cust.customer_available_rewards >= 0
+
+    def test_create_invoice_first_time_bonus_logic(self, client, manager_token, create_customer, get_invoice, get_customer):
+        """TC-INV-09: Verify a brand new customer receives bonus points."""
+        # Setup via fixture with 0 visits
+        new_cust = create_customer(name="New Customer", visits=0)
+
+        payload = {
+            'customer_id': new_cust.customer_id,
+            'staff_id': 1,
+            'service_ids': "1",
+            'invoice_amount': 100.0
+        }
+
+        rv = client.post('/api/invoice', headers=auth_headers(manager_token), json=payload)
+        
+        # Validation
+        updated_cust = get_customer(new_cust.customer_id)
+        assert updated_cust.number_of_visits == 1
+        
+        inv = get_invoice(rv.get_json()['invoice_number'])
+        assert inv.rewards_earned > 0
+        assert updated_cust.customer_available_rewards > 0
