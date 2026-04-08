@@ -258,7 +258,30 @@ def get_customer(db):
         return Customer.query.get(customer_id)
     return _get_cust
 
-
+@pytest.fixture
+def current_appt_id(client, db):
+    """Ensures at least one appointment exists and returns its ID."""
+    from application.models import Appointment, User, Staff, Service
+    
+    appt = Appointment.query.first()
+    if appt:
+        return appt.appointment_id
+    
+    # If no appt exists (deleted by previous tests), create a fresh one
+    cust = User.query.filter_by(username='test_customer').first()
+    stf = User.query.filter_by(username='test_staff').first()
+    svc = Service.query.first()
+    
+    new_appt = Appointment(
+        customer_id=cust.id,
+        staff_id=stf.id,
+        appointment_datetime=datetime.now(),
+        status=0
+    )
+    new_appt.services.append(svc)
+    db.session.add(new_appt)
+    db.session.commit()
+    return new_appt.appointment_id
 # ─────────────────────────────────────────────────────────────────────────────
 # Token fixtures – call login and return Bearer token string
 # ─────────────────────────────────────────────────────────────────────────────

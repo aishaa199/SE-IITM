@@ -315,3 +315,31 @@ class TestAppointmentMaintenance:
         rv = client.delete('/api/cleanup-appointments', headers=auth_headers(staff_token))
         assert rv.status_code == 403
     
+
+class TestCustomerAppointmentOperations:
+    def test_get_specific_appointment_success(self, client, customer_token, current_appt_id):
+        """TC-CUST-OP-01: Guaranteed success via fixture discovery/creation."""
+        rv = client.get(f'/api/customer/appointment/{current_appt_id}', 
+                        headers=auth_headers(customer_token))
+        assert rv.status_code == 200
+
+    def test_reschedule_appointment_success(self, client, customer_token, current_appt_id):
+        """TC-CUST-OP-03: Rescheduling the guaranteed appointment."""
+        new_time = _future_dt(10)
+        rv = client.put(f'/api/customer/appointment/{current_appt_id}', 
+                        headers=auth_headers(customer_token),
+                        json={'appointment_datetime': new_time})
+        assert rv.status_code == 200
+
+    def test_reschedule_appointment_invalid_service(self, client, customer_token, current_appt_id):
+        """TC-CUST-OP-04: Using the fixture ID to test invalid service input."""
+        rv = client.put(f'/api/customer/appointment/{current_appt_id}', 
+                        headers=auth_headers(customer_token),
+                        json={'service_ids': [9999]}) 
+        assert rv.status_code == 400
+
+    def test_cancel_appointment_success(self, client, customer_token, current_appt_id):
+        """TC-CUST-OP-05: Deleting the guaranteed appointment."""
+        rv = client.delete(f'/api/customer/appointment/{current_appt_id}', 
+                           headers=auth_headers(customer_token))
+        assert rv.status_code == 200
