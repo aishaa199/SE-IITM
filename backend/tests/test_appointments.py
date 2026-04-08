@@ -10,6 +10,10 @@ Endpoints covered:
   GET  /api/todays-appointments
   GET /api/daily-appointment-count
   GET  /api/customer-upcoming-appointments
+  POST  /api/customer-upcoming-appointments
+  GET  /customer/appointment/<int:appointment_id>
+  PUT  /customer/appointment/<int:appointment_id>
+  POST /customer/appointment/<int:appointment_id>
   POST /api/customer-upcoming-appointments
   GET  /api/customer-history-appointments
   GET  /api/customer-summary
@@ -37,6 +41,33 @@ def _get_staff_id(client, token):
     items = rv.get_json()
     return items[0]['staff_id'] if items else None
 
+class TestCustomerBookingEdgeCases:
+    """Detailed POST /api/customer-upcoming-appointments validation."""
+
+    def test_book_appointment_invalid_date_format(self, client, customer_token):
+        """TC-BOOK-EDGE-01: Invalid datetime string returns 400."""
+        svc_id = _get_service_id(client, customer_token)
+        rv = client.post('/api/customer-upcoming-appointments',
+                         headers=auth_headers(customer_token),
+                         json={
+                             'service_ids': [svc_id],
+                             'appointment_datetime': "next Tuesday at 5pm",
+                         })
+        assert rv.status_code == 400
+        assert "Invalid datetime format" in rv.get_json()['message']
+
+    def test_book_appointment_invalid_staff(self, client, customer_token):
+        """TC-BOOK-EDGE-02: Providing a non-existent staff_id returns 404."""
+        svc_id = _get_service_id(client, customer_token)
+        rv = client.post('/api/customer-upcoming-appointments',
+                         headers=auth_headers(customer_token),
+                         json={
+                             'service_ids': [svc_id],
+                             'staff_id': 8888,
+                             'appointment_datetime': _future_dt(5),
+                         })
+        assert rv.status_code == 404
+        assert "Staff with provided ID not found" in rv.get_json()['message']
 
 class TestManagerAppointments:
     """GET + POST + PUT + DELETE /api/appointment"""
@@ -283,3 +314,4 @@ class TestAppointmentMaintenance:
         """TC-APPT-25: Staff cannot trigger global cleanup."""
         rv = client.delete('/api/cleanup-appointments', headers=auth_headers(staff_token))
         assert rv.status_code == 403
+    
