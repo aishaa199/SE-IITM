@@ -5,10 +5,12 @@ Endpoints covered:
   GET  /api/invoice
   GET  /api/invoice/<appointment_id>
   POST /api/invoice
+  GET /appointments-for-invoice
 """
 import pytest
 from datetime import datetime, timedelta
 from tests.conftest import auth_headers
+from unittest.mock import patch
 
 def _get_service_id(client, token):
     rv = client.get('/api/service', headers=auth_headers(token))
@@ -242,3 +244,62 @@ class TestInvoiceBusinessLogic:
         inv = get_invoice(rv.get_json()['invoice_number'])
         assert inv.rewards_earned > 0
         assert updated_cust.customer_available_rewards > 0
+
+class TestInvoiceAppointmentLookup:
+    """Test suite for the GetAppointmentIDsForInvoice resource."""
+
+    def test_get_appointments_for_invoice_filtering(self, client, manager_token, db):
+        """
+        TC-INV-10: Verify only appointments with status 0 or 4 are retrieved.
+        """
+        from application.models import Appointment, User, Customer
+        import datetime
+
+        # 1. Setup: Ensure we have a customer to link to
+        cust_user = User.query.filter_by(username='test_customer').first()
+        
+        # 2. Clear existing appointments to have a clean slate for this test
+        db.session.query(Appointment).delete()
+        
+        # 3. Create three appointments with different statuses
+        # Status 0: Should show up
+        appt_valid_0 = Appointment(
+            customer_id=cust_user.id,
+            appointment_datetime=datetime.datetime.now(),
+            status=0
+        )
+        # Status 4: Should show up
+        appt_valid_4 = Appointment(
+            customer_id=cust_user.id,
+            appointment_datetime=datetime.datetime.now(),
+            status=4
+        )
+        # Status 1 (e.g., Cancelled): Should NOT show up
+        appt_invalid = Appointment(
+            customer_id=cust_user.id,
+            appointment_datetime=datetime.datetime.now(),
+            status=1
+        )
+        
+        db.session.add_all([appt_valid_0, appt_valid_4, appt_invalid])
+        db.session.commit()
+
+        # 4. Act: Call the endpoint
+        rv = client.get('/api/get-appointments-for-invoice', headers=auth_headers(manager_token))
+        data = rv.get_json()
+
+        # 5. Assert
+        assert rv.status_code == 200
+        assert isinstance(data, list)
+        
+        # Check that we only got 2 results (status 0 and 4)
+        assert len(data) == 2
+        
+        # Verify structure of the returned objects
+        for item in data:
+            assert "appointment_id" in item
+            assert "customer_name" in item
+            assert "staff_name" in item
+            assert "datetime" in item
+            assert item["status"] in [0, 4]
+            assert item["status"] != 1

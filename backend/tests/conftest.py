@@ -257,6 +257,8 @@ def get_customer(db):
     def _get_cust(customer_id):
         return Customer.query.get(customer_id)
     return _get_cust
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Token fixtures – call login and return Bearer token string
 # ─────────────────────────────────────────────────────────────────────────────
