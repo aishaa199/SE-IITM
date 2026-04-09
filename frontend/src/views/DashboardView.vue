@@ -23,7 +23,7 @@
         <div :class="['nav-item', { active: currentView === 'dashboard' }]" @click="currentView = 'dashboard'; sidebarOpen = false">
           <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
         </div>
-        <div :class="['nav-item', { active: currentView === 'bookings' }]" @click="currentView = 'bookings'; sidebarOpen = false">
+        <div :class="['nav-item', { active: currentView === 'bookings' }]" @click="currentView = 'bookings'; fetchSalonConfig(); sidebarOpen = false">
           <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Appointments
         </div>
         <div :class="['nav-item', { active: currentView === 'services' }]" @click="currentView = 'services'; sidebarOpen = false">
@@ -724,7 +724,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="service in filteredServices" :key="service.id">
+                    <tr v-for="service in paginatedServices" :key="service.id">
                       <td>{{ service.name }}</td>
                       <td>{{ getCategoryName(service.categoryId) }}</td>
                       <td style="text-align: right">₹{{ service.price }}</td>
@@ -751,6 +751,12 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+              <!-- Pagination Controls -->
+              <div v-if="totalPagesServices > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                <button :disabled="currentPageServices === 1" @click="goToPageServices(currentPageServices - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                <span style="font-size: 14px; font-weight: 600">Page {{ currentPageServices }} of {{ totalPagesServices }}</span>
+                <button :disabled="currentPageServices === totalPagesServices" @click="goToPageServices(currentPageServices + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
               </div>
             </div>
           </div>
@@ -901,7 +907,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="customer in filteredCustomers" :key="customer.id" @click="viewCustomerVisits(customer)" style="cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.parentElement.style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.parentElement.style.backgroundColor = 'transparent'">
+                    <tr v-for="customer in paginatedCustomers" :key="customer.id" @click="viewCustomerVisits(customer)" style="cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.parentElement.style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.parentElement.style.backgroundColor = 'transparent'">
                       <td>{{ customer.name }}</td>
                       <td>{{ customer.email }}</td>
                       <td>{{ customer.phone }}</td>
@@ -926,6 +932,12 @@
                   </tbody>
                 </table>
               </div>
+              <!-- Pagination Controls -->
+              <div v-if="totalPagesCustomers > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                <button :disabled="currentPageCustomers === 1" @click="goToPageCustomers(currentPageCustomers - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                <span style="font-size: 14px; font-weight: 600">Page {{ currentPageCustomers }} of {{ totalPagesCustomers }}</span>
+                <button :disabled="currentPageCustomers === totalPagesCustomers" @click="goToPageCustomers(currentPageCustomers + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
+              </div>
             </div>
           </div>
         </div>
@@ -948,13 +960,17 @@
                 />
               </div>
 
-              <div v-if="staffForSelectedDay.length === 0" style="text-align: center; padding: 32px; color: var(--text-muted)">
+              <div v-if="(appStore.data?.staff || []).length === 0" style="text-align: center; padding: 32px; color: var(--text-muted)">
                 <div style="font-size: 32px; margin-bottom: 12px">📭</div>
-                <div style="font-size: 16px">No staff available on {{ selectedStaffDate }}</div>
+                <div style="font-size: 16px">No staff available</div>
               </div>
 
               <div v-else style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px">
-                <div v-for="staff in staffForSelectedDay" :key="staff.id" style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: var(--light-bg); transition: all 0.3s ease" @mouseenter="hoveredStaff = staff.id" @mouseleave="hoveredStaff = null" :style="{ boxShadow: hoveredStaff === staff.id ? '0 8px 24px rgba(212, 175, 55, 0.2)' : 'none', borderColor: hoveredStaff === staff.id ? 'var(--gold)' : 'var(--border)' }">
+                <div v-for="staff in staffForSelectedDay" :key="staff.id" style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: var(--light-bg); transition: all 0.3s ease; position: relative" @mouseenter="hoveredStaff = staff.id" @mouseleave="hoveredStaff = null" :style="{ boxShadow: hoveredStaff === staff.id ? '0 8px 24px rgba(212, 175, 55, 0.2)' : 'none', borderColor: hoveredStaff === staff.id ? 'var(--gold)' : 'var(--border)', opacity: staff.attendanceStatus === 'present' ? '1' : (staff.attendanceStatus === 'absent' ? '0.7' : '0.5') }">
+                  <!-- Attendance Status Badge -->
+                  <div style="position: absolute; top: 12px; right: 12px; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600" :style="{ background: staff.attendanceStatus === 'present' ? 'rgba(92, 186, 125, 0.2)' : (staff.attendanceStatus === 'absent' ? 'rgba(240, 128, 112, 0.2)' : 'rgba(200, 200, 200, 0.2)'), color: staff.attendanceStatus === 'present' ? '#5cba7d' : (staff.attendanceStatus === 'absent' ? '#f08070' : '#999') }">
+                    {{ staff.attendanceStatus === 'present' ? '✓ Present' : (staff.attendanceStatus === 'absent' ? '✗ Absent' : '• Unmarked') }}
+                  </div>
                   <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px">
                     <div style="width: 56px; height: 56px; background: linear-gradient(135deg, var(--gold), var(--charcoal)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 600">
                       {{ staff.name.charAt(0) }}
@@ -1168,7 +1184,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="staff in filteredStaff" :key="staff.id" @click="viewStaffBookings(staff)" style="cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.parentElement.style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.parentElement.style.backgroundColor = 'transparent'">
+                    <tr v-for="staff in paginatedStaff" :key="staff.id" @click="viewStaffBookings(staff)" style="cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.parentElement.style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.parentElement.style.backgroundColor = 'transparent'">
                       <td>{{ staff.name }}</td>
                       <td>{{ staff.role }}</td>
                       <td><span style="font-size: 12px; color: var(--text-muted)">{{ staff.skills || '-' }}</span></td>
@@ -1193,6 +1209,12 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+              <!-- Pagination Controls -->
+              <div v-if="totalPagesStaff > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                <button :disabled="currentPageStaff === 1" @click="goToPageStaff(currentPageStaff - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                <span style="font-size: 14px; font-weight: 600">Page {{ currentPageStaff }} of {{ totalPagesStaff }}</span>
+                <button :disabled="currentPageStaff === totalPagesStaff" @click="goToPageStaff(currentPageStaff + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
               </div>
             </div>
           </div>
@@ -1222,14 +1244,22 @@
 
                   <div class="form-group">
                     <label for="product-category">Category *</label>
-                    <input 
+                    <select 
                       id="product-category"
                       v-model="inventoryForm.categoryName"
-                      type="text"
-                      placeholder="e.g., Hair Care"
                       class="form-input"
                       required
-                    />
+                    >
+                      <option value="">Select a category</option>
+                      <option value="Hair Care">Hair Care</option>
+                      <option value="Skin Care">Skin Care</option>
+                      <option value="Makeup">Makeup</option>
+                      <option value="Nails">Nails</option>
+                      <option value="Waxing">Waxing</option>
+                      <option value="Tools & Brushes">Tools & Brushes</option>
+                      <option value="Accessories">Accessories</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
 
                   <div class="form-group">
@@ -1363,7 +1393,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="product in filteredProducts" :key="product.id" @click="viewProductDetails(product)" style="cursor: pointer">
+                    <tr v-for="product in paginatedProducts" :key="product.id" @click="viewProductDetails(product)" style="cursor: pointer">
                       <td>{{ product.name }}</td>
                       <td>{{ product.categoryName }}</td>
                       <td style="text-align: center"><span :class="['badge', product.stock <= product.minStock ? 'badge-red' : 'badge-green']">{{ product.stock }} {{ product.unit }}</span></td>
@@ -1383,6 +1413,12 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+              <!-- Pagination Controls -->
+              <div v-if="totalPagesInventory > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                <button :disabled="currentPageInventory === 1" @click="goToPageInventory(currentPageInventory - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                <span style="font-size: 14px; font-weight: 600">Page {{ currentPageInventory }} of {{ totalPagesInventory }}</span>
+                <button :disabled="currentPageInventory === totalPagesInventory" @click="goToPageInventory(currentPageInventory + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
               </div>
             </div>
           </div>
@@ -1983,7 +2019,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="invoice in filteredInvoices" :key="invoice.id">
+                    <tr v-for="invoice in paginatedInvoices" :key="invoice.id">
                       <td><strong>{{ invoice.invoice_number }}</strong></td>
                       <td>{{ invoice.customer_name || getCustomerName(invoice.customer_id) }}</td>
                       <td>{{ invoice.staffName || invoice.staff_name || getStaffName(invoice.staff_id) || "Unassigned" }}</td>
@@ -2024,6 +2060,12 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+              <!-- Pagination Controls -->
+              <div v-if="totalPagesInvoices > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                <button :disabled="currentPageInvoices === 1" @click="goToPageInvoices(currentPageInvoices - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                <span style="font-size: 14px; font-weight: 600">Page {{ currentPageInvoices }} of {{ totalPagesInvoices }}</span>
+                <button :disabled="currentPageInvoices === totalPagesInvoices" @click="goToPageInvoices(currentPageInvoices + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
               </div>
             </div>
           </div>
@@ -2824,23 +2866,9 @@
                 required
               >
                 <option value="">Choose a time</option>
-                <option value="09:00">09:00</option>
-                <option value="09:30">09:30</option>
-                <option value="10:00">10:00</option>
-                <option value="10:30">10:30</option>
-                <option value="11:00">11:00</option>
-                <option value="11:30">11:30</option>
-                <option value="12:00">12:00</option>
-                <option value="12:30">12:30</option>
-                <option value="13:00">13:00</option>
-                <option value="13:30">13:30</option>
-                <option value="14:00">14:00</option>
-                <option value="14:30">14:30</option>
-                <option value="15:00">15:00</option>
-                <option value="15:30">15:30</option>
-                <option value="16:00">16:00</option>
-                <option value="16:30">16:30</option>
-                <option value="17:00">17:00</option>
+                <option v-for="time in editAppointmentTimeSlots" :key="time" :value="time">
+                  {{ time }}
+                </option>
               </select>
             </div>
 
@@ -3737,6 +3765,16 @@ const stockStatusFilter = ref("");
 const invoiceStatusFilter = ref("");
 const orderStatusFilter = ref("");
 
+// Pagination state
+const pageSize = ref(12);
+const currentPageServices = ref(1);
+const currentPageCustomers = ref(1);
+const currentPageStaff = ref(1);
+const currentPageInventory = ref(1);
+const currentPageInvoices = ref(1);
+const currentPageAppointments = ref(1);
+const currentPageOrders = ref(1);
+
 // Customer search dropdown for appointment creation
 const bookingCustomerSearch = ref("");
 const showBookingCustomerDropdown = ref(false);
@@ -3902,24 +3940,44 @@ const fetchManagerAttendance = async (selectedDate = null) => {
 
     if (response.ok) {
       const attendanceData = await response.json();
-      const mappedAttendance = attendanceData.map(record => ({
-        staffId: record.staff_id,
-        date: new Date(record.register_datetime).toISOString().split('T')[0],
-        status: "present" // Marking means present
-      }));
+      const mappedAttendance = attendanceData.map(record => {
+        // Ensure date is in YYYY-MM-DD format, handling timezone issues
+        let recordDate;
+        if (typeof record.register_datetime === 'string') {
+          // If it's already a string, extract date part
+          recordDate = record.register_datetime.includes('T') 
+            ? record.register_datetime.split('T')[0]
+            : record.register_datetime.split(' ')[0];
+        } else {
+          // If it's a date object, convert to ISO string and extract date
+          recordDate = new Date(record.register_datetime).toISOString().split('T')[0];
+        }
+        return {
+          staffId: record.staff_id,
+          date: recordDate,
+          status: record.present_flag ? "present" : "absent"
+        };
+      });
       fetchedAttendance.value = mappedAttendance;
       // Update the main data store with fetched attendance
-      data.value.attendance = mappedAttendance;
-      console.log("Manager attendance loaded:", fetchedAttendance.value);
+      appStore.data.attendance = mappedAttendance;
+      console.log("✅ Manager attendance loaded for", selectedDate || 'today', ":", {
+        rawCount: attendanceData.length,
+        mappedCount: mappedAttendance.length,
+        mappedData: mappedAttendance
+      });
     } else if (response.status === 404) {
+      // No records found for that date is OK - means no staff marked attendance
       fetchedAttendance.value = [];
-      data.value.attendance = [];
+      appStore.data.attendance = [];
+      console.log("ℹ️ No attendance records found for", selectedDate || 'today');
     } else {
-      attendanceError.value = "Failed to load attendance data";
+      attendanceError.value = `Failed to load attendance data (Status: ${response.status})`;
+      console.warn("⚠️ Attendance fetch failed:", response.status);
     }
   } catch (error) {
-    console.error("Error fetching attendance:", error);
-    attendanceError.value = "Error loading attendance";
+    console.error("❌ Error fetching attendance:", error);
+    attendanceError.value = "Error loading attendance: " + error.message;
   } finally {
     attendanceLoading.value = false;
   }
@@ -4067,14 +4125,34 @@ const todayAvailableStaff = computed(() => {
 
 const staffForSelectedDay = computed(() => {
   // Use fetched attendance data from API if available, otherwise use mock data
-  const attendanceData = fetchedAttendance.value.length > 0 ? fetchedAttendance.value : data.value.attendance;
+  const attendanceData = fetchedAttendance.value.length > 0 ? fetchedAttendance.value : (appStore.data?.attendance || []);
+  const staffList = appStore.data?.staff || [];
   
-  return data.value.staff.filter(staff => {
-    const isPresent = attendanceData.find(
-      a => a.staffId === staff.id && a.date === selectedStaffDate.value && a.status === "present"
-    );
-    return !!isPresent;
+  console.log("staffForSelectedDay computed:", {
+    staffCount: staffList.length,
+    attendanceRecords: attendanceData.length,
+    selectedDate: selectedStaffDate.value,
+    attendanceData: attendanceData
   });
+  
+  // Map staff with attendance status
+  const mappedStaff = staffList.map(staff => {
+    const attendance = attendanceData.find(
+      a => a.staffId === staff.id && a.date === selectedStaffDate.value
+    );
+    return {
+      ...staff,
+      isPresent: attendance && attendance.status === 'present',
+      isAbsent: attendance && attendance.status === 'absent',
+      attendanceStatus: attendance && attendance.status === 'present' ? 'present' : 'absent'
+    };
+  });
+  
+  // Separate and sort: present first, then absent (includes unmarked)
+  const present = mappedStaff.filter(s => s.attendanceStatus === 'present').sort((a, b) => a.name.localeCompare(b.name));
+  const absent = mappedStaff.filter(s => s.attendanceStatus === 'absent').sort((a, b) => a.name.localeCompare(b.name));
+  
+  return [...present, ...absent];
 });
 
 const staffBookings = computed(() => {
@@ -4415,6 +4493,78 @@ const getSortIndicator = (table, column) => {
   return current.direction === 'asc' ? '↑' : '↓';
 };
 
+// ──── PAGINATION HELPER FUNCTIONS ────
+const goToPageServices = (page) => {
+  if (page >= 1 && page <= totalPagesServices.value) {
+    currentPageServices.value = page;
+  }
+};
+
+const goToPageCustomers = (page) => {
+  if (page >= 1 && page <= totalPagesCustomers.value) {
+    currentPageCustomers.value = page;
+  }
+};
+
+const goToPageStaff = (page) => {
+  if (page >= 1 && page <= totalPagesStaff.value) {
+    currentPageStaff.value = page;
+  }
+};
+
+const goToPageInventory = (page) => {
+  if (page >= 1 && page <= totalPagesInventory.value) {
+    currentPageInventory.value = page;
+  }
+};
+
+const goToPageInvoices = (page) => {
+  if (page >= 1 && page <= totalPagesInvoices.value) {
+    currentPageInvoices.value = page;
+  }
+};
+
+const goToPageBookings = (page) => {
+  if (page >= 1 && page <= totalPagesBookings.value) {
+    currentPageAppointments.value = page;
+  }
+};
+
+const goToPageOrders = (page) => {
+  if (page >= 1 && page <= totalPagesOrders.value) {
+    currentPageOrders.value = page;
+  }
+};
+
+// Reset pagination when filters change
+watch([serviceName, serviceCategoryFilter, serviceStatusFilter], () => {
+  currentPageServices.value = 1;
+});
+
+watch([customerName, customerTypeFilter], () => {
+  currentPageCustomers.value = 1;
+});
+
+watch([staffName], () => {
+  currentPageStaff.value = 1;
+});
+
+watch([productName, stockStatusFilter], () => {
+  currentPageInventory.value = 1;
+});
+
+watch([invoiceCustomerName, invoiceStatusFilter], () => {
+  currentPageInvoices.value = 1;
+});
+
+watch([bookingCustomerName], () => {
+  currentPageAppointments.value = 1;
+});
+
+watch([orderTab], () => {
+  currentPageOrders.value = 1;
+});
+
 const displayedBookings = computed(() => {
   if (selectedDate.value) {
     return getDateBookings(selectedDate.value);
@@ -4501,6 +4651,76 @@ const filteredInvoices = computed(() => {
   return sortData(filtered, tableSort.value.invoices);
 });
 
+// ─────────────────────── PAGINATION COMPUTED PROPERTIES ───────────────────────
+// Paginated Services
+const paginatedServices = computed(() => {
+  const start = (currentPageServices.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredServices.value.slice(start, end);
+});
+
+const totalPagesServices = computed(() => Math.ceil(filteredServices.value.length / pageSize.value) || 1);
+
+// Paginated Customers
+const paginatedCustomers = computed(() => {
+  const start = (currentPageCustomers.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredCustomers.value.slice(start, end);
+});
+
+const totalPagesCustomers = computed(() => Math.ceil(filteredCustomers.value.length / pageSize.value) || 1);
+
+// Paginated Staff
+const paginatedStaff = computed(() => {
+  const start = (currentPageStaff.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredStaff.value.slice(start, end);
+});
+
+const totalPagesStaff = computed(() => Math.ceil(filteredStaff.value.length / pageSize.value) || 1);
+
+// Paginated Inventory
+const paginatedProducts = computed(() => {
+  const start = (currentPageInventory.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredProducts.value.slice(start, end);
+});
+
+const totalPagesInventory = computed(() => Math.ceil(filteredProducts.value.length / pageSize.value) || 1);
+
+// Paginated Invoices
+const paginatedInvoices = computed(() => {
+  const start = (currentPageInvoices.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredInvoices.value.slice(start, end);
+});
+
+const totalPagesInvoices = computed(() => Math.ceil(filteredInvoices.value.length / pageSize.value) || 1);
+
+// Paginated Bookings
+const paginatedBookings = computed(() => {
+  const start = (currentPageAppointments.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredBookings.value.slice(start, end);
+});
+
+const totalPagesBookings = computed(() => Math.ceil(filteredBookings.value.length / pageSize.value) || 1);
+
+// Paginated Orders
+const paginatedOrders = computed(() => {
+  const start = (currentPageOrders.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  const orders = orderTab.value === 'pending-orders' ? staffOrderRequests.value : managerReplenishmentOrders.value;
+  return orders.slice(start, end);
+});
+
+const totalPagesOrders = computed(() => {
+  const orders = orderTab.value === 'pending-orders' ? staffOrderRequests.value : managerReplenishmentOrders.value;
+  return Math.ceil(orders.length / pageSize.value) || 1;
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Get today's date in YYYY-MM-DD format for DOB max date constraint
 const todayDate = computed(() => {
   const now = new Date();
@@ -4525,10 +4745,39 @@ const getAvailableAppointmentsForInvoice = computed(() => {
 
 // Get available time slots (filter out past times if booking for today)
 const availableTimeSlots = computed(() => {
-  const allTimes = [
-    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30",
-    "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"
-  ];
+  // Generate times dynamically based on salon config
+  const allTimes = [];
+  
+  // Get salon hours from config
+  let openHour = 9, openMinute = 0, closeHour = 17, closeMinute = 0;
+  if (salonConfigList.value && salonConfigList.value.length > 0) {
+    const openConfig = salonConfigList.value.find(c => c.param_name === 'SALON_OPEN_TIME');
+    const closeConfig = salonConfigList.value.find(c => c.param_name === 'SALON_CLOSE_TIME');
+    
+    if (openConfig) {
+      const [h, m] = openConfig.param_value.split(':').map(Number);
+      openHour = h;
+      openMinute = m;
+    }
+    if (closeConfig) {
+      const [h, m] = closeConfig.param_value.split(':').map(Number);
+      closeHour = h;
+      closeMinute = m;
+    }
+  }
+  
+  // Generate 30-minute slots
+  let currentHour = openHour;
+  let currentMinute = openMinute;
+  
+  while (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute)) {
+    allTimes.push(`${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`);
+    currentMinute += 30;
+    if (currentMinute >= 60) {
+      currentMinute = 0;
+      currentHour += 1;
+    }
+  }
   
   if (!bookingForm.value.date) return allTimes;
   
@@ -4540,14 +4789,73 @@ const availableTimeSlots = computed(() => {
   
   // If today, filter out past times
   const now = new Date();
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
+  const currentTimeHour = now.getHours();
+  const currentTimeMinute = now.getMinutes();
   
   return allTimes.filter(time => {
     const [hour, minute] = time.split(':').map(Number);
     // Convert to minutes since midnight for easier comparison
     const timeInMinutes = hour * 60 + minute;
-    const nowInMinutes = currentHour * 60 + currentMinute;
+    const nowInMinutes = currentTimeHour * 60 + currentTimeMinute;
+    // Only show times 30 minutes or more in the future
+    return timeInMinutes > nowInMinutes + 30;
+  });
+});
+
+// Available time slots for edit appointment (generates times based on salon config)
+const editAppointmentTimeSlots = computed(() => {
+  // Generate times dynamically based on salon config
+  const allTimes = [];
+  
+  // Get salon hours from config
+  let openHour = 9, openMinute = 0, closeHour = 17, closeMinute = 0;
+  if (salonConfigList.value && salonConfigList.value.length > 0) {
+    const openConfig = salonConfigList.value.find(c => c.param_name === 'SALON_OPEN_TIME');
+    const closeConfig = salonConfigList.value.find(c => c.param_name === 'SALON_CLOSE_TIME');
+    
+    if (openConfig) {
+      const [h, m] = openConfig.param_value.split(':').map(Number);
+      openHour = h;
+      openMinute = m;
+    }
+    if (closeConfig) {
+      const [h, m] = closeConfig.param_value.split(':').map(Number);
+      closeHour = h;
+      closeMinute = m;
+    }
+  }
+  
+  // Generate 30-minute slots
+  let currentHour = openHour;
+  let currentMinute = openMinute;
+  
+  while (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute)) {
+    allTimes.push(`${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`);
+    currentMinute += 30;
+    if (currentMinute >= 60) {
+      currentMinute = 0;
+      currentHour += 1;
+    }
+  }
+  
+  if (!editAppointmentForm.value.date) return allTimes;
+  
+  const todayDate = new Date().toISOString().split('T')[0];
+  const selectedDate = editAppointmentForm.value.date;
+  
+  // If not today, show all times
+  if (selectedDate !== todayDate) return allTimes;
+  
+  // If today, filter out past times
+  const now = new Date();
+  const currentTimeHour = now.getHours();
+  const currentTimeMinute = now.getMinutes();
+  
+  return allTimes.filter(time => {
+    const [hour, minute] = time.split(':').map(Number);
+    // Convert to minutes since midnight for easier comparison
+    const timeInMinutes = hour * 60 + minute;
+    const nowInMinutes = currentTimeHour * 60 + currentTimeMinute;
     // Only show times 30 minutes or more in the future
     return timeInMinutes > nowInMinutes + 30;
   });
@@ -6677,7 +6985,7 @@ const fetchStaff = async () => {
         salary: s.staff_salary,
         rating: s.staff_cumulative_rating,
         reviews: s.no_of_reviews,
-        status: "active"
+        status: s.active ? "active" : "inactive"
       }));
       console.log("Staff fetched:", appStore.data.staff);
     } else {
@@ -8298,6 +8606,9 @@ const handleDeleteStaff = async (staffId) => {
 
 // Booking edit/delete handlers
 const handleEditBooking = (booking) => {
+  // Ensure salon config is loaded for time slots
+  fetchSalonConfig();
+  
   editingAppointment.value = booking;
   
   // Extract time from datetime (format: "HH:MM:SS" or "HH:MM")
@@ -8834,8 +9145,8 @@ const handleEditSetting = (setting) => {
   editSettingForm.value = {
     param_name: setting.param_name,
     param_value: setting.param_value,
-    from_date: setting.from_date ? setting.from_date.split('T')[0] : '',
-    to_date: setting.to_date ? setting.to_date.split('T')[0] : ''
+    from_date: extractDateOnly(setting.from_date),
+    to_date: extractDateOnly(setting.to_date)
   };
   showEditSettingModal.value = true;
   settingError.value = "";
@@ -8891,8 +9202,22 @@ const handleSaveSetting = async () => {
 
 const formatDate = (dateStr) => {
   if (!dateStr) return 'N/A';
-  const date = new Date(dateStr);
+  // Extract just the date portion (handles "yyyy-MM-dd HH:MM:SS" format)
+  const datePart = typeof dateStr === 'string' ? dateStr.substring(0, 10) : dateStr;
+  const date = new Date(datePart);
   return date.toLocaleDateString();
+};
+
+// Helper function to extract date portion from various formats
+const extractDateOnly = (dateStr) => {
+  if (!dateStr) return '';
+  // Handle both "yyyy-MM-dd HH:MM:SS" and "yyyy-MM-ddTHH:MM:SS" formats
+  if (dateStr.includes('T')) {
+    return dateStr.split('T')[0];
+  } else if (dateStr.includes(' ')) {
+    return dateStr.split(' ')[0];
+  }
+  return dateStr;
 };
 
 const fetchBriefing = async () => {

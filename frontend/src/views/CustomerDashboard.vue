@@ -364,7 +364,7 @@
                     transition: 'all 0.2s'
                   }"
                 >
-                  ✅ History ({{ historyAppointmentsData.length }})
+                  ✅ History ({{ groupedHistoryAppointments.length }})
                 </button>
               </div>
 
@@ -384,7 +384,7 @@
                 </div>
                 <div v-else>
                   <div style="display: grid; gap: 16px">
-                    <div v-for="group in groupedUpcomingAppointments" :key="`${group.date}-${group.time}`" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold)">
+                    <div v-for="group in paginatedUpcomingAppointments" :key="`${group.date}-${group.time}`" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold)">
                       <!-- Group header with date and time -->
                       <div style="font-weight: 600; font-size: 14px; color: var(--text-muted); margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border)">
                         📅 {{ group.date }} at {{ group.time }}
@@ -415,6 +415,12 @@
                       </div>
                     </div>
                   </div>
+                  <!-- Pagination Controls -->
+                  <div v-if="totalPagesUpcoming > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                    <button :disabled="currentPageUpcoming === 1" @click="goToPageUpcoming(currentPageUpcoming - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                    <span style="font-size: 14px; font-weight: 600">Page {{ currentPageUpcoming }} of {{ totalPagesUpcoming }}</span>
+                    <button :disabled="currentPageUpcoming === totalPagesUpcoming" @click="goToPageUpcoming(currentPageUpcoming + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
+                  </div>
                 </div>
               </div>
 
@@ -443,7 +449,7 @@
                     />
                   </div>
                   <div style="display: grid; gap: 16px">
-                    <div v-for="group in groupedHistoryAppointments" :key="`${group.date}-${group.time}`" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--text-muted); cursor: pointer; transition: background-color 0.2s;" @click="viewAppointmentDetails(group.appointments[0].id)" @mouseenter="($event.currentTarget.style.backgroundColor = 'rgba(218,165,32,0.1)')" @mouseleave="($event.currentTarget.style.backgroundColor = 'var(--light-bg)')">
+                    <div v-for="group in paginatedHistoryAppointments" :key="`${group.date}-${group.time}`" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--text-muted); cursor: pointer; transition: background-color 0.2s;" @click="viewAppointmentDetails(group.appointments[0].id)" @mouseenter="($event.currentTarget.style.backgroundColor = 'rgba(218,165,32,0.1)')" @mouseleave="($event.currentTarget.style.backgroundColor = 'var(--light-bg)')">
                       <!-- Group header with date and time -->
                       <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
                         <div>
@@ -470,6 +476,12 @@
                         </div>
                       </div>
                     </div>
+                  </div>
+                  <!-- Pagination Controls -->
+                  <div v-if="totalPagesHistory > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                    <button :disabled="currentPageHistory === 1" @click="goToPageHistory(currentPageHistory - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                    <span style="font-size: 14px; font-weight: 600">Page {{ currentPageHistory }} of {{ totalPagesHistory }}</span>
+                    <button :disabled="currentPageHistory === totalPagesHistory" @click="goToPageHistory(currentPageHistory + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
                   </div>
                 </div>
               </div>
@@ -757,7 +769,7 @@
                 </div>
                 <div v-else>
                   <div style="display: grid; gap: 16px">
-                    <div v-for="review in reviewedAppointments" :key="review.appointment_id" style="padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); transition: border-color 0.2s" @mouseenter="$event.currentTarget.style.borderColor='rgba(212,175,55,0.35)'" @mouseleave="$event.currentTarget.style.borderColor='rgba(212,175,55,0.15)'">
+                    <div v-for="review in paginatedReviewedAppointments" :key="review.appointment_id" style="padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); transition: border-color 0.2s" @mouseenter="$event.currentTarget.style.borderColor='rgba(212,175,55,0.35)'" @mouseleave="$event.currentTarget.style.borderColor='rgba(212,175,55,0.15)'">
                       <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
                         <div>
                           <div style="font-weight: 600; font-size: 16px">{{ review.services.join(', ') }}</div>
@@ -780,6 +792,12 @@
                         No review text provided
                       </div>
                     </div>
+                  </div>
+                  <!-- Pagination Controls -->
+                  <div v-if="totalPagesReviews > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                    <button :disabled="currentPageReviews === 1" @click="goToPageReviews(currentPageReviews - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                    <span style="font-size: 14px; font-weight: 600">Page {{ currentPageReviews }} of {{ totalPagesReviews }}</span>
+                    <button :disabled="currentPageReviews === totalPagesReviews" @click="goToPageReviews(currentPageReviews + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
                   </div>
                 </div>
               </div>
@@ -1169,16 +1187,13 @@
         <button type="button" class="btn btn-outline" @click="editingAppointmentId = null; showAppointmentDetailsModal = false" style="flex: 1;">
           Close
         </button>
-        <button v-if="!editingAppointmentId && selectedAppointment && selectedAppointment.status !== 'Completed'" type="button" class="btn btn-primary" @click="startEditAppointment(selectedAppointment)" style="flex: 1;">
-          ✏️ Edit
-        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, nextTick } from "vue";
+import { ref, computed, onMounted, nextTick, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/appStore";
 import { apiClient } from "../api/apiClient";
@@ -1288,6 +1303,13 @@ const chatMessages = ref([
 const appointmentHistoryFilter = ref("");
 const selectedServiceCategory = ref(null);
 const appointmentsTab = ref("upcoming"); // "upcoming" or "history"
+
+// Pagination state for Customer Dashboard
+const pageSize = ref(8);
+const currentPageUpcoming = ref(1);
+const currentPageHistory = ref(1);
+const currentPageReviews = ref(1);
+
 const upcomingAppointmentsData = ref([]);
 const upcomingAppointmentsError = ref("");
 const loadingUpcomingAppointments = ref(false);
@@ -1763,6 +1785,42 @@ const groupedHistoryAppointments = computed(() => {
   return Object.values(grouped).sort((a, b) => new Date(`${b.date} ${b.time || '00:00'}`) - new Date(`${a.date} ${a.time || '00:00'}`));
 });
 
+// ─────────────────────── PAGINATION COMPUTED PROPERTIES ───────────────────────
+// Paginated Upcoming Appointments
+const paginatedUpcomingAppointments = computed(() => {
+  const start = (currentPageUpcoming.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return groupedUpcomingAppointments.value.slice(start, end);
+});
+
+const totalPagesUpcoming = computed(() => Math.ceil(groupedUpcomingAppointments.value.length / pageSize.value) || 1);
+
+// Paginated History Appointments
+const paginatedHistoryAppointments = computed(() => {
+  const start = (currentPageHistory.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return groupedHistoryAppointments.value.slice(start, end);
+});
+
+const totalPagesHistory = computed(() => Math.ceil(groupedHistoryAppointments.value.length / pageSize.value) || 1);
+
+// Paginated Reviewed Appointments
+const paginatedReviewedAppointments = computed(() => {
+  const start = (currentPageReviews.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return reviewedAppointments.value.slice(start, end);
+});
+
+const totalPagesReviews = computed(() => Math.ceil(reviewedAppointments.value.length / pageSize.value) || 1);
+
+// Reset pagination when switching tabs
+watch(() => appointmentsTab.value, () => {
+  currentPageUpcoming.value = 1;
+  currentPageHistory.value = 1;
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Service categories
 const serviceCategories = computed(() => {
   const categories = [...new Set(availableServicesData.value.map(s => s.category))];
@@ -1814,6 +1872,25 @@ const getStatusColor = (status) => {
     5: "#d4af37",       // 5: Invoiced - gold
   };
   return colors[status] || "#95a3a3";
+};
+
+// ──── PAGINATION HELPER FUNCTIONS ────
+const goToPageUpcoming = (page) => {
+  if (page >= 1 && page <= totalPagesUpcoming.value) {
+    currentPageUpcoming.value = page;
+  }
+};
+
+const goToPageHistory = (page) => {
+  if (page >= 1 && page <= totalPagesHistory.value) {
+    currentPageHistory.value = page;
+  }
+};
+
+const goToPageReviews = (page) => {
+  if (page >= 1 && page <= totalPagesReviews.value) {
+    currentPageReviews.value = page;
+  }
 };
 
 // Fetch appointment details from backend

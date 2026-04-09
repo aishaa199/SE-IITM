@@ -1,7 +1,10 @@
 from flask_restful import Resource, Api, reqparse, marshal_with, fields, marshal
 from flask_security import auth_required, roles_required, roles_accepted, current_user, hash_password, verify_password
 from datetime import datetime, timedelta, date
-from flask import request, jsonify
+from flask import request, jsonify, send_file
+import csv
+import io
+import os
 from .sec import datastore
 from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, InventoryTransaction, StaffAttendance, CustomerReview, Finance, Manager, Owner, CustomerReward, SalonConfig, db, Role, UserRoles, appointment_services, Order
 api = Api(prefix = '/api')
@@ -825,7 +828,7 @@ class StaffResource(Resource):
             # Check attendance for today
             attendance = StaffAttendance.query.filter(
                 StaffAttendance.staff_id == staff_id,
-                db.func.date(StaffAttendance.register_datetime) == today
+                StaffAttendance.present_flag == True
             ).first()
 
             # Count appointments for today
@@ -845,7 +848,7 @@ class StaffResource(Resource):
         for staff in staff_members:
             attendance = StaffAttendance.query.filter(
                 StaffAttendance.staff_id == staff.staff_id,
-                db.func.date(StaffAttendance.register_datetime) == today
+                StaffAttendance.present_flag == True
             ).first()
 
             appointment_count = Appointment.query.filter(
@@ -1313,7 +1316,24 @@ class SalonConfigResource(Resource):
             
         data = request.get_json()
         try:
-            config.param_value = data.get('param_value', config.param_value)
+            # Allow updating based on param_name for convenience if desired, 
+            # but primary logic here updates param_value from the request body.
+            # The user provided {"SALON_CLOSE_TIME": "23:00"} which suggests a key-value pair
+            # matching param_name and new param_value.
+            
+            updated = False
+            # Check if the param_name matches the request key
+            if config.param_name in data:
+                config.param_value = str(data[config.param_name])
+                updated = True
+            
+            # Also support standard 'param_value' key
+            if 'param_value' in data:
+                config.param_value = data['param_value']
+                updated = True
+            
+            if not updated and not any(k in data for k in ['from_date', 'to_date']):
+                return {"message": "No valid parameters provided for update"}, 400
             
             if 'from_date' in data:
                 config.from_date = datetime.strptime(data['from_date'], '%Y-%m-%d')
@@ -1372,6 +1392,7 @@ staff_attendance_fields = {
     'register_id': fields.Integer,
     'staff_id': fields.Integer,
     'register_datetime': fields.String,
+    'present_flag': fields.Boolean
 }
 
 class ManagerStaffAttendance(Resource):
@@ -1415,8 +1436,7 @@ class StaffAttendanceResource(Resource):
         
         records = StaffAttendance.query.filter(
             StaffAttendance.staff_id == target_staff_id,
-            db.extract('month', StaffAttendance.register_datetime) == today.month,
-            db.extract('year', StaffAttendance.register_datetime) == today.year
+           StaffAttendance.present_flag == True
         ).all()
 
         if not records:
@@ -1433,7 +1453,7 @@ class StaffAttendanceResource(Resource):
             today = date.today()
             already_marked = StaffAttendance.query.filter(
                 StaffAttendance.staff_id == current_user.id,
-                db.func.date(StaffAttendance.register_datetime) == today
+                StaffAttendance.present_flag == True
             ).first()
 
             if already_marked:
@@ -1441,7 +1461,8 @@ class StaffAttendanceResource(Resource):
 
             new_attendance = StaffAttendance(
                 staff_id=current_user.id,
-                register_datetime=datetime.now()
+                register_datetime=datetime.now(),
+                present_flag=True
             )
             db.session.add(new_attendance)
             db.session.commit()
@@ -1449,6 +1470,154 @@ class StaffAttendanceResource(Resource):
         except Exception as e:
             db.session.rollback()
             return {"message": f"Failed to mark attendance: {str(e)}"}, 500
+
+class MarkStaffAbsent(Resource):
+    @auth_required("token")
+    @roles_required("manager")
+    def post(self):
+        # Manager marking absent for current day for all staff members who haven't marked attendance
+        try:
+            today = date.today()
+            all_staff = Staff.query.all()
+            
+            # Subquery to find staff who have already marked attendance today
+            marked_staff_ids = db.session.query(StaffAttendance.staff_id).filter(
+                StaffAttendance.present_flag == True
+            ).all()
+            marked_ids = [s[0] for s in marked_staff_ids]
+            
+            absent_count = 0
+            for staff in all_staff:
+                if staff.staff_id not in marked_ids:
+                    # Mark as absent (present_flag = False)
+                    absent_record = StaffAttendance(
+                        staff_id=staff.staff_id,
+                        register_datetime=datetime.now(),
+                        present_flag=False
+                    )
+                    db.session.add(absent_record)
+                    absent_count += 1
+            
+            db.session.commit()
+            return {"message": f"Bulk attendance processing complete. {absent_count} staff members marked as absent for today."}, 201
+            
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to mark staff absent: {str(e)}"}, 500
+        
+########################### Create CSV for Pending Orders Grouped by Supplier ############################
+class SupplierOrderReportResource(Resource):
+    @auth_required("token")
+    @roles_required("manager")
+    def get(self):
+        # API to aggregate pending orders (status=0) by supplier email and generate CSV files.
+        try:
+            pending_orders = Order.query.filter_by(status=0).all()
+            if not pending_orders:
+                return {"message": "No pending orders found."}, 404
+
+            # Aggregate by supplier email
+            supplier_data = {}
+            for order in pending_orders:
+                email = order.supplier_email
+                if email not in supplier_data:
+                    supplier_data[email] = []
+                supplier_data[email].append(order)
+
+            # Define report directory
+            report_dir = os.path.join(os.getcwd(), 'reports', 'supplier_orders')
+            if not os.path.exists(report_dir):
+                os.makedirs(report_dir, exist_ok=True)
+
+            generated_files = []
+            for email, orders in supplier_data.items():
+                # Get supplier name from first order
+                supplier_name = orders[0].supplier_name if orders else "Unknown_Supplier"
+                
+                # Format month and year
+                current_month = date.today().strftime('%B')
+                current_year = date.today().year
+                
+                # Sanitize filename components
+                safe_supplier_name = supplier_name.replace(' ', '_').replace('/', '_')
+                filename = f"{safe_supplier_name}_{current_month}_{current_year}.csv"
+                filepath = os.path.join(report_dir, filename)
+
+                with open(filepath, 'w', newline='') as csvfile:
+                    # Header with Supplier Name
+                    csvfile.write(f"Supplier Name: {supplier_name}\n")
+                    
+                    fieldnames = ['product_desc', 'order_quantity', 'order_date', 'reason_for_order']
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writeheader()
+                    for order in orders:
+                        writer.writerow({
+                            'product_desc': order.product.product_desc if order.product else "Unknown",
+                            'order_quantity': order.order_quantity,
+                            'order_date': order.order_date.isoformat(),
+                            'reason_for_order': order.reason_for_order
+                        })
+                generated_files.append(filename)
+
+            return {
+                "message": f"Successfully generated {len(generated_files)} supplier reports.",
+                "directory": report_dir,
+                "files": generated_files
+            }, 200
+
+        except Exception as e:
+            return {"message": f"Failed to generate supplier reports: {str(e)}"}, 500
+        
+
+#####################################   CSV to PDF Conversion Resource #####################################
+class CSVToPDFResource(Resource):
+    @auth_required("token")
+    @roles_accepted("manager", "staff")
+    def post(self):
+        if 'file' not in request.files:
+            return {"message": "No file part in the request"}, 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return {"message": "No selected file"}, 400
+        
+        if not file.filename.endswith('.csv'):
+            return {"message": "Only CSV files are allowed"}, 400
+
+        try:
+            # Read CSV content
+            stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
+            csv_reader = csv.reader(stream)
+            data = list(csv_reader)
+
+            if not data:
+                return {"message": "CSV file is empty"}, 400
+
+            # Generate PDF using fpdf2
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=10)
+
+            # Determine column widths
+            col_width = pdf.epw / len(data[0]) if data[0] else pdf.epw
+            line_height = pdf.font_size * 2
+
+            for row in data:
+                for datum in row:
+                    pdf.multi_cell(col_width, line_height, str(datum), border=1, ln=3, max_line_height=pdf.font_size)
+                pdf.ln(line_height)
+
+            # Return PDF as a download
+            pdf_output = io.BytesIO(pdf.output())
+            return send_file(
+                pdf_output,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=f"{os.path.splitext(file.filename)[0]}.pdf"
+            )
+
+        except Exception as e:
+            return {"message": f"Conversion failed: {str(e)}"}, 500
 
 ################################## Staff Customer Review API ################################
 class StaffCustomerReview(Resource):
@@ -2873,6 +3042,9 @@ api.add_resource(StaffAppointmentResource, '/staff-appointments')
 api.add_resource(StaffDashboard, '/staff-dashboard')
 api.add_resource(StaffCustomerReview, '/staff-customer-reviews')
 api.add_resource(ManagerStaffAttendance, '/manager-staff-attendance')
+api.add_resource(MarkStaffAbsent, '/mark-staff-absent')
+api.add_resource(SupplierOrderReportResource, '/supplier-order-reports')
+api.add_resource(CSVToPDFResource, '/csv-to-pdf')
 api.add_resource(StaffAttendanceResource, '/staff-attendance')
 api.add_resource(CurrentStaffResource, '/staff-info')
 api.add_resource(CurrentCustomerResource, '/customer-info')

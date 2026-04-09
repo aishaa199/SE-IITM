@@ -167,6 +167,8 @@ class StaffAttendance(db.Model):
     register_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
     register_datetime = db.Column(db.DateTime, nullable=False) #Current Date and time for marking attendance
+    present_flag = db.Column(db.Boolean, default=False)
+    
 
     # Relationship
     staff_member = db.relationship('Staff', backref=db.backref('attendance_records', lazy=True))

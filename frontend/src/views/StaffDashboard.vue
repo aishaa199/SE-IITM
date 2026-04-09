@@ -315,7 +315,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="appt in filteredAppointments" :key="appt.id" @click="handleViewAppointmentDetails(appt)" style="cursor: pointer; transition: background-color 0.2s" @mouseover="$event.target.closest('tr').style.backgroundColor = 'var(--light-bg)'" @mouseout="$event.target.closest('tr').style.backgroundColor = 'transparent'">
+                    <tr v-for="appt in paginatedAppointments" :key="appt.id" @click="handleViewAppointmentDetails(appt)" style="cursor: pointer; transition: background-color 0.2s" @mouseover="$event.target.closest('tr').style.backgroundColor = 'var(--light-bg)'" @mouseout="$event.target.closest('tr').style.backgroundColor = 'transparent'">
                       <td>{{ appt.customerName }}</td>
                       <td>{{ appt.service }}</td>
                       <td>{{ appt.date }} {{ appt.time }}</td>
@@ -333,6 +333,12 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+              <!-- Pagination Controls -->
+              <div v-if="totalPagesAppointments > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                <button :disabled="currentPageAppointments === 1" @click="goToPageAppointments(currentPageAppointments - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                <span style="font-size: 14px; font-weight: 600">Page {{ currentPageAppointments }} of {{ totalPagesAppointments }}</span>
+                <button :disabled="currentPageAppointments === totalPagesAppointments" @click="goToPageAppointments(currentPageAppointments + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
               </div>
             </div>
           </div>
@@ -830,7 +836,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/appStore";
 
@@ -904,6 +910,11 @@ const appointmentCustomerFilter = ref("");
 const appointmentSortBy = ref("date"); // date, customer, status, amount
 const appointmentSortOrder = ref("asc"); // asc, desc
 const orderProductFilter = ref("");
+
+// Pagination state for Staff Dashboard
+const pageSize = ref(10);
+const currentPageAppointments = ref(1);
+const currentPageReviews = ref(1);
 
 // Get current month
 const currentMonth = computed(() => {
@@ -1354,6 +1365,45 @@ const filteredAppointments = computed(() => {
   
   return sorted;
 });
+
+// ─────────────────────── PAGINATION COMPUTED PROPERTIES ───────────────────────
+// Paginated Appointments
+const paginatedAppointments = computed(() => {
+  const start = (currentPageAppointments.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredAppointments.value.slice(start, end);
+});
+
+const totalPagesAppointments = computed(() => Math.ceil(filteredAppointments.value.length / pageSize.value) || 1);
+
+// Paginated Reviews
+const paginatedReviews = computed(() => {
+  const start = (currentPageReviews.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return customerReviews.value.slice(start, end);
+});
+
+const totalPagesReviews = computed(() => Math.ceil(customerReviews.value.length / pageSize.value) || 1);
+
+// Reset pagination when filters change
+watch([appointmentCustomerFilter, appointmentSortBy, appointmentSortOrder], () => {
+  currentPageAppointments.value = 1;
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Pagination helper functions
+const goToPageAppointments = (page) => {
+  if (page >= 1 && page <= totalPagesAppointments.value) {
+    currentPageAppointments.value = page;
+  }
+};
+
+const goToPageReviews = (page) => {
+  if (page >= 1 && page <= totalPagesReviews.value) {
+    currentPageReviews.value = page;
+  }
+};
 
 const filteredOrders = computed(() => {
   if (!orderProductFilter.value.trim()) return staffData.orders;
