@@ -2515,3 +2515,341 @@ textarea.form-input      { resize: vertical; min-height: 90px; }
   .navbar-links { display: none; }
   .hero-title { font-size: 42px; }
 }
+
+/* ─── COMPREHENSIVE RESPONSIVE DESIGN (Tables, Forms, Layouts) ─ */
+/* Tablet breakpoint (900px and below) */
+@media (max-width: 900px) {
+  .dashboard-main { padding: 24px 16px; }
+  .page-content { padding: 24px 16px; }
+  
+  /* Tables: Adjust padding and font sizes */
+  table { font-size: 12px; }
+  th { padding: 10px 12px; font-size: 8px; }
+  td { padding: 10px 12px; }
+  
+  /* Filter sections: Responsive wrapping */
+  div[style*="display: flex"][style*="gap: 12px"] {
+    flex-wrap: wrap;
+  }
+  
+  div[style*="flex: 1"][style*="min-width: 200px"] {
+    min-width: 150px;
+  }
+  
+  .modal, .modal-content {
+    max-width: calc(100vw - 32px);
+  }
+  
+  .form-input { font-size: 12px; padding: 10px 12px; }
+  .card-body { padding: 16px 20px; }
+  .card-header { padding: 16px 20px; }
+}
+
+/* Small tablet/landscape mobile (768px and below) */
+@media (max-width: 768px) {
+  /* Tables: Make them scrollable with improved UX */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--r-sm);
+    margin-bottom: 16px;
+  }
+  
+  table {
+    min-width: 600px;
+    font-size: 11px;
+  }
+  
+  th {
+    padding: 8px 10px;
+    font-size: 7px;
+    white-space: nowrap;
+  }
+  
+  td {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+  
+  /* Filter sections: Single column on tablets */
+  div[style*="display: flex"][style*="gap: 12px"][style*="margin-bottom"] {
+    flex-direction: column;
+  }
+  
+  div[style*="flex: 1"][style*="min-width"] {
+    min-width: 100% !important;
+    width: 100%;
+    flex: none !important;
+  }
+  
+  select, .form-input {
+    width: 100% !important;
+    font-size: 11px;
+  }
+  
+  label {
+    font-size: 9px;
+  }
+  
+  .modal, .modal-content {
+    max-width: calc(100vw - 24px);
+    max-height: 85vh;
+  }
+  
+  .modal-header { padding: 16px 20px; }
+  .modal-body { padding: 16px 20px; }
+  .modal-title { font-size: 18px; }
+  
+  .grid-2, .grid-3 {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+/* Mobile phones (560px and below) */
+@media (max-width: 560px) {
+  :root { --sidebar-w: 100%; }
+  
+  .dashboard-container {
+    flex-direction: column;
+  }
+  
+  .dashboard-sidebar {
+    width: 100%;
+    max-height: 60vh;
+    overflow-y: auto;
+    border-right: none;
+    border-bottom: 1px solid rgba(201, 169, 110, 0.12);
+  }
+  
+  .dashboard-main {
+    padding: 16px 12px;
+  }
+  
+  .page-content {
+    padding: 16px 12px;
+  }
+  
+  /* Tables optimized for mobile */
+  .table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: var(--r-sm);
+    margin-bottom: 12px;
+  }
+  
+  table {
+    min-width: 500px;
+    font-size: 10px;
+  }
+  
+  th {
+    padding: 6px 8px;
+    font-size: 7px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  
+  td {
+    padding: 6px 8px;
+    font-size: 10px;
+    word-break: break-word;
+  }
+  
+  /* Action buttons in tables: Adjust for mobile */
+  td > div[style*="display: flex"] {
+    flex-wrap: wrap;
+    gap: 4px !important;
+  }
+  
+  .btn-sm {
+    padding: 4px 8px;
+    font-size: 9px;
+  }
+  
+  /* Forms: Make fully responsive */
+  .form-input, select, textarea {
+    width: 100% !important;
+    font-size: 11px;
+    padding: 10px 12px;
+  }
+  
+  .form-group {
+    margin-bottom: 12px;
+    gap: 4px;
+  }
+  
+  .form-label {
+    font-size: 8px;
+  }
+  
+  label {
+    font-size: 8px;
+    font-weight: 600;
+  }
+  
+  /* Grid layouts: Single column */
+  .grid-2, .grid-3, .stat-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  /* Cards: Less padding on mobile */
+  .card {
+    border-radius: var(--r-md);
+  }
+  
+  .card-header {
+    padding: 12px 16px;
+  }
+  
+  .card-body {
+    padding: 12px 16px;
+  }
+  
+  .card-title {
+    font-size: 16px;
+  }
+  
+  /* Buttons: Full width where appropriate */
+  .btn {
+    padding: 10px 16px;
+    font-size: 10px;
+    min-height: 44px;  /* Touch-friendly */
+  }
+  
+  .btn-lg {
+    width: 100%;
+  }
+  
+  /* Modals: Full screen on mobile */
+  .modal, .modal-content {
+    max-width: 100%;
+    max-height: 90vh;
+    margin: 0;
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+  }
+  
+  .modal-overlay {
+    padding: 8px;
+  }
+  
+  .modal-header {
+    padding: 12px 16px;
+  }
+  
+  .modal-body {
+    padding: 12px 16px;
+  }
+  
+  .modal-title {
+    font-size: 16px;
+  }
+  
+  .modal-close {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  /* Topbar: Adjusted for small screens */
+  .topbar {
+    height: 56px;
+    padding: 0 12px;
+  }
+  
+  .topbar-title {
+    font-size: 16px;
+  }
+  
+  .search-bar {
+    min-width: 160px;
+    padding: 7px 12px;
+  }
+  
+  /* AI Assistant button: Adjust position */
+  .ai-assistant-btn {
+    width: 48px;
+    height: 48px;
+    bottom: 16px;
+    right: 16px;
+    font-size: 20px;
+  }
+  
+  .ai-assistant-modal {
+    width: calc(100vw - 16px);
+    height: 350px;
+    right: 8px;
+    bottom: 70px;
+  }
+  
+  /* Filter and search inputs: Full width */
+  input[placeholder*="Filter"], 
+  input[placeholder*="Search"],
+  input[placeholder*="Name"],
+  input[placeholder*="Email"] {
+    width: 100% !important;
+  }
+  
+  /* Stat cards: Smaller on mobile */
+  .stat-card {
+    padding: 16px 20px;
+  }
+  
+  .stat-icon {
+    font-size: 16px;
+    width: 36px;
+    height: 36px;
+  }
+  
+  .stat-value {
+    font-size: 24px;
+  }
+  
+  .stat-label {
+    font-size: 10px;
+  }
+  
+  /* Badge and status indicators: Adjust sizing */
+  .badge {
+    padding: 2px 6px;
+    font-size: 9px;
+  }
+  
+  /* Tab group: Make scrollable */
+  .tab-group {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .tab {
+    padding: 10px 14px;
+    font-size: 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  
+  /* Input field adjustments */
+  input, select, textarea {
+    font-size: 16px !important;  /* Prevents zoom on iOS */
+    line-height: 1.5;
+  }
+  
+  /* Ensure proper touch targets (44x44px minimum) */
+  .btn, button, input[type="button"], input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Alert messages: Adjust for mobile */
+  .alert {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
+  
+  /* Utility grid classes */
+  .report-quick-row {
+    grid-template-columns: 1fr;
+  }
+}

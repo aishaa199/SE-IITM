@@ -77,8 +77,8 @@
           
           <!-- Profile Dropdown Menu -->
           <div v-if="showProfileMenu" class="profile-dropdown" @click.stop>
-            <button class="profile-menu-item" @click="openProfileEdit(); showProfileMenu = false">
-              👤 Profile Edit
+            <button class="profile-menu-item" @click="currentView = 'profile'; showProfileMenu = false">
+              👤 Profile
             </button>
             <button class="profile-menu-item" @click="showChangePasswordModal = true; showProfileMenu = false">
               🔑 Change Password
@@ -97,10 +97,6 @@
       <div class="topbar">
         <div class="topbar-title">{{ pageTitle }}</div>
         <div class="topbar-right">
-          <div class="search-bar">
-            <span>🔍</span>
-            <input type="text" placeholder="Search..." />
-          </div>
           <button class="notif-btn">🔔</button>
         </div>
       </div>
@@ -254,26 +250,33 @@
           <!-- Available Staff Today -->
           <div class="card" style="margin-bottom: 24px; border-left: 3px solid var(--gold);">
             <div class="card-body">
-              <div style="display: flex; align-items: center; gap: 12px">
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px">
                 <span style="font-size: 24px">👥</span>
-                <div style="flex: 1">
-                  <div style="font-weight: 600; color: var(--text); margin-bottom: 10px; font-size: 15px; letter-spacing: 0.01em">
+                <div>
+                  <div style="font-weight: 600; color: var(--text); font-size: 15px; letter-spacing: 0.01em">
                     Available Staff Today
                   </div>
-                  <div v-if="todayAvailableStaff.length > 0" style="font-size: 14px">
-                    <div v-for="staff in todayAvailableStaff" :key="staff.id" style="margin-bottom: 10px">
-                      <div style="display: inline-block; margin-right: 16px">
-                        <span style="background: rgba(212,175,55,0.15); color: var(--gold-bright); padding: 5px 12px; border-radius: 16px; font-size: 13px; font-weight: 600; border: 1px solid rgba(212,175,55,0.28)">✓ {{ staff.name }}</span>
-                      </div>
-                      <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px">
+                  <div style="font-size: 12px; color: var(--text-muted)">
+                    {{ todayAvailableStaff.length }} staff member{{ todayAvailableStaff.length !== 1 ? 's' : '' }} present
+                  </div>
+                </div>
+              </div>
+              <div v-if="todayAvailableStaff.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px">
+                <div v-for="staff in todayAvailableStaff" :key="staff.id" style="background: var(--light-bg); border: 1px solid rgba(212,175,55,0.2); border-radius: 10px; padding: 12px; transition: all 0.2s">
+                  <div style="display: flex; align-items: flex-start; gap: 8px">
+                    <span style="font-size: 20px; flex-shrink: 0">✓</span>
+                    <div style="flex: 1; min-width: 0">
+                      <div style="font-weight: 600; color: var(--text); font-size: 14px; margin-bottom: 4px">{{ staff.name }}</div>
+                      <div style="font-size: 12px; color: var(--text-muted); line-height: 1.4">
                         {{ staff.skills || 'Skills not specified' }}
                       </div>
                     </div>
                   </div>
-                  <div v-else style="color: var(--text-muted); font-size: 14px">
-                    No staff available today
-                  </div>
                 </div>
+              </div>
+              <div v-else style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px">
+                <div style="font-size: 32px; margin-bottom: 8px">😴</div>
+                No staff available today
               </div>
             </div>
           </div>
@@ -290,24 +293,27 @@
                   <div class="empty-state-icon">📅</div>
                   <div class="empty-state-text">No appointments today</div>
                 </div>
-                <div v-for="appt in todayAppointments" :key="appt.id" class="booking-item">
-                  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
-                    <div class="booking-time">{{ getTimeFromDate(appt.datetime) }}</div>
+                <div v-for="group in groupedTodayAppointments" :key="group.customerId" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold); margin-bottom: 12px">
+                  <!-- Group header with date/time -->
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border)">
                     <div>
-                      <div style="font-weight: 600">{{ getCustomerName(appt.customerId) }}</div>
-                      <div class="text-muted">{{ getServiceName(appt.serviceId) }}</div>
+                      <div style="font-weight: 600; font-size: 14px">{{ group.customerName }}</div>
+                      <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px">{{ getTimeFromDate(group.appointments[0].datetime) }} • {{ group.appointments[0].date }}</div>
                     </div>
-                  </div>
-                  <div style="display: flex; align-items: center; justify-content: space-between">
-                    <div style="display: flex; align-items: center; gap: 12px; flex: 1">
-                      <div class="text-muted" style="font-size: 12px">Staff: {{ getStaffName(appt.staffId) || "Unassigned" }}</div>
-                      <span :class="['badge', apptStatusBadge(appt.status)]">{{ appt.status }}</span>
-                    </div>
-                    <button class="btn btn-sm btn-primary" @click="handleCreateInvoiceFromAppointment(appt)" style="padding: 4px 8px; font-size: 11px">
+                    <button class="btn btn-sm btn-primary" @click="handleCreateInvoiceFromAppointment(group.appointments[0])" style="padding: 6px 12px; font-size: 12px">
                       📄 Invoice
                     </button>
                   </div>
-                  <div style="height: 1px; background: var(--border); margin: 8px 0"></div>
+                  
+                  <!-- Services in this group -->
+                  <div style="display: grid; gap: 8px">
+                    <div v-for="appt in group.appointments" :key="appt.id" style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 8px; background: var(--surface); border-radius: 6px">
+                      <div style="flex: 1">
+                        <div style="font-weight: 600">{{ getServiceName(appt.serviceId) }}</div>
+                        <div class="text-muted" style="font-size: 11px">Staff: {{ getStaffName(appt.staffId) || "Unassigned" }}</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -333,47 +339,6 @@
               </div>
             </div>
           </div>
-
-          <!-- Daywise Appointment Count -->
-          <div class="card" style="margin-top: 24px">
-            <div class="card-header">
-              <h3 class="card-title">📊 Salon Appointments - Daywise</h3>
-            </div>
-            <div class="card-body">
-              <div v-if="dailyCountLoading" style="text-align: center; padding: 20px; color: var(--text-muted)">
-                ⏳ Loading appointment data...
-              </div>
-              <div v-else-if="dailyCountError" class="error-message" style="margin-bottom: 16px">
-                {{ dailyCountError }}
-              </div>
-              <div v-else-if="dailyAppointmentCounts.length === 0" class="empty-state">
-                <div class="empty-state-icon">📊</div>
-                <div class="empty-state-text">No appointment data available</div>
-              </div>
-              <div v-else style="overflow-x: auto">
-                <table style="width: 100%; border-collapse: collapse">
-                  <thead>
-                    <tr style="background: var(--light-bg); border-bottom: 2px solid var(--border)">
-                      <th style="padding: 12px; text-align: left; font-weight: 600">Date</th>
-                      <th style="padding: 12px; text-align: center; font-weight: 600">Appointments</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="dayCount in dailyAppointmentCounts" :key="dayCount.date" style="border-bottom: 1px solid var(--border); cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.closest('tr').style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.closest('tr').style.backgroundColor = 'transparent'">
-                      <td style="padding: 12px; text-align: left">
-                        {{ new Date(dayCount.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' }) }}
-                      </td>
-                      <td style="padding: 12px; text-align: center">
-                        <span style="display: inline-block; background: var(--gold); color: white; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 14px">
-                          {{ dayCount.count }}
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
         </div>
 
         <!-- APPOINTMENTS VIEW -->
@@ -388,7 +353,7 @@
                 <div class="form-group">
                   <label>Select Services * (You can choose multiple)</label>
                   <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 300px; overflow-y: auto">
-                    <div v-for="service in data.services" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+                    <div v-for="service in data.services.filter(s => getServiceStatus(s) === 'Active')" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
                       <input 
                         :id="'service-' + service.id"
                         type="checkbox" 
@@ -500,23 +465,9 @@
                       required
                     >
                       <option value="">Choose a time</option>
-                      <option value="09:00">09:00</option>
-                      <option value="09:30">09:30</option>
-                      <option value="10:00">10:00</option>
-                      <option value="10:30">10:30</option>
-                      <option value="11:00">11:00</option>
-                      <option value="11:30">11:30</option>
-                      <option value="12:00">12:00</option>
-                      <option value="12:30">12:30</option>
-                      <option value="13:00">13:00</option>
-                      <option value="13:30">13:30</option>
-                      <option value="14:00">14:00</option>
-                      <option value="14:30">14:30</option>
-                      <option value="15:00">15:00</option>
-                      <option value="15:30">15:30</option>
-                      <option value="16:00">16:00</option>
-                      <option value="16:30">16:30</option>
-                      <option value="17:00">17:00</option>
+                      <option v-for="time in availableTimeSlots" :key="time" :value="time">
+                        {{ time }}
+                      </option>
                     </select>
                   </div>
                 </div>
@@ -573,7 +524,10 @@
               </div>
               <div v-for="appt in filteredBookings" :key="appt.id" class="booking-item">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
-                  <div class="booking-time">{{ getTimeFromDate(appt.datetime) }}</div>
+                  <div style="display: flex; flex-direction: column; gap: 4px">
+                    <div class="booking-time">{{ getTimeFromDate(appt.datetime) }}</div>
+                    <div style="font-size: 11px; color: var(--text-muted)">{{ appt.date }}</div>
+                  </div>
                   <div>
                     <div style="font-weight: 600">{{ getCustomerName(appt.customerId) }}</div>
                     <div class="text-muted">{{ getServiceName(appt.serviceId) }}</div>
@@ -582,7 +536,7 @@
                 <div style="display: flex; align-items: center; justify-content: space-between">
                   <div style="display: flex; align-items: center; gap: 12px; flex: 1">
                     <div class="text-muted" style="font-size: 12px">Staff: {{ getStaffName(appt.staffId) || "Unassigned" }}</div>
-                    <span :class="['badge', apptStatusBadge(appt.status)]">{{ appt.status }}</span>
+                    <span :class="['badge', apptStatusBadge(appt.status)]" :title="apptStatusLabel(appt.status)" :style="{ color: apptStatusColor(appt.status), fontWeight: '600' }">{{ apptStatusLabel(appt.status) }}</span>
                   </div>
                   <div style="display: flex; gap: 6px">
                     <button class="btn btn-sm btn-outline" @click="handleEditBooking(appt)" style="padding: 4px 8px; font-size: 11px">
@@ -602,7 +556,7 @@
         <!-- SERVICES VIEW -->
         <div v-if="currentView === 'services'" class="fade-in">
           <!-- Add Service Form -->
-          <div class="card" style="margin-bottom: 20px">
+          <div ref="serviceFormRef" class="card" style="margin-bottom: 20px">
             <div class="card-header">
               <h3 class="card-title">{{ isEditingService ? '✎ Edit Service' : '➕ Add New Service' }}</h3>
             </div>
@@ -713,8 +667,8 @@
               <h3 class="card-title">All Services</h3>
             </div>
             <div class="card-body">
-              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end">
-                <div style="flex: 1; max-width: 300px">
+              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                <div style="flex: 1; min-width: 200px">
                   <label for="service-name-filter" style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Service Name</label>
                   <input 
                     id="service-name-filter"
@@ -725,7 +679,7 @@
                     style="width: 100%"
                   />
                 </div>
-                <div style="flex: 1; max-width: 300px">
+                <div style="flex: 1; min-width: 200px">
                   <label for="service-category-filter" style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Category</label>
                   <select 
                     id="service-category-filter"
@@ -739,15 +693,28 @@
                     </option>
                   </select>
                 </div>
+                <div style="flex: 1; min-width: 200px">
+                  <label for="service-status-filter" style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Status</label>
+                  <select 
+                    id="service-status-filter"
+                    v-model="serviceStatusFilter"
+                    class="form-input"
+                    style="width: 100%"
+                  >
+                    <option value="">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Disabled">Disabled</option>
+                  </select>
+                </div>
               </div>
               <div class="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Service Name</th>
-                      <th>Category</th>
-                      <th>Price</th>
-                      <th>Duration (min)</th>
+                      <th style="cursor: pointer" @click="toggleSort('services', 'name')">Service Name {{ getSortIndicator('services', 'name') }}</th>
+                      <th style="cursor: pointer" @click="toggleSort('services', 'categoryId')">Category {{ getSortIndicator('services', 'categoryId') }}</th>
+                      <th style="cursor: pointer; text-align: right" @click="toggleSort('services', 'price')">Price {{ getSortIndicator('services', 'price') }}</th>
+                      <th style="cursor: pointer" @click="toggleSort('services', 'duration')">Duration (min) {{ getSortIndicator('services', 'duration') }}</th>
                       <th>From Date</th>
                       <th>To Date</th>
                       <th>Status</th>
@@ -760,7 +727,7 @@
                     <tr v-for="service in filteredServices" :key="service.id">
                       <td>{{ service.name }}</td>
                       <td>{{ getCategoryName(service.categoryId) }}</td>
-                      <td>₹{{ service.price }}</td>
+                      <td style="text-align: right">₹{{ service.price }}</td>
                       <td>{{ service.duration }}</td>
                       <td style="font-size: 12px">{{ service.fromDate || '-' }}</td>
                       <td style="font-size: 12px">{{ service.toDate || '-' }}</td>
@@ -792,7 +759,7 @@
         <!-- CUSTOMERS VIEW -->
         <div v-if="currentView === 'customers'" class="fade-in">
           <!-- Add Customer Form -->
-          <div class="card" style="margin-bottom: 20px">
+          <div ref="customerFormRef" class="card" style="margin-bottom: 20px">
             <div class="card-header">
               <h3 class="card-title">{{ isEditingCustomer ? '✎ Edit Customer' : '➕ Add New Customer' }}</h3>
             </div>
@@ -842,6 +809,7 @@
                       v-model="customerForm.dob"
                       type="date"
                       class="form-input"
+                      :max="todayDate"
                       required
                     />
                   </div>
@@ -890,27 +858,43 @@
               <h3 class="card-title">All Customers</h3>
             </div>
             <div class="card-body">
-              <div style="margin-bottom: 16px">
-                <input 
-                  v-model="customerName"
-                  type="text" 
-                  placeholder="🔍 Filter by name or email..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
+              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Name or Email</label>
+                  <input 
+                    v-model="customerName"
+                    type="text" 
+                    placeholder="🔍 Filter by name or email..." 
+                    class="form-input"
+                    style="width: 100%"
+                  />
+                </div>
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Customer Type</label>
+                  <select 
+                    v-model="customerTypeFilter"
+                    class="form-input"
+                    style="width: 100%"
+                  >
+                    <option value="">All Types</option>
+                    <option value="VIP">VIP</option>
+                    <option value="Regular">Regular</option>
+                    <option value="Walk-in">Walk-in</option>
+                  </select>
+                </div>
               </div>
               <div class="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Name</th>
+                      <th style="cursor: pointer" @click="toggleSort('customers', 'name')">Name {{ getSortIndicator('customers', 'name') }}</th>
                       <th>Email</th>
-                      <th>Phone</th>
+                      <th style="cursor: pointer" @click="toggleSort('customers', 'phone')">Phone {{ getSortIndicator('customers', 'phone') }}</th>
                       <th>Customer Type</th>
-                      <th>Total Spent</th>
+                      <th style="cursor: pointer; text-align: right" @click="toggleSort('customers', 'totalSpent')">Total Spent {{ getSortIndicator('customers', 'totalSpent') }}</th>
                       <th>Available Rewards</th>
                       <th>Preferences</th>
-                      <th>No. of Visits</th>
+                      <th style="cursor: pointer; text-align: center" @click="toggleSort('customers', 'noOfVisits')">Visits {{ getSortIndicator('customers', 'noOfVisits') }}</th>
                       <th>Address</th>
                       <th>Registered</th>
                       <th>Actions</th>
@@ -922,7 +906,7 @@
                       <td>{{ customer.email }}</td>
                       <td>{{ customer.phone }}</td>
                       <td><span class="badge" :style="{ background: customer.customerType === 'VIP' ? '#FFD700' : '#95a5a6', color: customer.customerType === 'VIP' ? '#000' : '#fff', padding: '4px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }">{{ customer.customerType || 'Normal' }}</span></td>
-                      <td style="text-align: center; font-weight: 600; color: var(--success)">₹{{ customer.totalSpent || 0 }}</td>
+                      <td style="text-align: right; font-weight: 600; color: var(--success)">₹{{ customer.totalSpent || 0 }}</td>
                       <td style="text-align: center; font-weight: 600; color: var(--gold)">🎁 {{ customer.pointsBalance || 0 }}</td>
                       <td style="font-size: 12px; color: var(--text-muted)">{{ customer.preferences || '-' }}</td>
                       <td style="text-align: center; font-weight: 600">{{ customer.noOfVisits || 0 }}</td>
@@ -944,136 +928,6 @@
               </div>
             </div>
           </div>
-
-          <!-- Edit Customer Modal -->
-          <div v-if="isEditingCustomer" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 1000" @click.self="cancelEditCustomer">
-            <div style="background: var(--surface); border: 1px solid rgba(212,175,55,0.18); border-radius: 20px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-xl)">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px">
-                <h2 style="margin: 0; font-size: 22px; font-weight: 500; font-family: var(--font-display); color: var(--text)">Edit Customer</h2>
-                <button @click="cancelEditCustomer" style="background: none; border: 1px solid var(--border); border-radius: 6px; width:32px; height:32px; font-size: 18px; cursor: pointer; color: var(--text-muted); display:flex; align-items:center; justify-content:center; transition: all 0.2s">✕</button>
-              </div>
-
-              <!-- Customer Info Display -->
-              <div style="background: var(--light-bg); padding: 16px; border-radius: 8px; margin-bottom: 24px">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">REGISTRATION DATE</div>
-                    <div style="font-weight: 600">{{ editingCustomerData?.registrationDate || 'N/A' }}</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">DATE OF BIRTH</div>
-                    <div style="font-weight: 600">{{ editingCustomerData?.dob || 'N/A' }}</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">TOTAL VISITS</div>
-                    <div style="font-weight: 600">{{ editingCustomerData?.noOfVisits || 0 }}</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">POINTS BALANCE</div>
-                    <div style="font-weight: 600; color: var(--gold-bright)">{{ Math.round(editingCustomerData?.pointsBalance || 0) }}</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Edit Form -->
-              <form @submit.prevent="handleUpdateCustomer" style="margin-bottom: 20px">
-                <div class="grid-2">
-                  <div class="form-group">
-                    <label for="edit-customer-name">Name *</label>
-                    <input 
-                      id="edit-customer-name"
-                      v-model="customerForm.name"
-                      type="text"
-                      placeholder="e.g., Sofia Mensah"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-customer-email">Email *</label>
-                    <input 
-                      id="edit-customer-email"
-                      v-model="customerForm.email"
-                      type="email"
-                      placeholder="e.g., sofia@email.com"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-customer-phone">Phone *</label>
-                    <input 
-                      id="edit-customer-phone"
-                      v-model="customerForm.phone"
-                      type="tel"
-                      placeholder="e.g., 030-111-2222"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-customer-dob">Date of Birth *</label>
-                    <input 
-                      id="edit-customer-dob"
-                      v-model="customerForm.dob"
-                      type="date"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-customer-type">Customer Type</label>
-                    <select 
-                      id="edit-customer-type"
-                      v-model="customerForm.customerType"
-                      class="form-input"
-                    >
-                      <option value="Normal">Normal</option>
-                      <option value="VIP">VIP</option>
-                    </select>
-                  </div>
-
-                  <div class="form-group" style="grid-column: 1 / -1">
-                    <label for="edit-customer-address">Address</label>
-                    <input 
-                      id="edit-customer-address"
-                      v-model="customerForm.address"
-                      type="text"
-                      placeholder="e.g., 14 Cantonments Rd"
-                      class="form-input"
-                    />
-                  </div>
-
-                  <div class="form-group" style="grid-column: 1 / -1">
-                    <label for="edit-customer-preferences">Preferences</label>
-                    <textarea 
-                      id="edit-customer-preferences"
-                      v-model="customerForm.preferences"
-                      placeholder="e.g., Relaxing massage, No harsh chemicals, etc."
-                      class="form-input"
-                      style="resize: vertical; min-height: 60px"
-                    ></textarea>
-                  </div>
-                </div>
-
-                <div v-if="customerError" class="error-message">{{ customerError }}</div>
-                <div v-if="customerSuccess" class="success-message">{{ customerSuccess }}</div>
-
-                <div style="display: flex; gap: 12px; margin-top: 20px">
-                  <button type="submit" class="btn btn-primary">
-                    Update Customer
-                  </button>
-                  <button type="button" class="btn btn-outline" @click="cancelEditCustomer">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
         </div>
 
         <!-- STAFF BY DAY VIEW -->
@@ -1090,6 +944,7 @@
                   type="date" 
                   class="form-input"
                   style="max-width: 200px"
+                  :max="new Date().toISOString().split('T')[0]"
                 />
               </div>
 
@@ -1134,7 +989,7 @@
         <!-- STAFF VIEW -->
         <div v-if="currentView === 'staff'" class="fade-in">
           <!-- Add Staff Form -->
-          <div class="card" style="margin-bottom: 20px">
+          <div ref="staffFormRef" class="card" style="margin-bottom: 20px">
             <div class="card-header">
               <h3 class="card-title">{{ isEditingStaff ? '✎ Edit Staff' : '➕ Add New Staff' }}</h3>
             </div>
@@ -1208,6 +1063,7 @@
                       v-model="staffForm.dob"
                       type="date"
                       class="form-input"
+                      :max="todayDate"
                       required
                     />
                   </div>
@@ -1264,177 +1120,47 @@
             </div>
           </div>
 
-          <!-- Edit Staff Modal -->
-          <div v-if="isEditingStaff" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 1000" @click.self="cancelEditStaff">
-            <div style="background: var(--surface); border: 1px solid rgba(212,175,55,0.18); border-radius: 20px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-xl)">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px">
-                <h2 style="margin: 0; font-size: 22px; font-weight: 500; font-family: var(--font-display); color: var(--text)">Edit Staff</h2>
-                <button @click="cancelEditStaff" style="background: none; border: 1px solid var(--border); border-radius: 6px; width:32px; height:32px; font-size: 18px; cursor: pointer; color: var(--text-muted); display:flex; align-items:center; justify-content:center; transition: all 0.2s">✕</button>
-              </div>
-
-              <!-- Staff Info Display -->
-              <div style="background: var(--light-bg); padding: 16px; border-radius: 8px; margin-bottom: 24px">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">DATE OF JOINING</div>
-                    <div style="font-weight: 600">{{ editingStaffData?.doj || 'N/A' }}</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">DATE OF BIRTH</div>
-                    <div style="font-weight: 600">{{ editingStaffData?.dob || 'N/A' }}</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">RATING</div>
-                    <div style="font-weight: 600; color: var(--gold)">⭐ {{ editingStaffData?.rating || 'N/A' }}</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">REVIEWS</div>
-                    <div style="font-weight: 600">{{ editingStaffData?.reviews || 0 }}</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Edit Form -->
-              <form @submit.prevent="handleUpdateStaff" style="margin-bottom: 20px">
-                <div class="grid-2">
-                  <div class="form-group">
-                    <label for="edit-staff-name">Name *</label>
-                    <input 
-                      id="edit-staff-name"
-                      v-model="staffForm.name"
-                      type="text"
-                      placeholder="e.g., Amara Osei"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-staff-role">Role *</label>
-                    <input 
-                      id="edit-staff-role"
-                      v-model="staffForm.role"
-                      type="text"
-                      placeholder="e.g., Senior Stylist"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-staff-email">Email *</label>
-                    <input 
-                      id="edit-staff-email"
-                      v-model="staffForm.email"
-                      type="email"
-                      placeholder="e.g., amara@glowsuite.com"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-staff-phone">Phone *</label>
-                    <input 
-                      id="edit-staff-phone"
-                      v-model="staffForm.phone"
-                      type="tel"
-                      placeholder="e.g., 050-111-2222"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group" style="grid-column: 1 / -1">
-                    <label for="edit-staff-skills">Skills *</label>
-                    <input 
-                      id="edit-staff-skills"
-                      v-model="staffForm.skills"
-                      type="text"
-                      placeholder="e.g., Hair Cutting, Styling, Coloring"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-staff-dob">Date of Birth *</label>
-                    <input
-                      id="edit-staff-dob"
-                      v-model="staffForm.dob"
-                      type="date"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-staff-doj">Date of Joining *</label>
-                    <input 
-                      id="edit-staff-doj"
-                      v-model="staffForm.doj"
-                      type="date"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-staff-salary">Salary (₹) *</label>
-                    <input 
-                      id="edit-staff-salary"
-                      v-model.number="staffForm.salary"
-                      type="number"
-                      placeholder="e.g., 2000"
-                      class="form-input"
-                      required
-                      min="0"
-                    />
-                  </div>
-                </div>
-
-                <div v-if="staffError" class="error-message">{{ staffError }}</div>
-                <div v-if="staffSuccess" class="success-message">{{ staffSuccess }}</div>
-
-                <div style="display: flex; gap: 12px; margin-top: 20px">
-                  <button type="submit" class="btn btn-primary">
-                    Update Staff
-                  </button>
-                  <button type="button" class="btn btn-outline" @click="cancelEditStaff">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
           <!-- Staff Members Table -->
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">👔 Staff Members</h3>
             </div>
             <div class="card-body">
-              <div style="margin-bottom: 16px">
-                <input 
-                  v-model="staffName"
-                  type="text" 
-                  placeholder="🔍 Filter by name or email..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
+              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Name or Email</label>
+                  <input 
+                    v-model="staffName"
+                    type="text" 
+                    placeholder="🔍 Filter by name or email..." 
+                    class="form-input"
+                    style="width: 100%"
+                  />
+                </div>
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Sort Order</label>
+                  <select 
+                    v-model="tableSort.staff.direction"
+                    class="form-input"
+                    style="width: 100%"
+                  >
+                    <option value="asc">⬆ Ascending</option>
+                    <option value="desc">⬇ Descending</option>
+                  </select>
+                </div>
               </div>
               <div class="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Name</th>
-                      <th>Role</th>
+                      <th style="cursor: pointer" @click="toggleSort('staff', 'name')">Name {{ getSortIndicator('staff', 'name') }}</th>
+                      <th style="cursor: pointer" @click="toggleSort('staff', 'role')">Role {{ getSortIndicator('staff', 'role') }}</th>
                       <th>Skills</th>
                       <th>Email</th>
-                      <th>Phone</th>
+                      <th style="cursor: pointer" @click="toggleSort('staff', 'phone')">Phone {{ getSortIndicator('staff', 'phone') }}</th>
                       <th>Date of Birth</th>
                       <th>Date of Joining</th>
-                      <th>Rating</th>
+                      <th style="cursor: pointer; text-align: center" @click="toggleSort('staff', 'rating')">Rating {{ getSortIndicator('staff', 'rating') }}</th>
                       <th>Attendance</th>
                       <th>Today's Appts</th>
                       <th>Status</th>
@@ -1450,7 +1176,7 @@
                       <td>{{ staff.phone }}</td>
                       <td>{{ staff.dob || '-' }}</td>
                       <td>{{ staff.doj }}</td>
-                      <td><span style="font-weight: 600; color: #f5a623">⭐ {{ staff.rating || 'N/A' }}</span></td>
+                      <td style="text-align: center"><span style="font-weight: 600; color: #f5a623">⭐ {{ staff.rating || 'N/A' }}</span></td>
                       <td><span :class="['badge', staffAttendanceBadge(staff.id)]">{{ getStaffAttendance(staff.id) }}</span></td>
                       <td><span style="font-weight: 600">{{ getStaffAppointments(staff.id) }}</span></td>
                       <td><span :class="['badge', staff.status === 'active' ? 'badge-green' : 'badge-red']">{{ staff.status }}</span></td>
@@ -1599,24 +1325,39 @@
               <h3 class="card-title">📦 All Products</h3>
             </div>
             <div class="card-body">
-              <div style="margin-bottom: 16px">
-                <input 
-                  v-model="productName"
-                  type="text" 
-                  placeholder="🔍 Filter by product name or category..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
+              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Product Name</label>
+                  <input 
+                    v-model="productName"
+                    type="text" 
+                    placeholder="🔍 Filter by product name or category..." 
+                    class="form-input"
+                    style="width: 100%"
+                  />
+                </div>
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Stock Status</label>
+                  <select 
+                    v-model="stockStatusFilter"
+                    class="form-input"
+                    style="width: 100%"
+                  >
+                    <option value="">All Stock</option>
+                    <option value="low">Low Stock</option>
+                    <option value="high">Adequate Stock</option>
+                  </select>
+                </div>
               </div>
               <div class="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Product</th>
+                      <th style="cursor: pointer" @click="toggleSort('inventory', 'name')">Product {{ getSortIndicator('inventory', 'name') }}</th>
                       <th>Category</th>
-                      <th>Stock</th>
-                      <th>Min Stock</th>
-                      <th>Cost Price</th>
+                      <th style="cursor: pointer; text-align: center" @click="toggleSort('inventory', 'stock')">Stock {{ getSortIndicator('inventory', 'stock') }}</th>
+                      <th style="cursor: pointer; text-align: center" @click="toggleSort('inventory', 'minStock')">Min Stock {{ getSortIndicator('inventory', 'minStock') }}</th>
+                      <th style="cursor: pointer; text-align: right" @click="toggleSort('inventory', 'costPrice')">Cost Price {{ getSortIndicator('inventory', 'costPrice') }}</th>
                       <th>Supplier</th>
                       <th>Actions</th>
                     </tr>
@@ -1625,9 +1366,9 @@
                     <tr v-for="product in filteredProducts" :key="product.id" @click="viewProductDetails(product)" style="cursor: pointer">
                       <td>{{ product.name }}</td>
                       <td>{{ product.categoryName }}</td>
-                      <td><span :class="['badge', product.stock <= product.minStock ? 'badge-red' : 'badge-green']">{{ product.stock }} {{ product.unit }}</span></td>
-                      <td>{{ product.minStock }}</td>
-                      <td>₹{{ product.costPrice }}</td>
+                      <td style="text-align: center"><span :class="['badge', product.stock <= product.minStock ? 'badge-red' : 'badge-green']">{{ product.stock }} {{ product.unit }}</span></td>
+                      <td style="text-align: center">{{ product.minStock }}</td>
+                      <td style="text-align: right">₹{{ product.costPrice }}</td>
                       <td class="text-muted">{{ product.supplier }}</td>
                       <td>
                         <div style="display: flex; gap: 6px">
@@ -1727,7 +1468,29 @@
           <!-- Balance Sheet -->
           <div class="card" style="margin-bottom: 24px">
             <div class="card-header">
-              <h3 class="card-title">📊 Balance Sheet</h3>
+              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%">
+                <h3 class="card-title">📊 Balance Sheet</h3>
+                <div style="display: flex; gap: 12px; align-items: center">
+                  <div>
+                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px">Select Month</label>
+                    <input 
+                      v-model="selectedBalanceSheetMonth"
+                      type="month" 
+                      class="form-input"
+                      @change="loadBalanceSheetForMonth"
+                      style="width: 150px; height: 36px"
+                    />
+                  </div>
+                  <button 
+                    @click="loadBalanceSheetForMonth" 
+                    class="btn btn-outline" 
+                    style="padding: 8px 16px; margin-top: 20px"
+                    :disabled="financeLoading"
+                  >
+                    🔄 Load
+                  </button>
+                </div>
+              </div>
             </div>
             <div class="card-body">
               <div class="table-wrap">
@@ -1924,6 +1687,22 @@
               <div style="margin-top: 32px; padding-top: 32px; border-top: 2px solid var(--border)">
                 <h4 style="margin-bottom: 24px; font-weight: 600">🛒 Wholesale Orders Placed</h4>
 
+                <!-- Filter -->
+                <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                  <div style="flex: 1; min-width: 200px">
+                    <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Filter by Status</label>
+                    <select 
+                      v-model="orderStatusFilter"
+                      class="form-input"
+                      style="width: 100%"
+                    >
+                      <option value="">All Status</option>
+                      <option value="0">Pending</option>
+                      <option value="1">Delivered</option>
+                    </select>
+                  </div>
+                </div>
+
                 <!-- Orders Table -->
                 <div v-if="managerOrders.length === 0" class="empty-state">
                   <div class="empty-state-icon">📮</div>
@@ -1933,22 +1712,22 @@
                   <table>
                     <thead>
                       <tr>
-                        <th>Product</th>
-                        <th>Quantity</th>
-                        <th>Cost (₹)</th>
-                        <th>Supplier</th>
+                        <th style="cursor: pointer" @click="toggleSort('orders', 'product_name')">Product {{ getSortIndicator('orders', 'product_name') }}</th>
+                        <th style="cursor: pointer; text-align: center" @click="toggleSort('orders', 'order_quantity')">Quantity {{ getSortIndicator('orders', 'order_quantity') }}</th>
+                        <th style="cursor: pointer; text-align: right" @click="toggleSort('orders', 'order_date')">Cost (₹) {{ getSortIndicator('orders', 'order_date') }}</th>
+                        <th style="cursor: pointer" @click="toggleSort('orders', 'supplier_name')">Supplier {{ getSortIndicator('orders', 'supplier_name') }}</th>
                         <th>Reason</th>
-                        <th>Status</th>
-                        <th>Order Date</th>
+                        <th style="cursor: pointer" @click="toggleSort('orders', 'status')">Status {{ getSortIndicator('orders', 'status') }}</th>
+                        <th style="cursor: pointer" @click="toggleSort('orders', 'order_date')">Order Date {{ getSortIndicator('orders', 'order_date') }}</th>
                         <th>Replenishment Date</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="order in managerOrders" :key="order.order_id">
+                      <tr v-for="order in orderStatusFilter ? managerOrders.filter(o => parseInt(orderStatusFilter) === o.status) : managerOrders" :key="order.order_id">
                         <td><strong>{{ order.product_name }}</strong></td>
-                        <td>{{ order.order_quantity }}</td>
-                        <td>₹{{ (order.order_quantity * (data.products.find(p => p.id === order.product_id)?.price || 0)).toFixed(2) }}</td>
+                        <td style="text-align: center">{{ order.order_quantity }}</td>
+                        <td style="text-align: right">₹{{ (order.order_quantity * (data.products.find(p => p.id === order.product_id)?.price || 0)).toFixed(2) }}</td>
                         <td><small>{{ order.supplier_name }}</small></td>
                         <td><small>{{ order.reason_for_order || '-' }}</small></td>
                         <td>
@@ -2055,32 +1834,33 @@
             </div>
             <div class="card-body">
               <form @submit.prevent="handleAddInvoice" style="max-width: 800px">
-                <div class="grid-2">
-                  <div class="form-group">
-                    <label for="invoice-appointment">Select Appointment *</label>
-                    <select 
-                      id="invoice-appointment"
-                      @change="handleAppointmentSelect"
-                      class="form-input"
-                      required
-                    >
-                      <option value="">Choose an appointment</option>
-                      <option v-for="appt in data.appointments" :key="appt.id" :value="appt.id">
-                        {{ getCustomerName(appt.customerId) }} - {{ getServiceName(appt.serviceId) }} ({{ appt.date }})
-                      </option>
-                    </select>
-                  </div>
-                </div>
-
                 <div class="grid-2" style="margin-top: 16px; opacity: 0.7">
                   <div class="form-group">
                     <label>Customer</label>
                     <input type="text" :value="getCustomerName(invoiceForm.customerId)" class="form-input" disabled />
                   </div>
                   <div class="form-group">
-                    <label>Service</label>
-                    <input type="text" :value="getServiceName(invoiceForm.serviceId)" class="form-input" disabled />
+                    <label>Staff</label>
+                    <input type="text" :value="invoiceForm.staffName || 'Unassigned'" class="form-input" disabled />
                   </div>
+                </div>
+
+                <!-- Selected Services Display -->
+                <div v-if="invoiceForm.services.length > 0" style="margin-top: 16px; padding: 16px; background: var(--light-bg); border-radius: 8px; border-left: 4px solid var(--gold)">
+                  <div style="font-weight: 600; font-size: 14px; margin-bottom: 12px">Services Included:</div>
+                  <div style="display: grid; gap: 8px; margin-bottom: 12px">
+                    <div v-for="service in invoiceForm.services" :key="service.id" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: var(--surface); border-radius: 6px; font-size: 13px">
+                      <span>{{ service.name || service.service_desc }}</span>
+                      <span style="font-weight: 600; color: var(--gold)">₹{{ service.price || service.service_price }}</span>
+                    </div>
+                  </div>
+                  <div style="padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-weight: 600; font-size: 14px">
+                    <span>Total Bill:</span>
+                    <span style="color: var(--gold); font-size: 16px">₹{{ invoiceForm.totalServiceAmount }}</span>
+                  </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 16px; opacity: 0.7">
                   <div class="form-group">
                     <label>Invoice Date</label>
                     <input type="text" :value="invoiceForm.date" class="form-input" disabled />
@@ -2138,11 +1918,6 @@
               <div class="stat-value">{{ invoices.filter(inv => inv.status === 1).length }}</div>
               <div class="stat-label">Completed</div>
             </div>
-            <div class="stat-card">
-              <div class="stat-icon">⏳</div>
-              <div class="stat-value">{{ invoices.filter(inv => inv.status === 0).length }}</div>
-              <div class="stat-label">Pending</div>
-            </div>
           </div>
 
           <!-- Invoices Table -->
@@ -2151,14 +1926,40 @@
               <h3 class="card-title">All Invoices</h3>
             </div>
             <div class="card-body">
-              <div style="margin-bottom: 16px">
-                <input 
-                  v-model="invoiceCustomerName"
-                  type="text" 
-                  placeholder="🔍 Filter by customer name..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
+              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Customer Name</label>
+                  <input 
+                    v-model="invoiceCustomerName"
+                    type="text" 
+                    placeholder="🔍 Filter by customer name..." 
+                    class="form-input"
+                    style="width: 100%"
+                  />
+                </div>
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Invoice Status</label>
+                  <select 
+                    v-model="invoiceStatusFilter"
+                    class="form-input"
+                    style="width: 100%"
+                  >
+                    <option value="">All Status</option>
+                    <option value="1">Invoiced</option>
+                    <option value="2">Sent</option>
+                  </select>
+                </div>
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Sort Order</label>
+                  <select 
+                    v-model="tableSort.invoices.direction"
+                    class="form-input"
+                    style="width: 100%"
+                  >
+                    <option value="desc"> Newest to Oldest</option>
+                    <option value="asc"> Oldest to Newest</option>
+                  </select>
+                </div>
               </div>
               
               <div v-if="filteredInvoices.length === 0" class="empty-state">
@@ -2170,13 +1971,14 @@
                 <table style="min-width: 1000px; width: 100%">
                   <thead>
                     <tr>
-                      <th style="min-width: 80px">Invoice #</th>
-                      <th style="min-width: 120px">Customer</th>
+                      <th style="min-width: 80px; cursor: pointer" @click="toggleSort('invoices', 'invoice_number')">Invoice # {{ getSortIndicator('invoices', 'invoice_number') }}</th>
+                      <th style="min-width: 120px; cursor: pointer" @click="toggleSort('invoices', 'customer_name')">Customer {{ getSortIndicator('invoices', 'customer_name') }}</th>
                       <th style="min-width: 120px">Staff</th>
                       <th style="min-width: 150px">Services</th>
-                      <th style="min-width: 100px">Amount (₹)</th>
-                      <th style="min-width: 100px">Date</th>
+                      <th style="min-width: 100px; cursor: pointer; text-align: right" @click="toggleSort('invoices', 'total_charges')">Amount (₹) {{ getSortIndicator('invoices', 'total_charges') }}</th>
+                      <th style="min-width: 100px; cursor: pointer" @click="toggleSort('invoices', 'invoice_date')">Date {{ getSortIndicator('invoices', 'invoice_date') }}</th>
                       <th style="min-width: 90px">Status</th>
+                      <th style="min-width: 90px">Feedback</th>
                       <th style="min-width: 200px">Actions</th>
                     </tr>
                   </thead>
@@ -2184,9 +1986,9 @@
                     <tr v-for="invoice in filteredInvoices" :key="invoice.id">
                       <td><strong>{{ invoice.invoice_number }}</strong></td>
                       <td>{{ invoice.customer_name || getCustomerName(invoice.customer_id) }}</td>
-                      <td>{{ invoice.staff_name || getStaffName(invoice.staff_id) }}</td>
-                      <td><small>{{ invoice.service_descs || 'N/A' }}</small></td>
-                      <td><strong>₹{{ invoice.total_charges?.toFixed(2) || 0 }}</strong></td>
+                      <td>{{ invoice.staffName || invoice.staff_name || getStaffName(invoice.staff_id) || "Unassigned" }}</td>
+                      <td><small>{{ invoice.service_names || invoice.service_ids || 'N/A' }}</small></td>
+                      <td style="text-align: right"><strong>₹{{ invoice.total_charges?.toFixed(2) || 0 }}</strong></td>
                       <td><small>{{ new Date(invoice.invoice_date).toLocaleDateString() }}</small></td>
                       <td>
                         <span :style="{ 
@@ -2194,11 +1996,20 @@
                           borderRadius: '4px', 
                           fontSize: '11px', 
                           fontWeight: '600',
-                          backgroundColor: invoice.status === 0 ? '#e8f5e9' : '#fff3cd',
-                          color: invoice.status === 0 ? '#27ae60' : '#856404'
+                          backgroundColor: invoice.status === 1 ? '#fff3cd' : '#e0f2fe',
+                          color: invoice.status === 1 ? '#856404' : '#0369a1'
                         }">
-                          {{ invoice.status === 0 ? 'Pending' : 'Completed' }}
+                          {{ invoice.status === 1 ? 'Invoiced' : invoice.status === 2 ? 'Sent' : 'Unknown' }}
                         </span>
+                      </td>
+                      <td>
+                        <button v-if="invoice.appointment_id && invoice.rating" @click="viewFeedback(invoice)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #f59e0b; border-color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); font-weight: 600">
+                          ⭐ {{ invoice.rating }}/5
+                        </button>
+                        <button v-else-if="invoice.appointment_id" disabled class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #999; border-color: #ddd; opacity: 0.6; cursor: not-allowed">
+                          ⭐ No Review
+                        </button>
+                        <span v-else style="font-size: 11px; color: var(--text-muted)">-</span>
                       </td>
                       <td>
                         <div style="display: flex; gap: 6px; flex-wrap: wrap">
@@ -2207,9 +2018,6 @@
                           </button>
                           <button @click="handleSendInvoice(invoice)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #27ae60; border-color: #27ae60">
                             📧 Send
-                          </button>
-                          <button @click="handleDeleteInvoice(invoice.id)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #e74c3c; border-color: #e74c3c">
-                            🗑️ Delete
                           </button>
                         </div>
                       </td>
@@ -2639,6 +2447,85 @@
           </div>
         </div>
 
+        <!-- Profile View -->
+        <div v-if="currentView === 'profile'" class="fade-in">
+          <div class="card" style="margin-bottom: 24px">
+            <div class="card-header">
+              <h3 class="card-title">My Profile</h3>
+            </div>
+            <div class="card-body">
+              <!-- Header with Avatar -->
+              <div style="display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border)">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: bold">
+                  {{ user.name?.charAt(0) || "M" }}
+                </div>
+                <div>
+                  <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px">{{ user.name }}</div>
+                  <div style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 4px">{{ managerProfileData?.manager_role || 'Manager' }}</div>
+                  <div style="color: var(--text-muted); font-size: 12px">ID: {{ managerProfileData?.manager_id }}</div>
+                </div>
+              </div>
+
+              <!-- Information Grid -->
+              <div style="background: var(--light-bg); padding: 20px; border-radius: 8px; margin-bottom: 24px">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px">
+                  <!-- Email -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Email</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.manager_email || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Phone -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Phone</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.manager_contact || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Role -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Role</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.manager_role || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Date of Birth -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Date of Birth</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.manager_dob?.substring(0, 10) || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Date of Joining -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Date of Joining</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.manager_doj?.substring(0, 10) || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Branch -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Branch</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.branch_name || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Skills -->
+                  <div style="grid-column: 1 / -1">
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Skills</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.manager_skills || 'Not provided' }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div style="display: flex; gap: 12px; flex-wrap: wrap">
+                <button class="btn btn-primary" @click="openProfileEdit()">
+                  ✏️ Edit Profile
+                </button>
+                <button class="btn btn-outline" @click="showChangePasswordModal = true">
+                  🔑 Change Password
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Salon Settings View -->
         <div v-if="currentView === 'settings'" class="fade-in">
           <div class="card">
@@ -2807,6 +2694,15 @@
             />
           </div>
           <div class="form-group">
+            <label for="profile-dob">Date of Birth</label>
+            <input 
+              id="profile-dob"
+              v-model="profileEditForm.dob" 
+              type="date" 
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
             <label for="profile-doj">Date of Joining</label>
             <input 
               id="profile-doj"
@@ -2814,6 +2710,16 @@
               type="date" 
               class="form-input"
             />
+          </div>
+          <div class="form-group">
+            <label for="profile-skills">Skills</label>
+            <textarea
+              id="profile-skills"
+              v-model="profileEditForm.skills" 
+              placeholder="Enter skills (comma-separated)"
+              class="form-input"
+              rows="3"
+            ></textarea>
           </div>
           <div style="display: flex; gap: 12px; margin-top: 20px">
             <button type="button" class="btn btn-outline" @click="showProfileEditModal = false" style="flex: 1">
@@ -2874,13 +2780,13 @@
         <form @submit.prevent="handleSubmitEditAppointment">
           <div class="form-group" style="margin-bottom: 16px">
             <label style="font-weight: 600; display: block; margin-bottom: 8px">Customer</label>
-            <input type="text" :value="getCustomerName(editingAppointment.customerId)" class="form-input" readonly style="background: #f5f5f5"/>
+            <input type="text" :value="getCustomerName(editingAppointment.customerId)" class="form-input" readonly style="background: #f5f5f5; color: black"/>
           </div>
 
           <div class="form-group" style="margin-bottom: 16px">
             <label style="font-weight: 600; display: block; margin-bottom: 8px">Select Services *</label>
             <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 200px; overflow-y: auto">
-              <div v-for="service in data.services" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+              <div v-for="service in data.services.filter(s => getServiceStatus(s) === 'Active')" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
                 <input 
                   :id="'edit-service-' + service.id"
                   type="checkbox" 
@@ -3104,7 +3010,7 @@
                 <td>{{ getCustomerName(booking.customerId) }}</td>
                 <td>{{ getServiceName(booking.serviceId) }}</td>
                 <td>{{ booking.date }}</td>
-                <td><span :class="['badge', apptStatusBadge(booking.status)]">{{ booking.status }}</span></td>
+                <td><span :class="['badge', apptStatusBadge(booking.status)]" :title="apptStatusLabel(booking.status)" :style="{ color: apptStatusColor(booking.status), fontWeight: '600' }">{{ apptStatusLabel(booking.status) }}</span></td>
                 <td>₹{{ getServicePrice(booking.serviceId) }}</td>
               </tr>
             </tbody>
@@ -3133,7 +3039,6 @@
                 <th>Service</th>
                 <th>Date</th>
                 <th>Staff</th>
-                <th>Status</th>
                 <th>Amount</th>
               </tr>
             </thead>
@@ -3142,7 +3047,6 @@
                 <td>{{ getServiceName(visit.serviceId) }}</td>
                 <td>{{ visit.date }}</td>
                 <td>{{ getStaffName(visit.staffId) }}</td>
-                <td><span :class="['badge', apptStatusBadge(visit.status)]">{{ visit.status }}</span></td>
                 <td>₹{{ getServicePrice(visit.serviceId) }}</td>
               </tr>
             </tbody>
@@ -3196,7 +3100,7 @@
           <div style="display: grid; gap: 8px">
             <div style="display: grid; grid-template-columns: 140px 1fr">
               <span style="color: var(--text-muted)">Services:</span>
-              <span style="font-weight: 500">{{ selectedInvoice.service_descs || 'N/A' }}</span>
+              <span style="font-weight: 500">{{ selectedInvoice.service_names || selectedInvoice.service_ids || 'N/A' }}</span>
             </div>
             <div style="display: grid; grid-template-columns: 140px 1fr">
               <span style="color: var(--text-muted)">Staff:</span>
@@ -3474,6 +3378,54 @@
     </div>
   </div>
 
+  <!-- Feedback Modal -->
+  <div v-if="showFeedbackModal" class="modal-overlay" @click="showFeedbackModal = false">
+    <div class="modal-content" @click.stop style="max-width: 600px">
+      <div class="modal-header">
+        <h3 class="modal-title">⭐ Customer Feedback</h3>
+        <button class="modal-close" @click="showFeedbackModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <div v-if="feedbackError" class="error-message" style="margin-bottom: 16px">
+          {{ feedbackError }}
+        </div>
+        <div v-else-if="currentFeedback">
+          <div style="margin-bottom: 20px">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px">
+              <span style="font-size: 24px">⭐</span>
+              <span style="font-size: 18px; font-weight: 600; color: #f59e0b">
+                {{ currentFeedback.rating }}/5 Stars
+              </span>
+            </div>
+            <div style="padding: 16px; background: #ffffff; border-radius: 8px; border-left: 4px solid #f59e0b;">
+              <p style="margin: 0; color: #1a1a1a; line-height: 1.7; font-size: 15px; word-wrap: break-word; white-space: normal; font-weight: 500;">
+                {{ currentFeedback.review || currentFeedback.review_text || "No review text provided" }}
+              </p>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+            <div>
+              <small style="color: var(--text-muted); font-weight: 600">Staff</small>
+              <div style="font-weight: 600">{{ currentFeedback.staff_name || "Unknown" }}</div>
+            </div>
+            <div>
+              <small style="color: var(--text-muted); font-weight: 600">Services</small>
+              <div style="font-weight: 600; font-size: 12px">{{ Array.isArray(currentFeedback.services) ? currentFeedback.services.join(", ") : currentFeedback.services }}</div>
+            </div>
+            <div>
+              <small style="color: var(--text-muted); font-weight: 600">Date</small>
+              <div style="font-weight: 600">{{ currentFeedback.datetime ? new Date(currentFeedback.datetime).toLocaleDateString() : "N/A" }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-state">
+          <div class="empty-state-icon">📝</div>
+          <div class="empty-state-text">No feedback available</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- AI Assistant Chat Modal -->
   <div v-if="showAIAssistant" class="ai-assistant-modal">
     <div class="ai-assistant-content">
@@ -3512,7 +3464,6 @@ import { useAppStore } from "@/stores/appStore";
 const router = useRouter();
 const appStore = useAppStore();
 const API_BASE_URL = "http://localhost:5000";
-
 const currentView = ref("dashboard");
 const sidebarOpen = ref(false);
 const selectedDate = ref(null);
@@ -3552,6 +3503,7 @@ const financeData = ref(null);
 const financeLoading = ref(false);
 const financeError = ref(null);
 const showEditOverheadModal = ref(false);
+const selectedBalanceSheetMonth = ref(new Date().toISOString().split('T')[0].slice(0, 7)); // YYYY-MM format
 const overheadEditForm = ref({
   overheads: 0
 });
@@ -3659,6 +3611,7 @@ const editAppointmentError = ref("");
 const editAppointmentSuccess = ref("");
 
 // Service form state
+const serviceFormRef = ref(null);
 const serviceForm = ref({
   name: "",
   categoryId: "",
@@ -3681,9 +3634,11 @@ const customerForm = ref({
   phone: "",
   dob: "",
   address: "",
-  preferences: ""
+  preferences: "",
+  customerType: ""
 });
-const isEditingCustomer = ref(false);
+// Customer form ref for scrolling
+const customerFormRef = ref(null);
 const editingCustomerId = ref(null);
 const editingCustomerData = ref(null);
 const customerError = ref("");
@@ -3701,6 +3656,8 @@ const staffForm = ref({
   salary: 0,
   username: ""
 });
+// Staff form ref for scrolling
+const staffFormRef = ref(null);
 const isEditingStaff = ref(false);
 const editingStaffId = ref(null);
 const editingStaffData = ref(null);
@@ -3712,7 +3669,8 @@ const invoiceForm = ref({
   appointmentId: "",
   customerId: "",
   staffId: "",
-  serviceId: "",
+  serviceIds: [],
+  totalServiceAmount: 0,
   date: "",
   paymentType: "cash",
   discount: 0,
@@ -3759,6 +3717,25 @@ const invoiceCustomerName = ref("");
 const bookingCustomerName = ref("");
 const orderFilter = ref("");
 const completedAppointmentFilter = ref("");
+
+// Sorting and filtering states
+const tableSort = ref({
+  services: { column: "name", direction: "asc" },
+  customers: { column: "name", direction: "asc" },
+  staff: { column: "name", direction: "asc" },
+  inventory: { column: "name", direction: "asc" },
+  orders: { column: "order_date", direction: "desc" },
+  invoices: { column: "invoice_date", direction: "desc" },
+  transactions: { column: "date", direction: "desc" }
+});
+
+// Additional filters
+const serviceStatusFilter = ref("");
+const customerTypeFilter = ref("");
+
+const stockStatusFilter = ref("");
+const invoiceStatusFilter = ref("");
+const orderStatusFilter = ref("");
 
 // Customer search dropdown for appointment creation
 const bookingCustomerSearch = ref("");
@@ -3841,6 +3818,11 @@ const editSettingForm = ref({
 const settingError = ref("");
 const settingSuccess = ref("");
 
+// Feedback Modal State
+const showFeedbackModal = ref(false);
+const currentFeedback = ref(null);
+const feedbackError = ref("");
+
 // Store manager profile data fetched from backend
 const managerProfileData = ref(null);
 
@@ -3874,6 +3856,7 @@ const dailyCountError = ref("");
 
 // Manager inventory transaction tracking
 const managerInventoryTransactions = ref([]);
+const allManagerReplenishmentTransactions = ref([]);
 const managerTransactionDateFrom = ref("");
 const managerTransactionDateTo = ref("");
 
@@ -3891,7 +3874,7 @@ const editOrderForm = ref({
 });
 const editOrderError = ref("");
 
-const fetchManagerAttendance = async () => {
+const fetchManagerAttendance = async (selectedDate = null) => {
   attendanceLoading.value = true;
   attendanceError.value = "";
   
@@ -3903,9 +3886,10 @@ const fetchManagerAttendance = async () => {
       return;
     }
 
-    // Get today's attendance (backend defaults to today when no date param provided)
+    // Fetch attendance for selected date or today (backend defaults to today when no date param provided)
+    const dateParam = selectedDate ? `?date=${selectedDate}` : "";
     const response = await fetch(
-      `${API_BASE_URL}/api/manager-staff-attendance`,
+      `${API_BASE_URL}/api/manager-staff-attendance${dateParam}`,
       {
         method: "GET",
         headers: {
@@ -4032,7 +4016,7 @@ const fetchTodaysAppointmentsForInvoice = async () => {
           datetime: appt.datetime,
           time: new Date(appt.datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
           services: appt.services || [],
-          status: "confirmed",
+          status: 0,
           invoiceStatus: "pending"
         }));
         todaysAppointmentsForInvoice.value = mappedTodayAppts;
@@ -4047,7 +4031,24 @@ const fetchTodaysAppointmentsForInvoice = async () => {
 };
 
 const todayAppointments = computed(() => {
-  return data.value.appointments.filter(a => a.date === today());
+  return data.value.appointments.filter(a => a.date === today() && !a.invoiceGenerated && a.status !== 5);
+});
+
+// Group today's appointments by customer
+const groupedTodayAppointments = computed(() => {
+  const grouped = {};
+  todayAppointments.value.forEach(appt => {
+    const customerId = appt.customerId;
+    if (!grouped[customerId]) {
+      grouped[customerId] = {
+        customerId: customerId,
+        customerName: getCustomerName(customerId),
+        appointments: []
+      };
+    }
+    grouped[customerId].appointments.push(appt);
+  });
+  return Object.values(grouped);
 });
 
 const staffPresentCount = computed(() => {
@@ -4273,7 +4274,7 @@ const staffOrderRequests = computed(() => {
 });
 
 const managerReplenishmentOrders = computed(() => {
-  const replenishments = managerInventoryTransactions.value.filter(txn => txn.txn_type === 1);
+  const replenishments = allManagerReplenishmentTransactions.value.filter(txn => txn.txn_type === 1);
   // Filter out replenishment orders that already have wholesale orders placed
   const placedProductIds = new Set(managerOrders.value.map(order => order.product_id));
   return replenishments.filter(txn => !placedProductIds.has(txn.product_id));
@@ -4374,6 +4375,46 @@ const formatDateShort = (dateStr) => {
   return `${dayName} ${parseInt(day)} / ${parseInt(month)}`;
 };
 
+// Sorting helper function
+const sortData = (data, sortConfig) => {
+  if (!sortConfig.column) return data;
+  const sorted = [...data];
+  sorted.sort((a, b) => {
+    const aVal = a[sortConfig.column];
+    const bVal = b[sortConfig.column];
+    let comparison = 0;
+    if (typeof aVal === 'string') {
+      comparison = aVal.localeCompare(bVal);
+    } else if (typeof aVal === 'number') {
+      comparison = aVal - bVal;
+    } else if (aVal instanceof Date) {
+      comparison = aVal - bVal;
+    } else {
+      comparison = String(aVal).localeCompare(String(bVal));
+    }
+    return sortConfig.direction === 'asc' ? comparison : -comparison;
+  });
+  return sorted;
+};
+
+// Toggle sort function
+const toggleSort = (table, column) => {
+  const current = tableSort.value[table];
+  if (current.column === column) {
+    current.direction = current.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    current.column = column;
+    current.direction = 'asc';
+  }
+};
+
+// Get sort indicator
+const getSortIndicator = (table, column) => {
+  const current = tableSort.value[table];
+  if (current.column !== column) return '↕';
+  return current.direction === 'asc' ? '↑' : '↓';
+};
+
 const displayedBookings = computed(() => {
   if (selectedDate.value) {
     return getDateBookings(selectedDate.value);
@@ -4384,27 +4425,38 @@ const displayedBookings = computed(() => {
 
 // Filtered data computed properties
 const filteredServices = computed(() => {
-  return data.value.services.filter(s => {
+  let filtered = data.value.services.filter(s => {
     const nameMatch = !serviceName.value.trim() || s.name.toLowerCase().includes(serviceName.value.toLowerCase());
     const categoryMatch = !serviceCategoryFilter.value || s.categoryId == serviceCategoryFilter.value;
-    return nameMatch && categoryMatch;
+    const statusMatch = !serviceStatusFilter.value || getServiceStatus(s) === serviceStatusFilter.value;
+    return nameMatch && categoryMatch && statusMatch;
   });
+  return sortData(filtered, tableSort.value.services);
 });
 
 const filteredCustomers = computed(() => {
-  if (!customerName.value.trim()) return data.value.customers;
-  return data.value.customers.filter(c => 
-    c.name.toLowerCase().includes(customerName.value.toLowerCase()) ||
-    c.email.toLowerCase().includes(customerName.value.toLowerCase())
-  );
+  let filtered = data.value.customers;
+  if (customerName.value.trim()) {
+    filtered = filtered.filter(c => 
+      c.name.toLowerCase().includes(customerName.value.toLowerCase()) ||
+      c.email.toLowerCase().includes(customerName.value.toLowerCase())
+    );
+  }
+  if (customerTypeFilter.value) {
+    filtered = filtered.filter(c => c.customerType === customerTypeFilter.value);
+  }
+  return sortData(filtered, tableSort.value.customers);
 });
 
 const filteredStaff = computed(() => {
-  if (!staffName.value.trim()) return data.value.staff;
-  return data.value.staff.filter(s => 
-    s.name.toLowerCase().includes(staffName.value.toLowerCase()) ||
-    s.email.toLowerCase().includes(staffName.value.toLowerCase())
-  );
+  let filtered = data.value.staff;
+  if (staffName.value.trim()) {
+    filtered = filtered.filter(s => 
+      s.name.toLowerCase().includes(staffName.value.toLowerCase()) ||
+      s.email.toLowerCase().includes(staffName.value.toLowerCase())
+    );
+  }
+  return sortData(filtered, tableSort.value.staff);
 });
 
 // Filtered customers for booking creation form
@@ -4420,19 +4472,39 @@ const selectedBookingCustomer = computed(() => {
 });
 
 const filteredProducts = computed(() => {
-  if (!productName.value.trim()) return data.value.products;
-  return data.value.products.filter(p => 
-    p.name.toLowerCase().includes(productName.value.toLowerCase()) ||
-    p.categoryName.toLowerCase().includes(productName.value.toLowerCase())
-  );
+  let filtered = data.value.products;
+  if (productName.value.trim()) {
+    filtered = filtered.filter(p => 
+      p.name.toLowerCase().includes(productName.value.toLowerCase()) ||
+      p.categoryName.toLowerCase().includes(productName.value.toLowerCase())
+    );
+  }
+  if (stockStatusFilter.value === 'low') {
+    filtered = filtered.filter(p => p.stock <= p.minStock);
+  } else if (stockStatusFilter.value === 'high') {
+    filtered = filtered.filter(p => p.stock > p.minStock);
+  }
+  return sortData(filtered, tableSort.value.inventory);
 });
 
 const filteredInvoices = computed(() => {
-  if (!invoiceCustomerName.value.trim()) return invoices.value;
-  return invoices.value.filter(inv => {
-    const customerNameStr = inv.customer_name ? inv.customer_name.toLowerCase() : getCustomerName(inv.customer_id).toLowerCase();
-    return customerNameStr.includes(invoiceCustomerName.value.toLowerCase());
-  });
+  let filtered = invoices.value;
+  if (invoiceCustomerName.value.trim()) {
+    filtered = filtered.filter(inv => {
+      const customerNameStr = inv.customer_name ? inv.customer_name.toLowerCase() : getCustomerName(inv.customer_id).toLowerCase();
+      return customerNameStr.includes(invoiceCustomerName.value.toLowerCase());
+    });
+  }
+  if (invoiceStatusFilter.value) {
+    filtered = filtered.filter(inv => inv.status === parseInt(invoiceStatusFilter.value));
+  }
+  return sortData(filtered, tableSort.value.invoices);
+});
+
+// Get today's date in YYYY-MM-DD format for DOB max date constraint
+const todayDate = computed(() => {
+  const now = new Date();
+  return now.toISOString().split('T')[0];
 });
 
 const filteredBookings = computed(() => {
@@ -4442,6 +4514,42 @@ const filteredBookings = computed(() => {
     const customerEmailStr = getCustomerEmail(appt.customerId).toLowerCase();
     const searchTerm = bookingCustomerName.value.toLowerCase();
     return customerNameStr.includes(searchTerm) || customerEmailStr.includes(searchTerm);
+  });
+});
+
+// Filter appointments to exclude those already invoiced
+const getAvailableAppointmentsForInvoice = computed(() => {
+  const invoicedAppointmentIds = new Set(invoices.value.map(inv => inv.appointment_id).filter(id => id));
+  return data.value.appointments.filter(appt => !invoicedAppointmentIds.has(appt.id));
+});
+
+// Get available time slots (filter out past times if booking for today)
+const availableTimeSlots = computed(() => {
+  const allTimes = [
+    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30", "12:00", "12:30",
+    "13:00", "13:30", "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00"
+  ];
+  
+  if (!bookingForm.value.date) return allTimes;
+  
+  const todayDate = new Date().toISOString().split('T')[0];
+  const selectedDate = bookingForm.value.date;
+  
+  // If not today, show all times
+  if (selectedDate !== todayDate) return allTimes;
+  
+  // If today, filter out past times
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  
+  return allTimes.filter(time => {
+    const [hour, minute] = time.split(':').map(Number);
+    // Convert to minutes since midnight for easier comparison
+    const timeInMinutes = hour * 60 + minute;
+    const nowInMinutes = currentHour * 60 + currentMinute;
+    // Only show times 30 minutes or more in the future
+    return timeInMinutes > nowInMinutes + 30;
   });
 });
 
@@ -4581,12 +4689,38 @@ const getTimeFromDate = (datetimeStr) => {
 
 const apptStatusBadge = (status) => {
   const badges = {
-    completed: "badge-green",
-    "in-progress": "badge-blue",
-    confirmed: "badge-gold",
-    pending: "badge-gray",
+    0: "badge-gray",    // 0: Booked
+    1: "badge-green",   // 1: Completed
+    2: "badge-red",     // 2: No-show
+    3: "badge-gray",    // 3: Cancelled
+    4: "badge-blue",    // 4: Rescheduled
+    5: "badge-gold",    // 5: Invoiced
   };
   return badges[status] || "badge-gray";
+};
+
+const apptStatusLabel = (status) => {
+  const labels = {
+    0: "Booked",
+    1: "Completed",
+    2: "No-show",
+    3: "Cancelled",
+    4: "Rescheduled",
+    5: "Invoiced",
+  };
+  return labels[status] || "Unknown";
+};
+
+const apptStatusColor = (status) => {
+  const colors = {
+    0: "#95a3a3",       // 0: Booked - gray
+    1: "#27ae60",       // 1: Completed - green
+    2: "#e74c3c",       // 2: No-show - red
+    3: "#95a3a3",       // 3: Cancelled - gray
+    4: "#3498db",       // 4: Rescheduled - blue
+    5: "#d4af37",       // 5: Invoiced - gold
+  };
+  return colors[status] || "#95a3a3";
 };
 
 const staffAttendanceBadge = (staffId) => {
@@ -4611,7 +4745,22 @@ const stockStatus = (product) => {
   return "In Stock";
 };
 
-const logout = () => {
+const logout = async () => {
+  const token = localStorage.getItem("authToken");
+  if (token) {
+    try {
+      await fetch(`${API_BASE_URL}/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        }
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  }
   appStore.logout();
   router.push("/");
 };
@@ -4729,8 +4878,13 @@ const openProfileEdit = async () => {
         email: manager.manager_email || '',
         phone: manager.manager_contact || '',
         role: manager.manager_role || '',
-        doj: parseDateString(manager.manager_doj)
+        dob: parseDateString(manager.manager_dob),
+        doj: parseDateString(manager.manager_doj),
+        skills: manager.manager_skills || ''
       };
+
+      // Wait for Vue to update form refs before showing modal
+      await nextTick();
     } else {
       alert('Failed to load profile data');
       console.error('Response status:', response.status);
@@ -4777,7 +4931,9 @@ const handleUpdateProfile = async () => {
         manager_email: profileEditForm.value.email,
         manager_contact: profileEditForm.value.phone,
         manager_role: profileEditForm.value.role,
-        manager_doj: profileEditForm.value.doj
+        manager_dob: profileEditForm.value.dob,
+        manager_doj: profileEditForm.value.doj,
+        manager_skills: profileEditForm.value.skills
       })
     });
 
@@ -4788,8 +4944,13 @@ const handleUpdateProfile = async () => {
         appStore.user.email = profileEditForm.value.email;
         appStore.user.phone = profileEditForm.value.phone;
         appStore.user.role = profileEditForm.value.role;
+        appStore.user.dob = profileEditForm.value.dob;
         appStore.user.doj = profileEditForm.value.doj;
+        appStore.user.skills = profileEditForm.value.skills;
       }
+
+      // Refresh manager profile data
+      await fetchManagerProfileData();
       
       alert('Profile updated successfully');
       showProfileEditModal.value = false;
@@ -4843,7 +5004,7 @@ const fetchAppointments = async () => {
         datetime: appt.datetime,
         notes: appt.datetime.split('T')[1],
         services: appt.services || [],
-        status: "confirmed",
+        status: appt.status !== null && appt.status !== undefined ? Number(appt.status) : 0,
         invoiceStatus: "pending"
       }));
       console.log("Mapped appointments:", mappedAppointments);
@@ -4865,7 +5026,8 @@ const fetchInvoices = async () => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/invoice`, {
+    // Fetch invoices
+    const invoiceResponse = await fetch(`${API_BASE_URL}/api/get-all-invoices`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -4874,18 +5036,44 @@ const fetchInvoices = async () => {
       }
     });
 
-    if (response.ok) {
-      const fetchedInvoices = await response.json();
+    // Fetch all reviews in parallel
+    const reviewResponse = await fetch(`${API_BASE_URL}/api/customer-reviewed-appointments`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (invoiceResponse.ok) {
+      const fetchedInvoices = await invoiceResponse.json();
+      
+      // Create a map of reviews by appointment_id for quick lookup
+      let reviewsMap = {};
+      if (reviewResponse.ok) {
+        try {
+          const reviewsData = await reviewResponse.json();
+          console.log("Reviews fetched:", reviewsData);
+          reviewsData.forEach(review => {
+            reviewsMap[review.appointment_id] = review;
+          });
+        } catch (e) {
+          console.log("No reviews available or error parsing reviews");
+        }
+      }
+
       // Map backend response to frontend format
       const mappedInvoices = fetchedInvoices.map(inv => ({
         id: inv.invoice_number || inv.id,
         invoice_number: inv.invoice_number,
+        appointment_id: inv.appointment_id,
         customer_id: inv.customer_id,
         customer_name: inv.customer_name || "",
         staff_id: inv.staff_id,
         staff_name: inv.staff_name || "",
         service_ids: inv.service_ids || "",
-        service_descs: inv.service_descs || "",
+        service_names: inv.service_names || "",
         invoice_amount: inv.invoice_amount || 0,
         other_charges: inv.other_charges || 0,
         total_charges: inv.total_charges || inv.invoice_amount || 0,
@@ -4893,15 +5081,22 @@ const fetchInvoices = async () => {
         status: inv.status || 0,
         rewards_earned: inv.rewards_earned || 0,
         rewards_utilized: inv.rewards_utilized || 0,
-        current_reward_points: inv.current_reward_points || 0
+        current_reward_points: inv.current_reward_points || 0,
+        // Map review data
+        has_review: inv.has_review || false,
+        review: reviewsMap[inv.appointment_id] || null,
+        rating: reviewsMap[inv.appointment_id]?.rating || null,
+        review_text: reviewsMap[inv.appointment_id]?.review || null
       }));
       invoices.value = mappedInvoices;
-      console.log("Invoices fetched successfully:", mappedInvoices);
+      console.log("Invoices with reviews mapped:", mappedInvoices);
     } else {
-      console.error("Failed to fetch invoices:", response.status);
+      console.error("Failed to fetch invoices - Status:", invoiceResponse.status);
+      invoices.value = [];
     }
   } catch (error) {
     console.error("Error fetching invoices:", error);
+    invoices.value = [];
   }
 };
 
@@ -4941,6 +5136,35 @@ const fetchManagerInventoryTransactions = async () => {
   }
 };
 
+const fetchAllManagerReplenishments = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/inventory-transaction`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const transactions = await response.json();
+      allManagerReplenishmentTransactions.value = transactions;
+      console.log("All manager replenishments fetched:", transactions.filter(t => t.txn_type === 1));
+    } else {
+      console.error("Failed to fetch manager replenishments:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching manager replenishments:", error);
+  }
+};
+
 const handleAppointmentSelect = (event) => {
   const appointmentId = parseInt(event.target.value);
   if (!appointmentId) {
@@ -4961,7 +5185,7 @@ const handleAppointmentSelect = (event) => {
 };
 
 const handleAddInvoice = async () => {
-  if (!invoiceForm.value.customerId || !invoiceForm.value.serviceId) {
+  if (!invoiceForm.value.appointmentId) {
     invoiceError.value = "Please select an appointment";
     return;
   }
@@ -4973,39 +5197,86 @@ const handleAddInvoice = async () => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/invoice`, {
+    // First, fetch the appointment details from the API
+    console.log("Fetching appointment details for ID:", invoiceForm.value.appointmentId);
+    const apptResponse = await fetch(`${API_BASE_URL}/api/appointment/${invoiceForm.value.appointmentId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (!apptResponse.ok) {
+      const errText = await apptResponse.text();
+      console.error("Failed to fetch appointment details:", apptResponse.status, errText);
+      invoiceError.value = "Failed to fetch appointment details";
+      return;
+    }
+
+    const appointment = await apptResponse.json();
+    console.log("Appointment fetched:", appointment);
+
+    // Extract ALL service IDs and calculate total from the appointment
+    const serviceIds = appointment.services && appointment.services.length > 0 ? appointment.services.map(s => s.id) : [];
+    const totalAmount = appointment.services ? appointment.services.reduce((sum, s) => sum + (s.price || 0), 0) : 0;
+
+    if (!serviceIds || serviceIds.length === 0) {
+      invoiceError.value = "Appointment has no services";
+      return;
+    }
+
+    // Create invoice with the appointment data
+    const invoicePayload = {
+      customer_id: appointment.customer_id,
+      staff_id: appointment.staff_id,
+      service_ids: serviceIds.join(','),
+      invoice_amount: totalAmount,
+      other_charges: 0,
+      discount_percentage: 0
+    };
+
+    console.log("📋 Creating invoice for appointment:", invoiceForm.value.appointmentId);
+    console.log("📋 Invoice payload:", invoicePayload);
+
+    const response = await fetch(`${API_BASE_URL}/api/invoice/${invoiceForm.value.appointmentId}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
         "Authentication-Token": token
       },
-      body: JSON.stringify({
-        customer_id: invoiceForm.value.customerId,
-        staff_id: 1, // Default or from appointment
-        service_ids: String(invoiceForm.value.serviceId),
-        invoice_amount: getServicePrice(invoiceForm.value.serviceId) || 0,
-        other_charges: 0,
-        status: 0
-      })
+      body: JSON.stringify(invoicePayload)
     });
 
     if (response.ok) {
+      const result = await response.json();
+      console.log("✅ Invoice created successfully:", result);
       invoiceSuccess.value = "Invoice created successfully!";
       invoiceError.value = "";
       invoiceForm.value = {
+        appointmentId: null,
         customerId: null,
-        serviceId: null,
+        staffId: null,
+        staffName: null,
+        serviceIds: [],
+        totalServiceAmount: 0,
         date: new Date().toISOString().split('T')[0],
         paymentType: "cash",
-        discount: 0
+        discount: 0,
+        services: []
       };
       setTimeout(() => invoiceSuccess.value = "", 3000);
       await fetchInvoices();
+      await fetchAppointments(); // Reload appointments to refresh the list
     } else {
-      invoiceError.value = "Failed to create invoice";
+      const errText = await response.text();
+      console.error("❌ Failed to create invoice. Status:", response.status, "Error:", errText);
+      invoiceError.value = "Failed to create invoice: " + errText;
     }
   } catch (error) {
+    console.error("❌ Error creating invoice:", error);
     invoiceError.value = "Error creating invoice: " + error.message;
   }
 };
@@ -5270,9 +5541,9 @@ const handlePlaceOrderToWholesale = async (supplierGroup) => {
     const summary = `Orders Placed to Wholesale!\n================================\nSupplier: ${supplierGroup.supplier}\nSuccessful: ${successCount}\nFailed: ${failCount}\nTotal Items: ${supplierGroup.items.length}`;
     alert(summary);
     
-    // Refresh both lists
+    // Refresh manager orders and replenishments
     await fetchManagerOrders();
-    await fetchManagerInventoryTransactions();
+    await fetchAllManagerReplenishments();
     
     console.log(`${successCount} orders placed to wholesale, ${failCount} failed`);
   } catch (error) {
@@ -5706,6 +5977,13 @@ const handleEditService = (service) => {
   editingServiceId.value = service.id;
   
   console.log("After setting flags - isEditingService:", isEditingService.value, "editingServiceId:", editingServiceId.value);
+  
+  // Scroll to the service form after DOM update
+  nextTick(() => {
+    if (serviceFormRef.value) {
+      serviceFormRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
 };
 
 const handleUpdateService = async () => {
@@ -5885,6 +6163,39 @@ const viewInvoice = (appointment) => {
   showInvoiceModal.value = true;
 };
 
+const viewFeedback = async (invoice) => {
+  try {
+    console.log("📝 Opening feedback for appointment:", invoice.appointment_id);
+    
+    // Check if review is already mapped in invoice object
+    if (invoice.review) {
+      console.log("✅ Review already loaded:", invoice.review);
+      currentFeedback.value = invoice.review;
+      feedbackError.value = "";
+    } else if (invoice.rating || invoice.review_text) {
+      // Construct feedback object from mapped data
+      currentFeedback.value = {
+        rating: invoice.rating,
+        review: invoice.review_text,
+        staff_name: invoice.staff_name,
+        services: invoice.service_names ? invoice.service_names.split(",") : [],
+        datetime: invoice.invoice_date
+      };
+      feedbackError.value = "";
+    } else {
+      console.log("No feedback found for this invoice");
+      currentFeedback.value = null;
+      feedbackError.value = "No feedback has been provided yet for this invoice";
+    }
+    
+    showFeedbackModal.value = true;
+  } catch (error) {
+    console.error("❌ Error viewing feedback:", error);
+    feedbackError.value = "Error loading feedback: " + error.message;
+    showFeedbackModal.value = true;
+  }
+};
+
 // Fetch customers from API
 const fetchCustomers = async () => {
   const token = localStorage.getItem("authToken");
@@ -5917,7 +6228,8 @@ const fetchCustomers = async () => {
         customerType: c.customer_type,
         noOfVisits: c.number_of_visits,
         registrationDate: c.customer_reg_date,
-        pointsBalance: c.customer_available_rewards || 0
+        pointsBalance: c.customer_available_rewards || 0,
+        totalSpent: c.total_spend || 0
       }));
       console.log("Customers fetched:", appStore.data.customers);
     } else {
@@ -6052,6 +6364,13 @@ const handleEditCustomer = (customer) => {
   
   isEditingCustomer.value = true;
   editingCustomerId.value = customer.id;
+  
+  // Scroll to the customer form
+  setTimeout(() => {
+    if (customerFormRef.value) {
+      customerFormRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 50);
 };
 
 const handleUpdateCustomer = async () => {
@@ -6729,7 +7048,7 @@ const handleUpdateOverhead = async () => {
   }
 };
 
-const fetchFinanceData = async () => {
+const fetchFinanceData = async (monthInYYYYMMFormat = null) => {
   try {
     financeLoading.value = true;
     financeError.value = null;
@@ -6740,38 +7059,49 @@ const fetchFinanceData = async () => {
       return;
     }
 
-    // Get current month's last date
-    const now = new Date();
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    const lastDateStr = lastDay.toISOString().split('T')[0];
+    // Get the month's last date
+    let lastDateStr;
+    if (monthInYYYYMMFormat) {
+      // Parse YYYY-MM format
+      const [year, month] = monthInYYYYMMFormat.split('-');
+      const lastDay = new Date(parseInt(year), parseInt(month), 0);
+      lastDateStr = lastDay.toISOString().split('T')[0];
+    } else {
+      // Current month's last date
+      const now = new Date();
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      lastDateStr = lastDay.toISOString().split('T')[0];
+    }
     
-    // Try to fetch existing finance record
-    const response = await fetch(`${API_BASE_URL}/api/finance?last_date=${lastDateStr}`, {
-      method: 'GET',
+    // Always call POST first to ensure fresh calculations
+    console.log('Regenerating finance report for', lastDateStr);
+    const response = await fetch(`${API_BASE_URL}/api/finance`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authentication-Token': token,
         Authorization: `Bearer ${token}`,
       },
+      body: JSON.stringify({ last_date: lastDateStr }),
     });
 
-    if (response.status === 404) {
-      // Finance record not found, create it
-      console.log('Finance record not found, creating new one...');
-      await createFinanceReport(lastDateStr);
-    } else if (response.ok) {
+    if (response.ok) {
       const data = await response.json();
       financeData.value = data;
-      console.log('Finance data fetched:', data);
+      console.log('Finance data populated with fresh calculations:', data);
     } else {
-      throw new Error(`Failed to fetch finance data: ${response.status}`);
+      throw new Error(`Failed to populate balance sheet: ${response.status}`);
     }
   } catch (error) {
-    console.error('Error fetching finance data:', error);
+    console.error('Error populating finance data:', error);
     financeError.value = error.message;
   } finally {
     financeLoading.value = false;
   }
+};
+
+const loadBalanceSheetForMonth = async () => {
+  await fetchFinanceData(selectedBalanceSheetMonth.value);
 };
 
 const createFinanceReport = async (lastDateStr) => {
@@ -7788,6 +8118,13 @@ const handleEditStaff = (staff) => {
   
   isEditingStaff.value = true;
   editingStaffId.value = staff.id;
+  
+  // Scroll to the staff form
+  nextTick(() => {
+    if (staffFormRef.value) {
+      staffFormRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
 };
 
 const cancelEditStaff = () => {
@@ -8319,8 +8656,8 @@ const handleAddReplenishment = async () => {
         supplier: ""
       };
       
-      // Refresh inventory transactions to show newly created replenishment
-      await fetchManagerInventoryTransactions();
+      // Refresh manager replenishments list only (not staff transactions)
+      await fetchAllManagerReplenishments();
       
       console.log(`Replenishment added for ${productName}`, result);
     } else {
@@ -8333,44 +8670,69 @@ const handleAddReplenishment = async () => {
   }
 };
 
-const handleCreateInvoiceFromAppointment = (appt) => {
-  // Pre-fill invoice form with appointment details
-  // Extract first service ID from services array, or use serviceId if available
-  const serviceId = appt.services && appt.services.length > 0 ? appt.services[0].id : (appt.serviceId || null);
-  
-  // Create a hidden select event to trigger dropdown selection
-  const selectElement = document.querySelector('#invoice-appointment');
-  if (selectElement) {
-    selectElement.value = appt.id;
-  }
-  
-  invoiceForm.value = {
-    appointmentId: appt.id,
-    customerId: appt.customerId,
-    staffId: appt.staffId,
-    serviceId: serviceId,
-    date: appt.date,
-    paymentType: "cash",
-    discount: 0,
-    services: appt.services || []
-  };
-  currentView.value = "invoices";
-  
-  // Mark appointment as invoice generated
-  const index = data.value.appointments.findIndex(b => b.id === appt.id);
-  if (index > -1) {
-    data.value.appointments[index].invoiceGenerated = true;
-  }
-  
-  console.log(`📄 Creating invoice for appointment #${appt.id} (${getCustomerName(appt.customerId)}) - Staff: ${appt.staff_name}, Services:`, appt.services);
-  
-  // Scroll to invoice form after a brief delay to allow DOM update
-  setTimeout(() => {
-    const invoiceFormElement = document.querySelector('#invoice-form');
-    if (invoiceFormElement) {
-      invoiceFormElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+const handleCreateInvoiceFromAppointment = async (appt) => {
+  // Fetch appointment details from API
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      console.error("Not authenticated");
+      return;
     }
-  }, 100);
+
+    console.log("Fetching appointment details for ID:", appt.id);
+    const response = await fetch(`${API_BASE_URL}/api/appointment/${appt.id}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Failed to fetch appointment details:", response.status, errText);
+      return;
+    }
+
+    const appointment = await response.json();
+    console.log("Appointment fetched:", appointment);
+    
+    // Extract ALL service IDs from services array
+    const serviceIds = appointment.services && appointment.services.length > 0 ? appointment.services.map(s => s.id) : [];
+    const totalServiceAmount = appointment.services ? appointment.services.reduce((sum, s) => sum + (s.price || 0), 0) : 0;
+    
+    // Update form with appointment details (this will auto-select the appointment)
+    invoiceForm.value = {
+      appointmentId: appointment.appointment_id,
+      customerId: appointment.customer_id,
+      staffId: appointment.staff_id,
+      staffName: appointment.staff_name,
+      serviceIds: serviceIds,
+      totalServiceAmount: totalServiceAmount,
+      date: appointment.datetime.split('T')[0],
+      paymentType: "cash",
+      discount: 0,
+      services: appointment.services || []
+    };
+    console.log("Invoice form populated:", invoiceForm.value);
+    currentView.value = "invoices";
+    
+    // Mark appointment as invoice generated
+    const index = data.value.appointments.findIndex(b => b.id === appointment.appointment_id);
+    if (index > -1) {
+      data.value.appointments[index].invoiceGenerated = true;
+    }
+    
+    console.log(`📄 Creating invoice for appointment #${appointment.appointment_id} (${appointment.customer_name}) - Staff: ${appointment.staff_name}, Services:`, appointment.services);
+    
+    // Scroll to top of page after a brief delay to allow DOM update
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
+  } catch (error) {
+    console.error("Error fetching appointment details:", error);
+  }
 };
 
 // Close customer dropdown when clicking outside
@@ -8580,12 +8942,42 @@ onMounted(() => {
   fetchTodaysAppointmentsForInvoice();
   // Fetch manager inventory transactions
   fetchManagerInventoryTransactions();
+  // Fetch all manager replenishments (not filtered by date)
+  fetchAllManagerReplenishments();
   // Fetch manager wholesale orders
   fetchManagerOrders();
+  // Fetch finance data for balance sheet
+  fetchFinanceData();
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+});
+
+// Watch for date changes in staff attendance section
+watch(() => selectedStaffDate.value, (newDate) => {
+  if (newDate) {
+    fetchManagerAttendance(newDate);
+  }
+});
+
+// Watch for profile view access to load profile data
+watch(() => currentView.value, (newView) => {
+  if (newView === 'profile' && managerProfileData.value) {
+    // Populate profileEditForm with current manager data for display
+    const parseDateString = (dateString) => {
+      if (!dateString) return '';
+      return dateString.substring(0, 10);
+    };
+    
+    profileEditForm.value = {
+      name: managerProfileData.value.manager_name || '',
+      email: managerProfileData.value.manager_email || '',
+      phone: managerProfileData.value.manager_contact || '',
+      role: managerProfileData.value.manager_role || '',
+      doj: parseDateString(managerProfileData.value.manager_doj)
+    };
+  }
 });
 </script>
 

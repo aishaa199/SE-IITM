@@ -1,7 +1,7 @@
 <template>
   <div class="content-layout">
     <!-- Mobile Menu Toggle -->
-    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
+    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: white; border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="3" y1="6" x2="21" y2="6"></line>
         <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -24,13 +24,13 @@
           :class="['nav-item', { active: currentView === 'dashboard' }]"
           @click="currentView = 'dashboard'; sidebarOpen = false"
         >
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
+          <span class="nav-icon">📊</span> Dashboard
         </div>
         <div
           :class="['nav-item', { active: currentView === 'appointments' }]"
           @click="currentView = 'appointments'; sidebarOpen = false"
         >
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> My Appointments
+          <span class="nav-icon">📅</span> My Appointments
         </div>
 
         <div class="nav-section">Operations</div>
@@ -38,7 +38,7 @@
           :class="['nav-item', { active: currentView === 'order-products' }]"
           @click="currentView = 'order-products'; sidebarOpen = false"
         >
-          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg></span> Order Products
+          <span class="nav-icon">📦</span> Order Products
         </div>
       </nav>
       <div class="sidebar-footer">
@@ -51,10 +51,16 @@
           <div style="font-size: 18px">▼</div>
 
           <!-- Profile Dropdown Menu -->
-          <div v-if="showProfileMenu" class="profile-dropdown" @click.stop>
-            <button class="profile-menu-item" @click="currentView = 'profile'; showProfileMenu = false">👤 Profile</button>
-            <button class="profile-menu-item" @click="showChangePasswordModal = true; showProfileMenu = false">🔑 Change Password</button>
-            <button class="profile-menu-item profile-menu-danger" @click="handleLogout">🚪 Logout</button>
+          <div v-if="showProfileMenu" style="position: absolute; bottom: 100%; left: 0; right: 0; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; margin-bottom: 8px">
+            <button @click="currentView = 'profile'; showProfileMenu = false" style="width: 100%; padding: 12px 16px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid var(--border)">
+              👤 Profile
+            </button>
+            <button @click="showChangePasswordModal = true; showProfileMenu = false" style="width: 100%; padding: 12px 16px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px; border-bottom: 1px solid var(--border)">
+              🔑 Change Password
+            </button>
+            <button @click="handleLogout" style="width: 100%; padding: 12px 16px; border: none; background: none; text-align: left; cursor: pointer; font-size: 14px">
+              🚪 Logout
+            </button>
           </div>
         </div>
       </div>
@@ -554,42 +560,71 @@
 
 <!-- PROFILE VIEW -->
         <div v-if="currentView === 'profile'" class="fade-in">
-          <div class="card">
+          <div class="card" style="margin-bottom: 24px">
             <div class="card-header">
               <h3 class="card-title">My Profile</h3>
             </div>
             <div class="card-body">
-              <div style="max-width: 600px">
-                <div class="form-group">
-                  <label>Name</label>
-                  <input type="text" :value="staffData.name" class="form-input" disabled />
+              <!-- Header with Avatar -->
+              <div style="display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border)">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: bold">
+                  {{ staffData.name?.charAt(0) || "S" }}
                 </div>
-                <div class="form-group">
-                  <label>Email</label>
-                  <input type="email" :value="staffData.email" class="form-input" disabled />
+                <div>
+                  <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px">{{ staffData.name }}</div>
+                  <div style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 4px">{{ staffData.role || 'Staff' }}</div>
+                  <div style="color: var(--text-muted); font-size: 12px">ID: {{ staffData.id }}</div>
                 </div>
-                <div class="form-group">
-                  <label>Phone</label>
-                  <input type="tel" :value="staffData.phone" class="form-input" disabled />
+              </div>
+
+              <!-- Information Grid -->
+              <div style="background: var(--light-bg); padding: 20px; border-radius: 8px; margin-bottom: 24px">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px">
+                  <!-- Email -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Email</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ staffData.email || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Phone -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Phone</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ staffData.phone || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Role -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Role</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ staffData.role || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Date of Birth -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Date of Birth</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ staffData.dob?.substring(0, 10) || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Date of Joining -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Date of Joining</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ staffData.doj?.substring(0, 10) || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Skills -->
+                  <div style="grid-column: 1 / -1">
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Skills</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ staffData.skills || 'Not provided' }}</div>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>Role</label>
-                  <input type="text" :value="staffData.role" class="form-input" disabled />
-                </div>
-                <div class="form-group">
-                  <label>Date of Birth</label>
-                  <input type="text" :value="staffData.dob || 'Not provided'" class="form-input" disabled />
-                </div>
-                <div class="form-group">
-                  <label>Address</label>
-                  <textarea class="form-input" disabled rows="2">{{ staffData.address || 'Not provided' }}</textarea>
-                </div>
-                <div class="form-group">
-                  <label>Skills</label>
-                  <textarea class="form-input" disabled rows="2">{{ staffData.skills || 'Not provided' }}</textarea>
-                </div>
-                <button class="btn btn-primary" style="margin-top: 20px" @click="openProfileEdit">
-                  Edit Profile
+              </div>
+
+              <!-- Action Buttons -->
+              <div style="display: flex; gap: 12px; flex-wrap: wrap">
+                <button class="btn btn-primary" @click="openProfileEdit()">
+                  ✏️ Edit Profile
+                </button>
+                <button class="btn btn-outline" @click="showChangePasswordModal = true">
+                  🔑 Change Password
                 </button>
               </div>
             </div>
@@ -648,7 +683,7 @@
 
 
   <div v-if="showChangePasswordModal" class="modal-overlay" @click="showChangePasswordModal = false">
-    <div class="modal-content" @click.stop>
+    <div class="modal-content" @click.stop style="background: #1a1a1a">
       <div class="modal-header">
         <h3 class="modal-title">🔑 Change Password</h3>
         <button class="modal-close" @click="showChangePasswordModal = false">✕</button>
@@ -721,7 +756,7 @@
 
   <!-- Edit Profile Modal -->
   <div v-if="showProfileEditModal" class="modal-overlay" @click="showProfileEditModal = false">
-    <div class="modal-content" @click.stop>
+    <div class="modal-content" @click.stop style="background: #1a1a1a">
       <div class="modal-header">
         <h3 class="modal-title">✏️ Edit Profile</h3>
         <button class="modal-close" @click="showProfileEditModal = false">✕</button>
@@ -771,16 +806,6 @@
             />
           </div>
           <div class="form-group">
-            <label for="edit-address">Address</label>
-            <textarea 
-              id="edit-address"
-              v-model="profileForm.address" 
-              placeholder="Enter your address"
-              class="form-input"
-              rows="3"
-            ></textarea>
-          </div>
-          <div class="form-group">
             <label for="edit-skills">Skills</label>
             <textarea 
               id="edit-skills"
@@ -805,7 +830,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/appStore";
 
@@ -842,7 +867,6 @@ const profileForm = ref({
   email: "",
   phone: "",
   dob: "",
-  address: "",
   skills: ""
 });
 const passwordError = ref("");
@@ -871,6 +895,10 @@ const attendanceError = ref("");
 const attendanceSuccess = ref("");
 const fetchedAttendance = ref([]);
 
+// Customer Reviews data
+const customerReviews = ref([]);
+const reviewsLoading = ref(false);
+
 // Filter states
 const appointmentCustomerFilter = ref("");
 const appointmentSortBy = ref("date"); // date, customer, status, amount
@@ -898,7 +926,7 @@ const getDayName = (dateString) => {
   return days[date.getDay()];
 };
 
-// Fetch appointments from API
+// Fetch current staff profile from API
 const fetchStaffInfo = async () => {
   const token = localStorage.getItem("authToken");
   if (!token) {
@@ -907,7 +935,7 @@ const fetchStaffInfo = async () => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/staff`, {
+    const response = await fetch(`${API_BASE_URL}/api/staff-info`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -917,23 +945,24 @@ const fetchStaffInfo = async () => {
     });
 
     if (response.ok) {
-      const staffList = await response.json();
-      if (staffList && staffList.length > 0) {
-        const staff = staffList[0]; // Get first staff (current user)
-        
-        // Update staffData with real backend values
-        staffData.staffId = staff.staff_id || null;
-        staffData.name = staff.staff_name || "N/A";
-        staffData.role = staff.staff_role || "Staff";
-        staffData.email = staff.staff_email || "N/A";
-        staffData.phone = staff.staff_contact || "N/A";
-        staffData.dob = staff.staff_dob || "Not provided";
-        staffData.skills = staff.staff_skills || "Not provided";
-        staffData.cumulativeRating = staff.staff_cumulative_rating || 0;
-        staffData.totalReviews = staff.no_of_reviews || 0;
-        
-        console.log("Staff info updated from backend:", staffData);
-      }
+      const staff = await response.json();
+      
+      console.log("Staff info fetched from /api/staff-info:", staff);
+      
+      // Update staffData with real backend values
+      staffData.value.staffId = staff.staff_id || null;
+      staffData.value.name = staff.staff_name || "N/A";
+      staffData.value.role = staff.staff_role || "Staff";
+      staffData.value.email = staff.staff_email || "N/A";
+      staffData.value.phone = staff.staff_contact || "N/A";
+      staffData.value.dob = staff.staff_dob || "Not provided";
+      staffData.value.doj = staff.staff_doj || "Not provided";
+      staffData.value.skills = staff.staff_skills || "Not provided";
+      staffData.value.id = staff.staff_id || "N/A";
+      staffData.value.cumulativeRating = staff.staff_cumulative_rating || 0;
+      staffData.value.totalReviews = staff.no_of_reviews || 0;
+      
+      console.log("Staff profile updated:", staffData.value);
     } else {
       console.error("Failed to fetch staff info:", response.status);
     }
@@ -942,12 +971,45 @@ const fetchStaffInfo = async () => {
   }
 };
 
+// Fetch dashboard stats (today's appointments) from StaffDashboard API
+const fetchDashboardStats = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.warn("No auth token found - skipping dashboard stats fetch");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/staff-dashboard`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log("Dashboard stats fetched:", data);
+      staffData.value.todayStats = {
+        appointmentsCount: data.total_appointments_today || 0,
+        completedCount: data.completed_appointments_today || 0
+      };
+    } else {
+      console.error("Failed to fetch dashboard stats:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+  }
+};
+
 const updateTodayStats = () => {
   // Calculate stats from actual appointments
   const completedCount = fetchedTodayAppointments.value.filter(a => a.status === "completed").length;
   const totalCount = fetchedTodayAppointments.value.length;
   
-  staffData.todayStats = {
+  staffData.value.todayStats = {
     appointmentsCount: totalCount,
     completedCount: completedCount,
     cancelledCount: 0
@@ -1134,6 +1196,11 @@ const fetchAttendance = async () => {
     console.log("Data is array?", Array.isArray(data));
     console.log("Data length:", data ? data.length : 0);
     
+    // Debug: Log raw datetime values
+    if (Array.isArray(data) && data.length > 0) {
+      console.log("Raw datetimes:", data.map(r => `${r.register_id}: ${r.register_datetime}`));
+    }
+    
     // Handle both array and object responses
     let attendanceRecords = [];
     if (Array.isArray(data)) {
@@ -1152,15 +1219,24 @@ const fetchAttendance = async () => {
     }
     
     // Transform API response into UI format
-    const formattedAttendance = attendanceRecords.map(record => ({
-      id: record.register_id,
-      date: new Date(record.register_datetime).toISOString().split('T')[0],
-      status: "present" // Marking a record means the staff was present
-    }));
+    const formattedAttendance = attendanceRecords.map(record => {
+      // Parse the datetime string correctly without timezone conversion
+      const dateStr = record.register_datetime;
+      // Extract just the date part (YYYY-MM-DD) from the datetime string
+      const datePart = dateStr.split('T')[0] || dateStr.split(' ')[0];
+      return {
+        id: record.register_id,
+        date: datePart,
+        status: "present" // Marking a record means the staff was present
+      };
+    });
+
+    // Sort by date (newest first)
+    formattedAttendance.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     console.log("Formatted attendance:", formattedAttendance);
     fetchedAttendance.value = formattedAttendance;
-    staffData.monthlyAttendance = formattedAttendance;
+    staffData.value.monthlyAttendance = formattedAttendance;
   } catch (error) {
     console.error("Error fetching attendance:", error);
     attendanceError.value = "Network error while fetching attendance. Please try again.";
@@ -1173,14 +1249,65 @@ const fetchAttendance = async () => {
 // Calculate attendance stats
 const attendanceStats = computed(() => {
   const stats = { present: 0, absent: 0, late: 0 };
-  const records = fetchedAttendance.value.length > 0 ? fetchedAttendance.value : staffData.monthlyAttendance;
-  records.forEach(record => {
-    if (record.status === 'present') stats.present++;
-    else if (record.status === 'absent') stats.absent++;
-    else if (record.status === 'late') stats.late++;
-  });
+  const records = (fetchedAttendance.value && fetchedAttendance.value.length > 0) 
+    ? fetchedAttendance.value 
+    : (staffData.value?.monthlyAttendance || []);
+  
+  if (records && records.length > 0) {
+    records.forEach(record => {
+      if (record.status === 'present') stats.present++;
+      else if (record.status === 'absent') stats.absent++;
+      else if (record.status === 'late') stats.late++;
+    });
+  }
   return stats;
 });
+
+// Fetch customer reviews from StaffCustomerReview API
+const fetchCustomerReviews = async () => {
+  reviewsLoading.value = true;
+  
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      console.warn("No auth token found - skipping reviews fetch");
+      reviewsLoading.value = false;
+      return;
+    }
+
+    console.log("Fetching customer reviews from API...");
+    const response = await fetch(
+      `${API_BASE_URL}/api/staff-customer-reviews`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        }
+      }
+    );
+
+    console.log("Response status:", response.status);
+    
+    if (response.ok) {
+      const reviews = await response.json();
+      console.log("Customer reviews fetched successfully:", reviews);
+      console.log("Number of reviews:", reviews.length);
+      customerReviews.value = reviews || [];
+    } else {
+      const errorData = await response.text();
+      console.error("Failed to fetch customer reviews. Status:", response.status);
+      console.error("Error response:", errorData);
+      customerReviews.value = [];
+    }
+  } catch (error) {
+    console.error("Error fetching customer reviews:", error);
+    customerReviews.value = [];
+  } finally {
+    reviewsLoading.value = false;
+  }
+};
 
 // Filtered appointments & orders
 const filteredAppointments = computed(() => {
@@ -1277,123 +1404,25 @@ const filteredServices = computed(() => {
 const appStore = useAppStore();
 
 // Mock data
-const staffData = {
-  name: "Sarah Johnson",
-  role: "Beauty Therapist",
-  email: "sarah@example.com",
-  phone: "+233 123 456 789",
-  dob: "1992-03-15",
-  address: "123 Main Street, Accra, Ghana",
-  skills: "Hair Styling, Makeup, Skincare, Customer Service",
+const staffData = ref({
+  name: "",
+  role: "",
+  email: "",
+  phone: "",
+  dob: "",
+  address: "",
+  skills: "",
   todayStats: {
-    appointmentsCount: 5,
-    completedCount: 2,
-    cancelledCount: 1,
+    appointmentsCount: 0,
+    completedCount: 0,
   },
-  todayAppointments: [
-    {
-      id: 1,
-      customerName: "Alice Brown",
-      service: "Hair Styling",
-      time: "09:00 AM",
-      duration: 60,
-      status: "completed",
-      amount: 50,
-    },
-    {
-      id: 2,
-      customerName: "Betty White",
-      service: "Manicure",
-      time: "10:30 AM",
-      duration: 45,
-      status: "in-progress",
-      amount: 30,
-    },
-    {
-      id: 3,
-      customerName: "Carol Smith",
-      service: "Massage Therapy",
-      time: "12:00 PM",
-      duration: 60,
-      status: "confirmed",
-      amount: 80,
-    },
-    {
-      id: 4,
-      customerName: "Diana Prince",
-      service: "Facial Treatment",
-      time: "02:00 PM",
-      duration: 60,
-      status: "pending",
-      amount: 70,
-    },
-    {
-      id: 5,
-      customerName: "Eve Wilson",
-      service: "Pedicure",
-      time: "04:00 PM",
-      duration: 45,
-      status: "confirmed",
-      amount: 35,
-    },
-  ],
-  upcomingAppointments: [
-    {
-      id: 6,
-      customerName: "Frank Miller",
-      service: "Hair Cut",
-      date: "2026-03-05",
-      time: "10:00 AM",
-      status: "confirmed",
-      duration: 45,
-      amount: 40,
-    },
-    {
-      id: 7,
-      customerName: "Grace Lee",
-      service: "Spa Package",
-      date: "2026-03-06",
-      time: "02:00 PM",
-      status: "confirmed",
-      duration: 120,
-      amount: 150,
-    },
-  ],
-  earnings: [
-    { date: "2026-03-01", amount: 320, count: 4 },
-    { date: "2026-03-02", amount: 280, count: 3 },
-    { date: "2026-03-03", amount: 450, count: 6 },
-    { date: "2026-03-04", amount: 250, count: 5 },
-  ],
-  monthlyAttendance: [
-    { date: "2026-03-01", status: "present" },
-    { date: "2026-03-02", status: "present" },
-    { date: "2026-03-03", status: "late" },
-    { date: "2026-03-04", status: "present" },
-    { date: "2026-03-05", status: "present" },
-    { date: "2026-03-06", status: "absent" },
-  ],
-  services: [
-    { id: 1, name: "Hair Cut & Style", price: 85 },
-    { id: 2, name: "Balayage", price: 220 },
-    { id: 3, name: "Gel Manicure", price: 55 },
-    { id: 4, name: "Hydra Facial", price: 120 },
-  ],
-  products: [
-    { id: 1, name: "L'Oreal Serum", currentStock: 8 },
-    { id: 2, name: "OPI Gel Polish", currentStock: 2 },
-    { id: 3, name: "Bleach Powder", currentStock: 15 },
-    { id: 4, name: "Cetaphil Cleanser", currentStock: 3 },
-  ],
-  orders: [
-    { id: 1, productId: 2, quantity: 5, serviceId: 3, status: "pending", date: "2026-03-05" },
-    { id: 2, productId: 1, quantity: 2, serviceId: 4, status: "completed", date: "2026-03-04" },
-  ],
-  // Rating data from backend
+  todayAppointments: [],
+  upcomingAppointments: [],
+  monthlyAttendance: [],
   staffId: null,
   cumulativeRating: 0,
   totalReviews: 0,
-};
+});
 
 const pageTitle = computed(() => {
   const titles = {
@@ -1436,37 +1465,35 @@ const getOrderStatusBadgeClass = (status) => {
 
 // Get ratings received by current staff member from backend data
 const staffRatings = computed(() => {
-  // Use cumulative rating from staff data fetched from backend
+  // Use cumulative rating and total reviews from staff data
   const cumulativeRating = staffData.cumulativeRating || 0;
   const totalReviews = staffData.totalReviews || 0;
   
-  // For now, we don't have individual review details from backend
-  // This would need a dedicated endpoint if detailed reviews are needed
-  // Using mock feedbacks as placeholder until backend provides detailed reviews
+  // Map fetched reviews to UI format
   let feedbacks = [];
+  let averageFromFetched = 0;
   
-  // If we have reviews from appStore, use them; otherwise empty
-  if (appStore.data && appStore.data.reviews && appStore.data.reviews.length > 0) {
-    feedbacks = appStore.data.reviews
-      .filter(r => r.staff_id === staffData.staffId)
+  if (customerReviews.value && customerReviews.value.length > 0) {
+    feedbacks = customerReviews.value
       .slice(0, 5) // Show last 5 reviews
-      .map(r => {
-        const customer = appStore.data.customers?.find(c => c.id === r.customer_id);
-        return {
-          id: r.review_id,
-          rating: r.rating,
-          customerId: r.customer_id,
-          customerName: customer ? customer.customer_name : "Anonymous",
-          comment: r.review || "No comment provided",
-          date: r.invoice_date || new Date().toISOString()
-        };
-      });
+      .map(r => ({
+        id: r.review_id,
+        rating: r.rating,
+        customerName: r.customer_name,
+        comment: r.review || "No comment provided",
+        service_names: r.service_names || [],
+        date: new Date().toISOString() // Default to current date
+      }));
+    
+    // Calculate average rating from fetched reviews
+    const sum = customerReviews.value.reduce((total, r) => total + (r.rating || 0), 0);
+    averageFromFetched = sum / customerReviews.value.length;
   }
   
   return {
     feedbacks: feedbacks,
-    averageRating: parseFloat(cumulativeRating),
-    totalRatings: totalReviews
+    averageRating: feedbacks.length > 0 ? parseFloat(averageFromFetched.toFixed(2)) : cumulativeRating,
+    totalRatings: customerReviews.value ? customerReviews.value.length : totalReviews
   };
 });
 
@@ -1827,6 +1854,9 @@ const handleOrderProduct = async () => {
       orderSuccess.value = `Order placed successfully for ${getProductName(parseInt(orderForm.value.productId))}!`;
       console.log("Order created:", result);
       
+      // Fetch updated orders history to auto-load in table
+      await fetchStaffInventoryTransactions();
+      
       // Fetch updated orders history
       setTimeout(() => {
         orderForm.value = {
@@ -1858,30 +1888,64 @@ const handleLogout = () => {
   router.push("/login/staff");
 };
 
-const openProfileEdit = () => {
+const openProfileEdit = async () => {
   profileForm.value = {
-    name: staffData.name,
-    email: staffData.email,
-    phone: staffData.phone,
-    dob: staffData.dob || "",
-    address: staffData.address || "",
-    skills: staffData.skills || ""
+    name: staffData.value.name,
+    email: staffData.value.email,
+    phone: staffData.value.phone,
+    dob: staffData.value.dob || "",
+    skills: staffData.value.skills || ""
   };
+  
+  // Wait for Vue to update form refs before showing modal
+  await nextTick();
+  
   showProfileEditModal.value = true;
 };
 
-const handleUpdateProfile = () => {
-  // Update staff data with form values
-  staffData.name = profileForm.value.name;
-  staffData.email = profileForm.value.email;
-  staffData.phone = profileForm.value.phone;
-  staffData.dob = profileForm.value.dob;
-  staffData.address = profileForm.value.address;
-  staffData.skills = profileForm.value.skills;
-  
-  // Close modal and show success
-  showProfileEditModal.value = false;
-  console.log("Profile updated successfully");
+const handleUpdateProfile = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    alert("Authentication token not found. Please login again.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/staff-info`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify({
+        staff_name: profileForm.value.name,
+        staff_email: profileForm.value.email,
+        staff_contact: profileForm.value.phone,
+        staff_dob: profileForm.value.dob,
+        staff_skills: profileForm.value.skills
+      })
+    });
+
+    if (response.ok) {
+      // Update local state with form values
+      staffData.value.name = profileForm.value.name;
+      staffData.value.email = profileForm.value.email;
+      staffData.value.phone = profileForm.value.phone;
+      staffData.value.dob = profileForm.value.dob;
+      staffData.value.skills = profileForm.value.skills;
+      
+      // Close modal and show success
+      showProfileEditModal.value = false;
+      console.log("Profile updated successfully on backend");
+    } else {
+      const error = await response.json();
+      alert("Failed to update profile: " + (error.message || "Unknown error"));
+    }
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    alert("Error updating profile: " + error.message);
+  }
 };
 
 // Close dropdown when clicking outside
@@ -1906,11 +1970,17 @@ onMounted(() => {
   // Fetch staff info and widget data
   fetchStaffInfo();
   
+  // Fetch today's appointment stats from StaffDashboard API
+  fetchDashboardStats();
+  
   // Fetch today's appointments on mount
   fetchAppointmentsByMode("today");
   
   // Fetch attendance data on mount
   fetchAttendance();
+  
+  // Fetch customer reviews on mount
+  fetchCustomerReviews();
   
   // Fetch products and services for ordering
   fetchProducts();
@@ -1926,21 +1996,9 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* ── Local token overrides for dark theme ── */
-:root, * {
-  --light-bg:  rgba(255,255,255,0.05);
-  --radius:    14px;
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --success:   #5cba7d;
-  --warning:   #f4a460;
-  --info:      #7eb8f7;
-}
-
 .booking-item {
   padding: 12px 0;
-  border-bottom: 1px solid var(--divider);
-  color: var(--text);
+  border-bottom: 1px solid var(--border);
 }
 
 .booking-item:last-child {
@@ -1948,14 +2006,14 @@ onUnmounted(() => {
 }
 
 .booking-time {
-  background: rgba(212,175,55,0.12);
-  border: 1px solid rgba(212,175,55,0.28);
-  color: var(--gold-bright);
-  padding: 5px 10px;
-  border-radius: var(--r-full);
+  background: var(--gold);
+  color: white;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
+  color: var(--charcoal);
   white-space: nowrap;
-  font-size: 12px;
+  background: var(--ivory);
 }
 
 .form-group {
@@ -1964,39 +2022,39 @@ onUnmounted(() => {
 
 .form-group label {
   display: block;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--charcoal);
+  margin-bottom: 6px;
 }
 
 .form-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1.5px solid var(--border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-family: inherit;
-  background: rgba(255,255,255,0.04);
-  color: var(--text);
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
-  outline: none;
+  background: #1a1a1a;
+  color: white;
 }
 
-.form-input::placeholder { color: rgba(255,255,255,0.22); }
-
 .form-input:focus {
+  outline: none;
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(212,175,55,0.10);
+  box-shadow: 0 0 0 3px rgba(229, 170, 84, 0.1);
+}
+
+select.form-input {
+  color-scheme: dark;
 }
 
 .form-input:disabled {
-  background-color: rgba(255,255,255,0.03);
-  color: var(--text-muted);
-  cursor: not-allowed;
+  background-color: #1a1a1a;
+  color: #888;
+  opacity: 0.6;
 }
 
 .form-hint {
@@ -2007,20 +2065,20 @@ onUnmounted(() => {
 
 .error-message {
   padding: 10px 12px;
-  background: rgba(192,57,43,0.10);
-  border-left: 3px solid rgba(192,57,43,0.6);
+  background: rgba(231, 76, 60, 0.1);
+  border-left: 3px solid #e74c3c;
   border-radius: var(--radius-sm);
-  color: #f08070;
+  color: #c0392b;
   font-size: 13px;
   margin-top: 12px;
 }
 
 .success-message {
   padding: 10px 12px;
-  background: rgba(39,174,96,0.10);
-  border-left: 3px solid rgba(39,174,96,0.6);
+  background: rgba(39, 174, 96, 0.1);
+  border-left: 3px solid #27ae60;
   border-radius: var(--radius-sm);
-  color: #5cba7d;
+  color: #229954;
   font-size: 13px;
   margin-top: 12px;
 }
@@ -2050,10 +2108,9 @@ onUnmounted(() => {
 }
 
 .modal-content {
-  background: var(--surface);
-  border: 1px solid rgba(212,175,55,0.18);
+  background: white;
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-xl);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
   width: 100%;
   max-width: 420px;
   max-height: 90vh;
@@ -2062,8 +2119,14 @@ onUnmounted(() => {
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to   { transform: translateY(0);    opacity: 1; }
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .modal-header {
@@ -2071,22 +2134,20 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 1px solid var(--border);
 }
 
 .modal-title {
   font-size: 18px;
-  font-weight: 500;
-  color: var(--text);
+  font-weight: 600;
+  color: var(--charcoal);
   margin: 0;
-  font-family: var(--font-display);
 }
 
 .modal-close {
   background: none;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 18px;
+  border: none;
+  font-size: 24px;
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;
@@ -2095,12 +2156,11 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
+  transition: color 0.2s;
 }
 
 .modal-close:hover {
-  border-color: var(--gold);
-  color: var(--gold);
+  color: var(--charcoal);
 }
 
 .modal-body {
@@ -2117,7 +2177,8 @@ onUnmounted(() => {
   align-items: center;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: rgba(255,255,255,0.04);
+  background: #1a1a1a;
+  color: white;
   cursor: text;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -2134,11 +2195,16 @@ onUnmounted(() => {
   font-family: inherit;
   outline: none;
   background: transparent;
+  color: white;
+}
+
+.dropdown-search-input::placeholder {
+  color: #888;
 }
 
 .dropdown-arrow {
   padding: 0 12px;
-  color: var(--text-muted);
+  color: #888;
   font-size: 11px;
   user-select: none;
   pointer-events: none;
@@ -2149,39 +2215,40 @@ onUnmounted(() => {
   top: 100%;
   left: 0;
   right: 0;
-  background: #1E1E1E;
+  background: #1a1a1a;
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   max-height: 250px;
   overflow-y: auto;
   z-index: 10;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  color: white;
 }
 
 .dropdown-option {
   padding: 12px 12px;
   cursor: pointer;
-  border-bottom: 1px solid var(--divider);
+  border-bottom: 1px solid #333;
   transition: background-color 0.2s;
-  color: var(--text);
-  font-size: 13px;
+  color: white;
 }
 
 .dropdown-option:hover {
-  background-color: rgba(212,175,55,0.08);
+  background-color: rgba(229, 170, 84, 0.2);
 }
 
 .dropdown-option.selected {
-  background-color: rgba(212, 175, 55, 0.12);
+  background-color: rgba(229, 170, 84, 0.25);
   border-left: 3px solid var(--gold);
   padding-left: 9px;
+  color: var(--gold);
 }
 
 .dropdown-no-results {
   padding: 12px;
   text-align: center;
-  color: var(--text-muted);
+  color: #888;
   font-size: 13px;
 }
 </style>

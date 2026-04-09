@@ -171,10 +171,10 @@
                     {{ appt.date }} at {{ appt.time }}
                   </div>
                   <div style="display: flex; gap: 8px">
-                    <button class="btn btn-sm btn-outline" style="flex: 1">
+                    <button class="btn btn-sm btn-outline" style="flex: 1" @click="startEditAppointment(appt)">
                       Reschedule
                     </button>
-                    <button class="btn btn-sm btn-danger" style="flex: 1">
+                    <button class="btn btn-sm btn-danger" style="flex: 1" @click="handleCancelAppointment(appt.id)">
                       Cancel
                     </button>
                   </div>
@@ -241,7 +241,7 @@
                 <div class="form-group">
                   <label>Select Services * (You can choose multiple)</label>
                   <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 300px; overflow-y: auto">
-                    <div v-for="service in customerData.availableServices" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+                    <div v-for="service in availableServicesData" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
                       <input 
                         :id="'service-' + service.id"
                         type="checkbox" 
@@ -300,7 +300,7 @@
                       required
                     >
                       <option value="">Choose a time</option>
-                      <option v-for="time in availableTimes" :key="time">
+                      <option v-for="time in availableBookingTimes" :key="time">
                         {{ time }}
                       </option>
                     </select>
@@ -383,36 +383,35 @@
                   <button class="btn btn-primary" @click="currentView = 'book-appointment'">Book an Appointment</button>
                 </div>
                 <div v-else>
-                  <div style="display: grid; gap: 12px">
-                    <div v-for="appt in upcomingAppointmentsData" :key="appt.id" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold)">
-                      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
-                        <div>
-                          <div style="font-weight: 600; font-size: 16px">{{ appt.service_name }}</div>
-                          <div class="text-muted" style="font-size: 13px; margin-top: 4px">with {{ appt.staff_name }}</div>
-                        </div>
-                        <span class="badge badge-gold" style="padding: 6px 12px">{{ appt.status }}</span>
+                  <div style="display: grid; gap: 16px">
+                    <div v-for="group in groupedUpcomingAppointments" :key="`${group.date}-${group.time}`" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold)">
+                      <!-- Group header with date and time -->
+                      <div style="font-weight: 600; font-size: 14px; color: var(--text-muted); margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border)">
+                        📅 {{ group.date }} at {{ group.time }}
                       </div>
-                      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px">
-                        <div>
-                          <div class="text-muted" style="font-size: 12px">Date</div>
-                          <div style="font-weight: 600">{{ appt.date }}</div>
+                      
+                      <!-- Appointments in this group -->
+                      <div style="display: grid; gap: 10px">
+                        <div v-for="appt in group.appointments" :key="appt.id" style="padding: 12px; background: var(--surface); border-radius: 8px">
+                          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px">
+                            <div>
+                              <div style="font-weight: 600; font-size: 14px">{{ appt.service_name }}</div>
+                              <div class="text-muted" style="font-size: 12px; margin-top: 2px">with {{ appt.staff_name }}</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px">
+                              <span class="badge badge-gold" style="padding: 4px 8px; font-size: 10px">₹{{ appt.price }}</span>
+                              <span :class="['badge', getStatusBadgeClass(appt.status)]" :title="getStatusLabel(appt.status)" :style="{ color: getStatusColor(appt.status), fontWeight: '600', padding: '4px 8px', fontSize: '10px' }">{{ appt.status }}</span>
+                            </div>
+                          </div>
+                          <div style="display: flex; gap: 8px">
+                            <button class="btn btn-sm btn-outline" style="flex: 1; font-size: 11px; padding: 4px 8px" @click="startEditAppointment(appt)">
+                              ✏️ Edit
+                            </button>
+                            <button class="btn btn-sm btn-danger" style="flex: 1; font-size: 11px; padding: 4px 8px" @click="handleCancelAppointment(appt.id)">
+                              ❌ Cancel
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                          <div class="text-muted" style="font-size: 12px">Time</div>
-                          <div style="font-weight: 600">{{ appt.time }}</div>
-                        </div>
-                        <div>
-                          <div class="text-muted" style="font-size: 12px">Price</div>
-                          <div style="font-weight: 600; color: var(--gold)">₹{{ appt.price }}</div>
-                        </div>
-                      </div>
-                      <div style="display: flex; gap: 8px">
-                        <button class="btn btn-sm btn-outline" style="flex: 1; font-size: 12px" @click="startEditAppointment(appt)">
-                          ✏️ Edit
-                        </button>
-                        <button class="btn btn-sm btn-danger" style="flex: 1; font-size: 12px" @click="handleCancelAppointment(appt.id)">
-                          ❌ Cancel
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -443,38 +442,34 @@
                       style="width: 100%; max-width: 300px"
                     />
                   </div>
-                  <div class="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Service</th>
-                          <th>Staff Member</th>
-                          <th>Date & Time</th>
-                          <th>Price</th>
-                          <th>Status</th>
-                          <th>Rating</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="appt in filteredHistoryAppointments" :key="appt.id" @click="viewAppointmentDetails(appt.id)" style="cursor: pointer; transition: background-color 0.2s;" @mouseenter="($event.target.parentNode.style.backgroundColor = 'var(--light-bg)')" @mouseleave="($event.target.parentNode.style.backgroundColor = 'transparent')">
-                          <td>{{ appt.service }}</td>
-                          <td>{{ appt.staff }}</td>
-                          <td>{{ appt.date }} {{ appt.time }}</td>
-                          <td>₹{{ appt.price }}</td>
-                          <td>
-                            <span :class="['badge', getStatusBadgeClass(appt.status)]">{{ appt.status }}</span>
-                          </td>
-                          <td>
-                            <div style="display: flex; align-items: center; gap: 6px">
-                              <span style="letter-spacing: 1px">
-                                <span v-for="i in 5" :key="i" :style="{ color: i <= (appt.rating || 0) ? 'var(--gold)' : 'var(--border)', fontSize: '12px' }">⭐</span>
-                              </span>
-                              <span style="font-size: 12px; font-weight: 600; color: var(--gold)">{{ appt.rating || '-' }}</span>
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                  <div style="display: grid; gap: 16px">
+                    <div v-for="group in groupedHistoryAppointments" :key="`${group.date}-${group.time}`" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--text-muted); cursor: pointer; transition: background-color 0.2s;" @click="viewAppointmentDetails(group.appointments[0].id)" @mouseenter="($event.currentTarget.style.backgroundColor = 'rgba(218,165,32,0.1)')" @mouseleave="($event.currentTarget.style.backgroundColor = 'var(--light-bg)')">
+                      <!-- Group header with date and time -->
+                      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
+                        <div>
+                          <div style="font-weight: 600; font-size: 14px; color: var(--text-muted)">
+                            📅 {{ group.date }}{{ group.time ? ' at ' + group.time : '' }}
+                          </div>
+                          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">with {{ group.appointments[0].staff }}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px">
+                          <span class="badge badge-gold" style="padding: 4px 8px; font-size: 12px; font-weight: 600">₹{{ group.appointments.reduce((sum, appt) => sum + (appt.price || 0), 0) }}</span>
+                          <div v-if="group.appointments[0].rating !== undefined" style="display: flex; align-items: center; gap: 6px">
+                            <span style="letter-spacing: 1px">
+                              <span v-for="i in 5" :key="i" :style="{ color: i <= (group.appointments[0].rating || 0) ? 'var(--gold)' : 'var(--border)', fontSize: '14px' }">⭐</span>
+                            </span>
+                            <span style="font-size: 12px; font-weight: 600; color: var(--gold)">{{ group.appointments[0].rating || '-' }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Services list -->
+                      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+                        <div v-for="appt in group.appointments" :key="appt.id" style="font-size: 13px; padding: 6px 10px; background: var(--surface); border-radius: 6px; font-weight: 500">
+                          {{ appt.service }}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -720,21 +715,28 @@
                   <p style="color: var(--text-muted); margin-top: 8px">All completed appointments have been reviewed!</p>
                 </div>
                 <div v-else>
-                  <div style="display: grid; gap: 12px">
-                    <div v-for="review in pendingReviews" :key="review.appointment_id" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold)">
-                      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
-                        <div>
-                          <div style="font-weight: 600; font-size: 16px">{{ review.services.join(', ') }}</div>
-                          <div class="text-muted" style="font-size: 13px; margin-top: 4px">with {{ review.staff_name }}</div>
+                  <div style="display: grid; gap: 16px">
+                    <div v-for="group in groupedPendingReviews" :key="group.datetime" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold)">
+                      <!-- Group header with date and time -->
+                      <div style="font-weight: 600; font-size: 14px; color: var(--text-muted); margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border)">
+                        📅 {{ group.date }} at {{ group.time }}
+                      </div>
+                      
+                      <!-- Services in this group -->
+                      <div style="display: grid; gap: 10px">
+                        <div v-for="review in group.reviews" :key="review.appointment_id" style="padding: 12px; background: var(--surface); border-radius: 8px">
+                          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px">
+                            <div>
+                              <div style="font-weight: 600; font-size: 14px">{{ review.services.join(', ') }}</div>
+                              <div class="text-muted" style="font-size: 12px; margin-top: 2px">with {{ review.staff_name }}</div>
+                            </div>
+                            <span class="badge badge-gold" style="padding: 4px 8px; font-size: 11px">Review Needed</span>
+                          </div>
+                          <button class="btn btn-primary" style="width: 100%; font-size: 12px; padding: 6px 12px" @click="openReviewModal(review)">
+                            Add Rating & Review
+                          </button>
                         </div>
-                        <span class="badge badge-gold" style="padding: 6px 12px">Review Needed</span>
                       </div>
-                      <div class="text-muted" style="font-size: 12px; margin-bottom: 12px">
-                        {{ new Date(review.datetime).toLocaleDateString() }} at {{ new Date(review.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
-                      </div>
-                      <button class="btn btn-primary" style="width: 100%" @click="openReviewModal(review)">
-                        Add Rating & Review
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -810,17 +812,25 @@
             <input id="profile-phone" v-model="profileForm.phone" type="tel" placeholder="Enter phone" class="form-input" />
           </div>
           <div class="form-group">
+            <label for="profile-address">Address</label>
+            <input id="profile-address" v-model="profileForm.address" type="text" placeholder="Enter address" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label for="profile-dob">Date of Birth</label>
+            <input id="profile-dob" v-model="profileForm.dob" type="date" class="form-input" />
+          </div>
+          <div class="form-group">
             <label>Preferred Services</label>
             <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--light-bg)">
-              <div v-for="service in customerData.availableServices" :key="service.id" style="margin-bottom: 8px">
+              <div v-for="service in availableServicesData" :key="service.id" style="margin-bottom: 8px">
                 <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px">
                   <input 
                     type="checkbox" 
-                    :value="service.id" 
+                    :value="service.name" 
                     v-model="profileForm.preferredServices"
                     style="margin-right: 8px"
                   />
-                  <span>{{ service.name }} ({{ service.category }})</span>
+                  <span>{{ service.name }}</span>
                 </label>
               </div>
             </div>
@@ -1044,7 +1054,7 @@
               <div class="form-group">
                 <label>Select Services</label>
                 <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 250px; overflow-y: auto">
-                  <div v-for="service in customerData.availableServices" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+                  <div v-for="service in availableServicesData" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
                     <input 
                       :id="'edit-service-' + service.id"
                       type="checkbox" 
@@ -1068,19 +1078,41 @@
                 >
                   <option value="">Choose a stylist</option>
                   <option v-for="staff in availableStylists" :key="staff.id" :value="staff.id">
-                    {{ staff.name }}
+                    {{ staff.name }}{{ staff.skills ? ' - ' + staff.skills : '' }}
                   </option>
                 </select>
+                <div v-if="editAppointmentForm.staffId" class="text-muted" style="font-size: 12px; margin-top: 6px">
+                  Selected: {{ availableStylists.find(s => s.id == editAppointmentForm.staffId)?.name }}{{ availableStylists.find(s => s.id == editAppointmentForm.staffId)?.skills ? ' - Specializes in ' + availableStylists.find(s => s.id == editAppointmentForm.staffId)?.skills : '' }}
+                </div>
               </div>
 
-              <div class="form-group">
-                <label for="edit-datetime">Date & Time</label>
-                <input 
-                  id="edit-datetime"
-                  v-model="editAppointmentForm.datetime" 
-                  type="datetime-local" 
-                  class="form-input"
-                />
+              <div class="grid-2">
+                <div class="form-group">
+                  <label for="edit-date">Date *</label>
+                  <input 
+                    id="edit-date"
+                    v-model="editAppointmentForm.date" 
+                    type="date" 
+                    class="form-input"
+                    :min="minEditDate"
+                    :max="maxEditDate"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="edit-time">Time *</label>
+                  <select 
+                    id="edit-time"
+                    v-model="editAppointmentForm.time" 
+                    class="form-input"
+                    required
+                  >
+                    <option value="">Choose a time</option>
+                    <option v-for="time in availableRescheduleTimes" :key="time">
+                      {{ time }}
+                    </option>
+                  </select>
+                </div>
               </div>
 
               <div style="display: flex; gap: 12px; margin-top: 20px">
@@ -1118,7 +1150,7 @@
             <div class="detail-item">
               <label class="detail-label">Status</label>
               <div class="detail-value">
-                <span :class="['badge', getStatusBadgeClass(selectedAppointment.status)]">{{ selectedAppointment.status }}</span>
+                <span :class="['badge', getStatusBadgeClass(selectedAppointment.status)]" :title="getStatusLabel(selectedAppointment.status)" :style="{ color: getStatusColor(selectedAppointment.status), fontWeight: '600' }">{{ selectedAppointment.status }}</span>
               </div>
             </div>
           </div>
@@ -1146,7 +1178,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/appStore";
 import { apiClient } from "../api/apiClient";
@@ -1170,12 +1202,15 @@ const editingAppointmentId = ref(null);
 const editAppointmentForm = ref({
   staffId: "",
   serviceIds: [],
-  datetime: ""
+  date: "",
+  time: ""
 });
 const profileForm = ref({
   name: "",
   email: "",
   phone: "",
+  address: "",
+  dob: "",
   preferredServices: []
 });
 const passwordForm = ref({
@@ -1200,6 +1235,12 @@ const bookingSuccess = ref("");
 const availableServicesData = ref([]);
 const loadingServices = ref(false);
 const servicesError = ref("");
+
+// Salon configuration
+const salonConfig = ref({
+  openTime: "09:00",
+  closeTime: "21:00"
+});
 
 // Feedback form state
 const feedbackForm = ref({
@@ -1279,7 +1320,7 @@ const customerData = ref({
       date: "2026-03-06",
       time: "10:00 AM",
       price: "₹ 50",
-      status: "confirmed",
+      status: 0,
     },
   ],
   appointmentHistory: [
@@ -1289,7 +1330,7 @@ const customerData = ref({
       staff: "Sarah Johnson",
       date: "2026-03-02",
       price: 50,
-      status: "completed",
+      status: 1,
       rating: 5,
     },
     {
@@ -1298,7 +1339,7 @@ const customerData = ref({
       staff: "Emma Davis",
       date: "2026-02-28",
       price: 30,
-      status: "completed",
+      status: 1,
       rating: 4.5,
     },
     {
@@ -1307,7 +1348,7 @@ const customerData = ref({
       staff: "Lisa Chen",
       date: "2026-02-20",
       price: 120,
-      status: "completed",
+      status: 1,
       rating: 5,
     },
     {
@@ -1316,7 +1357,7 @@ const customerData = ref({
       staff: "Sarah Johnson",
       date: "2026-02-15",
       price: 70,
-      status: "completed",
+      status: 1,
       rating: 4,
     },
   ],
@@ -1333,7 +1374,7 @@ const fetchCustomerInfo = async () => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/customer`, {
+    const response = await fetch(`${API_BASE_URL}/api/customer-info`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -1343,20 +1384,29 @@ const fetchCustomerInfo = async () => {
     });
 
     if (response.ok) {
-      const customerList = await response.json();
-      if (Array.isArray(customerList) && customerList.length > 0) {
-        const customer = customerList[0]; // Get first customer (current user)
-        
-        // Update customerData with backend values
-        customerData.value.name = customer.customer_name || "Customer";
-        customerData.value.email = customer.customer_email || "email@example.com";
-        customerData.value.phone = customer.customer_contact || "Not provided";
-        customerData.value.address = customer.customer_address || "Not provided";
-        customerData.value.dob = customer.customer_dob || "Not provided";
-        customerData.value.membershipStatus = customer.customer_type || "Regular";
-        
-        console.log("Customer info updated from backend:", customerData.value);
+      const customer = await response.json();
+      
+      // Update customerData with backend values
+      customerData.value.name = customer.customer_name || "Customer";
+      customerData.value.email = customer.customer_email || "email@example.com";
+      customerData.value.phone = customer.customer_contact || "Not provided";
+      customerData.value.address = customer.customer_address || "Not provided";
+      customerData.value.dob = customer.customer_dob || "Not provided";
+      customerData.value.membershipStatus = customer.customer_type || "Regular";
+      customerData.value.totalSpent = customer.total_spend || 0;
+      
+      console.log("Backend customer_type:", customer.customer_type);
+      console.log("Set membershipStatus to:", customerData.value.membershipStatus);
+      
+      // Parse preferred services from customer_preferences
+      if (customer.customer_preferences) {
+        const preferredIds = customer.customer_preferences.split(',').map(id => id.trim()).filter(id => id);
+        customerData.value.preferredServices = preferredIds;
+        preferredServiceIds.value = preferredIds;
+        console.log("Preferred services loaded:", preferredIds);
       }
+      
+      console.log("Customer info updated from backend:", customerData.value);
     } else {
       console.error("Failed to fetch customer info:", response.status);
     }
@@ -1416,22 +1466,91 @@ const fetchAvailableStaff = async () => {
   }
 };
 
-// Available time slots
-const availableTimes = computed(() => {
+// Available time slots for booking (filters past times if booking for today)
+const availableBookingTimes = computed(() => {
   const times = [];
-  for (let hour = 9; hour <= 17; hour++) {
-    times.push(`${String(hour).padStart(2, '0')}:00`);
-    times.push(`${String(hour).padStart(2, '0')}:30`);
+  const [openHour, openMinute] = salonConfig.value.openTime.split(':').map(Number);
+  const [closeHour, closeMinute] = salonConfig.value.closeTime.split(':').map(Number);
+  
+  let currentHour = openHour;
+  let currentMinute = openMinute;
+  
+  // Get current time
+  const now = new Date();
+  const currentTimeHour = now.getHours();
+  const currentTimeMinute = now.getMinutes();
+  
+  while (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute)) {
+    const timeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+    
+    // Only show time if:
+    // 1. Not booking for today, OR
+    // 2. Booking for today but time is at least 2 hours from now
+    if (bookingForm.value.date !== getTodayDate.value || 
+        (currentHour > currentTimeHour + 1) || 
+        (currentHour === currentTimeHour + 1 && currentMinute >= currentTimeMinute)) {
+      times.push(timeStr);
+    }
+    
+    currentMinute += 30;
+    if (currentMinute >= 60) {
+      currentMinute = 0;
+      currentHour += 1;
+    }
   }
+  
+  return times;
+});
+
+// Available time slots for rescheduling (filters past times if rescheduling for today)
+const availableRescheduleTimes = computed(() => {
+  const times = [];
+  const [openHour, openMinute] = salonConfig.value.openTime.split(':').map(Number);
+  const [closeHour, closeMinute] = salonConfig.value.closeTime.split(':').map(Number);
+  
+  let currentHour = openHour;
+  let currentMinute = openMinute;
+  
+  // Get current time
+  const now = new Date();
+  const currentTimeHour = now.getHours();
+  const currentTimeMinute = now.getMinutes();
+  
+  while (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute)) {
+    const timeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+    
+    // Only show time if:
+    // 1. Not rescheduling for today, OR
+    // 2. Rescheduling for today but time is at least 2 hours from now
+    if (editAppointmentForm.value.date !== getTodayDate.value || 
+        (currentHour > currentTimeHour + 1) || 
+        (currentHour === currentTimeHour + 1 && currentMinute >= currentTimeMinute)) {
+      times.push(timeStr);
+    }
+    
+    currentMinute += 30;
+    if (currentMinute >= 60) {
+      currentMinute = 0;
+      currentHour += 1;
+    }
+  }
+  
   return times;
 });
 
 // Preferred services list
 const preferredServicesList = computed(() => {
-  const selectedIds = preferredServiceIds.value.map((id) => Number(id));
-  return customerData.value.availableServices.filter(service => 
-    selectedIds.includes(Number(service.id))
-  );
+  // Get service names directly from customer_preferences
+  if (!customerData.value.preferredServices || customerData.value.preferredServices.length === 0) {
+    return [];
+  }
+  
+  // Map preference names to service objects for display
+  return customerData.value.preferredServices.map((name, index) => ({
+    id: index,
+    name: name,
+    category: ""
+  }));
 });
 
 // Get today's date for min date validation
@@ -1440,16 +1559,19 @@ const getTodayDate = computed(() => {
   return today.toISOString().split('T')[0];
 });
 
-// Helper function to check if customer is VIP
-const isVIPCustomer = () => {
-  return customerData.value.membershipStatus === "Platinum" || customerData.value.membershipStatus === "Gold";
-};
+// Helper function to check if customer is VIP (make it reactive with computed)
+const isVIPCustomer = computed(() => {
+  const membershipStatus = customerData.value.membershipStatus;
+  const isVIP = membershipStatus === "VIP" || membershipStatus === "Premium" || membershipStatus === "Gold" || membershipStatus === "Platinum";
+  console.log("isVIPCustomer check:", membershipStatus, "=>", isVIP);
+  return isVIP;
+});
 
 // Helper function to check if booking is for bridal package
 const hasbridalPackageSelected = () => {
   return bookingForm.value.serviceIds.some(serviceId => {
-    const service = customerData.value.availableServices.find(s => s.id === parseInt(serviceId));
-    return service && service.name === "Bridal Package";
+    const service = availableServicesData.value.find(s => s.id === parseInt(serviceId));
+    return service && (service.name?.toLowerCase().includes("bridal") || service.category?.toLowerCase().includes("bridal"));
   });
 };
 
@@ -1468,7 +1590,7 @@ const minBookingDate = computed(() => {
   return minDate.toISOString().split('T')[0];
 });
 
-// Compute maximum booking date (6 months for bridal, VIP=5days/Regular=2days for others)
+// Compute maximum booking date (6 months for bridal, Regular=2days/VIP=5days for others)
 const maxBookingDate = computed(() => {
   const today = new Date();
   const maxDate = new Date(today);
@@ -1476,7 +1598,7 @@ const maxBookingDate = computed(() => {
   if (hasbridalPackageSelected()) {
     maxDate.setMonth(maxDate.getMonth() + 6); // 6 months for bridal package
   } else {
-    const daysToAdd = isVIPCustomer() ? 5 : 2; // VIP=5 days, Regular=2 days for other services
+    const daysToAdd = isVIPCustomer.value ? 5 : 2; // VIP=5 days, Regular=2 days for other services
     maxDate.setDate(maxDate.getDate() + daysToAdd);
   }
   
@@ -1492,9 +1614,46 @@ const bookingDateInfo = computed(() => {
   if (hasbridalPackageSelected()) {
     return `Bridal Package: Book 1 to 6 months in advance`;
   } else {
-    const daysWindow = isVIPCustomer() ? 5 : 2;
-    return `Other services: Book from tomorrow onwards for ${daysWindow} days`;
+    const daysWindow = isVIPCustomer.value ? 5 : 2;
+    return `Other services: Book from today for up to ${daysWindow} days in advance`;
   }
+});
+
+// For reschedule modal - check if bridal package is in edit form
+const hasEditBridalPackageSelected = () => {
+  return editAppointmentForm.value.serviceIds.some(serviceId => {
+    const service = availableServicesData.value.find(s => s.id === parseInt(serviceId));
+    return service && (service.name?.toLowerCase().includes("bridal") || service.category?.toLowerCase().includes("bridal"));
+  });
+};
+
+// Min date for reschedule (allow editing today's date onwards)
+const minEditDate = computed(() => {
+  const today = new Date();
+  const minDate = new Date(today);
+  
+  if (hasEditBridalPackageSelected()) {
+    minDate.setMonth(minDate.getMonth() + 1);
+  } else {
+    minDate.setDate(minDate.getDate()); // Allow today
+  }
+  
+  return minDate.toISOString().split('T')[0];
+});
+
+// Max date for reschedule (respects VIP status)
+const maxEditDate = computed(() => {
+  const today = new Date();
+  const maxDate = new Date(today);
+  
+  if (hasEditBridalPackageSelected()) {
+    maxDate.setMonth(maxDate.getMonth() + 6);
+  } else {
+    const daysToAdd = isVIPCustomer.value ? 5 : 2;
+    maxDate.setDate(maxDate.getDate() + daysToAdd);
+  }
+  
+  return maxDate.toISOString().split('T')[0];
 });
 
 const pageTitle = computed(() => {
@@ -1533,6 +1692,77 @@ const filteredHistoryAppointments = computed(() => {
   );
 });
 
+// Group pending reviews by same date and time
+const groupedPendingReviews = computed(() => {
+  const grouped = {};
+  
+  pendingReviews.value.forEach(review => {
+    // Create a key from date and time
+    const date = new Date(review.datetime).toLocaleDateString();
+    const time = new Date(review.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const key = `${date} ${time}`;
+    
+    if (!grouped[key]) {
+      grouped[key] = {
+        datetime: review.datetime,
+        date: date,
+        time: time,
+        reviews: []
+      };
+    }
+    
+    grouped[key].reviews.push(review);
+  });
+  
+  // Convert to array and sort by datetime
+  return Object.values(grouped).sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+});
+
+// Group upcoming appointments by same date and time
+const groupedUpcomingAppointments = computed(() => {
+  const grouped = {};
+  
+  upcomingAppointmentsData.value.forEach(appt => {
+    const key = `${appt.date} ${appt.time}`;
+    
+    if (!grouped[key]) {
+      grouped[key] = {
+        date: appt.date,
+        time: appt.time,
+        datetime: appt.datetime,
+        appointments: []
+      };
+    }
+    
+    grouped[key].appointments.push(appt);
+  });
+  
+  // Convert to array and sort by datetime
+  return Object.values(grouped).sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+});
+
+// Group history appointments by same date and time
+const groupedHistoryAppointments = computed(() => {
+  const grouped = {};
+  
+  filteredHistoryAppointments.value.forEach(appt => {
+    const key = `${appt.date} ${appt.time || ''}`;
+    
+    if (!grouped[key]) {
+      grouped[key] = {
+        date: appt.date,
+        time: appt.time,
+        appointments: []
+      };
+    }
+    
+    grouped[key].appointments.push(appt);
+  });
+  
+  // Convert to array and sort by date (descending - newest first)
+  return Object.values(grouped).sort((a, b) => new Date(`${b.date} ${b.time || '00:00'}`) - new Date(`${a.date} ${a.time || '00:00'}`));
+});
+
 // Service categories
 const serviceCategories = computed(() => {
   const categories = [...new Set(availableServicesData.value.map(s => s.category))];
@@ -1552,13 +1782,38 @@ const getServicesByCategory = (category) => {
 
 const getStatusBadgeClass = (status) => {
   const badges = {
-    completed: "badge-green",
-    scheduled: "badge-blue",
-    confirmed: "badge-gold",
-    pending: "badge-gray",
-    cancelled: "badge-red",
+    0: "badge-gray",    // 0: Booked
+    1: "badge-green",   // 1: Completed
+    2: "badge-red",     // 2: No-show
+    3: "badge-gray",    // 3: Cancelled
+    4: "badge-blue",    // 4: Rescheduled
+    5: "badge-gold",    // 5: Invoiced
   };
   return badges[status] || "badge-gray";
+};
+
+const getStatusLabel = (status) => {
+  const labels = {
+    0: "Booked",
+    1: "Completed",
+    2: "No-show",
+    3: "Cancelled",
+    4: "Rescheduled",
+    5: "Invoiced",
+  };
+  return labels[status] || "Unknown";
+};
+
+const getStatusColor = (status) => {
+  const colors = {
+    0: "#95a3a3",       // 0: Booked - gray
+    1: "#27ae60",       // 1: Completed - green
+    2: "#e74c3c",       // 2: No-show - red
+    3: "#95a3a3",       // 3: Cancelled - gray
+    4: "#3498db",       // 4: Rescheduled - blue
+    5: "#d4af37",       // 5: Invoiced - gold
+  };
+  return colors[status] || "#95a3a3";
 };
 
 // Fetch appointment details from backend
@@ -1660,27 +1915,82 @@ const handleChangePassword = async () => {
   }
 };
 
-const openProfileEdit = () => {
+const openProfileEdit = async () => {
   profileForm.value = {
-    name: customerData.name,
-    email: customerData.email,
-    phone: customerData.phone,
-    preferredServices: [...preferredServiceIds.value]
+    name: customerData.value.name,
+    email: customerData.value.email,
+    phone: customerData.value.phone,
+    address: customerData.value.address,
+    dob: customerData.value.dob,
+    preferredServices: [...customerData.value.preferredServices]
   };
+  await nextTick();
   showProfileEditModal.value = true;
 };
 
-const handleUpdateProfile = () => {
-  customerData.name = profileForm.value.name.trim() || customerData.name;
-  customerData.email = profileForm.value.email.trim() || customerData.email;
-  customerData.phone = profileForm.value.phone.trim() || customerData.phone;
-  const normalizedPreferred = profileForm.value.preferredServices.map((id) => Number(id));
-  preferredServiceIds.value = [...normalizedPreferred];
-  customerData.preferredServices = [...normalizedPreferred];
-  showProfileEditModal.value = false;
+const handleUpdateProfile = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    alert("Authentication token not found. Please login again.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/customer-info`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify({
+        customer_name: profileForm.value.name,
+        customer_email: profileForm.value.email,
+        customer_contact: profileForm.value.phone,
+        customer_address: profileForm.value.address,
+        customer_dob: profileForm.value.dob,
+        customer_preferences: profileForm.value.preferredServices.join(',')
+      })
+    });
+
+    if (response.ok) {
+      // Update local state with form values
+      customerData.value.name = profileForm.value.name;
+      customerData.value.email = profileForm.value.email;
+      customerData.value.phone = profileForm.value.phone;
+      customerData.value.address = profileForm.value.address;
+      customerData.value.dob = profileForm.value.dob;
+      customerData.value.preferredServices = [...profileForm.value.preferredServices];
+      
+      // Close modal and show success
+      showProfileEditModal.value = false;
+      console.log("Profile updated successfully on backend");
+    } else {
+      const error = await response.json();
+      alert("Failed to update profile: " + (error.message || "Unknown error"));
+    }
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    alert("Error updating profile: " + error.message);
+  }
 };
 
-const handleLogout = () => {
+const handleLogout = async () => {
+  const token = localStorage.getItem("authToken");
+  if (token) {
+    try {
+      await fetch(`${API_BASE_URL}/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        }
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  }
   appStore.logout();
   router.push("/login/customer");
 };
@@ -1803,11 +2113,16 @@ const fetchUpcomingAppointments = async () => {
     // Transform API data to match frontend format
     upcomingAppointmentsData.value = data.map(appt => ({
       id: appt.appointment_id,
-      service_name: appt.service_name || appt.service_desc || "Service",
-      staff_name: appt.staff_name,
+      service_name: appt.services && appt.services.length > 0 
+        ? appt.services.map(s => s.service_name).join(", ")
+        : "Service",
+      staff_name: appt.staff_name || "Not Assigned",
+      staff_id: appt.staff_id || null,
       datetime: appt.datetime,
-      price: appt.price,
+      price: appt.total_price || 0,
       status: appt.status,
+      services: appt.services || [],
+      service_ids: appt.services?.map(s => s.service_id) || [],
       // Extract date and time from ISO datetime
       date: appt.datetime ? appt.datetime.split('T')[0] : '',
       time: appt.datetime ? appt.datetime.split('T')[1]?.substring(0, 5) : ''
@@ -1895,6 +2210,49 @@ const fetchServices = async () => {
     availableServicesData.value = [];
   } finally {
     loadingServices.value = false;
+  }
+};
+
+// Fetch salon configuration
+const fetchSalonConfig = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/salon-config`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      if (Array.isArray(data)) {
+        const openTimeConfig = data.find(config => config.param_name === "SALON_OPEN_TIME");
+        const closeTimeConfig = data.find(config => config.param_name === "SALON_CLOSE_TIME");
+        
+        if (openTimeConfig) {
+          salonConfig.value.openTime = openTimeConfig.param_value; // e.g., "09:00"
+        }
+        if (closeTimeConfig) {
+          salonConfig.value.closeTime = closeTimeConfig.param_value; // e.g., "21:00"
+        }
+        
+        console.log("Salon config loaded:", salonConfig.value);
+      }
+    } else {
+      console.error("Failed to fetch salon config:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching salon config:", error);
+    // Use defaults if fetch fails
   }
 };
 
@@ -2084,6 +2442,7 @@ const generateAiFeedback = async () => {
 onMounted(() => {
   fetchCustomerInfo();
   fetchServices();
+  fetchSalonConfig();
   fetchUpcomingAppointments();
   fetchHistoryAppointments();
   fetchCustomerSummary();
@@ -2113,6 +2472,12 @@ const handleBookAppointment = async () => {
   }
 
   try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      bookingError.value = "Not authenticated. Please login again.";
+      return;
+    }
+
     // Combine date and time into ISO datetime string
     const dateTime = `${bookingForm.value.date}T${bookingForm.value.time}:00`;
     
@@ -2124,9 +2489,22 @@ const handleBookAppointment = async () => {
     if (bookingForm.value.staffId) {
       payload.staff_id = parseInt(bookingForm.value.staffId);
     }
-    
-    const response = await apiClient.post("/api/customer-upcoming-appointments", payload);
-    
+
+    const response = await fetch(`${API_BASE_URL}/api/customer-upcoming-appointments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to book appointment");
+    }
+
     bookingSuccess.value = "Appointment booked successfully!";
     
     // Reset form and refresh appointments
@@ -2151,14 +2529,20 @@ const handleBookAppointment = async () => {
 };
 
 // Edit appointment
-const startEditAppointment = (appt) => {
+const startEditAppointment = async (appt) => {
   editingAppointmentId.value = appt.id;
-  editAppointmentForm.value = {
-    staffId: appt.staff_id || "",
-    serviceIds: appt.service_ids || [],
-    datetime: appt.datetime || `${appt.date}T${appt.time}:00`
-  };
+  selectedAppointment.value = appt;
   showAppointmentDetailsModal.value = true;
+  
+  // Wait for modal to render before auto-filling form
+  await nextTick();
+  
+  editAppointmentForm.value = {
+    staffId: appt.staff_id ? String(appt.staff_id) : "",
+    serviceIds: appt.service_ids ? appt.service_ids.map(id => String(id)) : [],
+    date: appt.date || "",
+    time: appt.time || ""
+  };
 };
 
 // Update appointment handler
@@ -2166,7 +2550,11 @@ const handleEditAppointmentSubmit = async () => {
   if (!editingAppointmentId.value) return;
   
   try {
-    const dateTime = editAppointmentForm.value.datetime;
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication token not found. Please login again.");
+      return;
+    }
     
     const payload = {};
     if (editAppointmentForm.value.staffId) {
@@ -2175,17 +2563,34 @@ const handleEditAppointmentSubmit = async () => {
     if (editAppointmentForm.value.serviceIds.length > 0) {
       payload.service_ids = editAppointmentForm.value.serviceIds.map(id => parseInt(id));
     }
-    if (editAppointmentForm.value.datetime) {
-      payload.appointment_datetime = dateTime;
+    if (editAppointmentForm.value.date && editAppointmentForm.value.time) {
+      payload.appointment_datetime = `${editAppointmentForm.value.date}T${editAppointmentForm.value.time}:00`;
     }
     
-    const response = await apiClient.put(`/api/customer-upcoming-appointments/${editingAppointmentId.value}`, payload);
+    const response = await fetch(`${API_BASE_URL}/api/customer/appointment/${editingAppointmentId.value}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to update appointment");
+    }
     
     // Refresh appointments
     await fetchUpcomingAppointments();
     selectedAppointment.value = null;
     editingAppointmentId.value = null;
     showAppointmentDetailsModal.value = false;
+    
+    // Switch to appointments view
+    currentView.value = "appointments";
+    appointmentsTab.value = "upcoming";
     
     alert("Appointment updated successfully!");
   } catch (error) {
@@ -2199,10 +2604,32 @@ const handleCancelAppointment = async (appointmentId) => {
   if (!confirm("Are you sure you want to cancel this appointment?")) return;
   
   try {
-    const response = await apiClient.delete(`/api/customer-upcoming-appointments/${appointmentId}`);
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication token not found. Please login again.");
+      return;
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/api/customer/appointment/${appointmentId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to delete appointment");
+    }
     
     // Refresh appointments
     await fetchUpcomingAppointments();
+    
+    // Switch to appointments view
+    currentView.value = "appointments";
+    appointmentsTab.value = "upcoming";
     
     alert("Appointment cancelled successfully!");
   } catch (error) {

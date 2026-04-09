@@ -1013,7 +1013,7 @@ class ServiceResource(Resource):
                 return {"message": "Service not found"}, 404
             return marshal(service, service_fields)
         
-        # Return all services (both active and disabled)
+        # Managers can see all services (including deleted/inactive)
         services = Service.query.all()
         return marshal(services, service_fields)
 
@@ -1134,6 +1134,7 @@ class AppointmentResource(Resource):
                 "staff_id": appointment.staff_id,
                 "staff_name": appointment.staff.staff_name if appointment.staff else None,
                 "datetime": appointment.appointment_datetime.isoformat(),
+                "status": appointment.status,
                 "services": [{"id": s.service_id, "name": s.service_desc, "price": s.service_price} 
                              for s in appointment.services if s.active_flg]
             }
@@ -1160,6 +1161,7 @@ class AppointmentResource(Resource):
                     "staff_id": appt.staff_id,
                     "staff_name": appt.staff.staff_name if appt.staff else None,
                     "datetime": appt.appointment_datetime.isoformat(),
+                    "status": appt.status,
                     "services": [{"id": s.service_id, "name": s.service_desc, "price": s.service_price} 
                                  for s in appt.services if s.active_flg]
                 })
@@ -1291,7 +1293,6 @@ class AppointmentResource(Resource):
 class SalonConfigResource(Resource):
 ################################## Get Salon Config Data ####################################
     @auth_required("token")
-    @roles_required("manager")
     def get(self, setting_id=None):
         if setting_id:
             config = SalonConfig.query.get(setting_id)
@@ -1484,6 +1485,92 @@ class StaffCustomerReview(Resource):
             
         return result, 200
 
+################################## Current Staff Resource #################################
+class CurrentStaffResource(Resource):
+    @auth_required("token")
+    @roles_required("staff")
+    def get(self):
+        """Fetch the current logged-in staff member's profile information"""
+        staff_id = current_user.id
+        
+        staff = Staff.query.get(staff_id)
+        if not staff:
+            return {"message": "Staff profile not found"}, 404
+        
+        staff_data = marshal(staff, staff_fields)
+        staff_data['active'] = staff.user.active
+        return staff_data, 200
+
+    @auth_required("token")
+    @roles_required("staff")
+    def put(self):
+        """Update the current logged-in staff member's own profile"""
+        staff_id = current_user.id
+        
+        staff = Staff.query.get(staff_id)
+        if not staff:
+            return {"message": "Staff profile not found"}, 404
+        
+        data = request.get_json()
+        
+        try:
+            staff.staff_name = data.get('staff_name', staff.staff_name)
+            staff.staff_contact = data.get('staff_contact', staff.staff_contact)
+            staff.staff_email = data.get('staff_email', staff.staff_email)
+            staff.staff_skills = data.get('staff_skills', staff.staff_skills)
+            
+            if 'staff_dob' in data and data['staff_dob']:
+                staff.staff_dob = datetime.strptime(data['staff_dob'], '%Y-%m-%d').date()
+            
+            db.session.commit()
+            return {"message": "Profile updated successfully"}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to update profile: {str(e)}"}, 500
+
+################################## Current Customer Resource ###############################
+class CurrentCustomerResource(Resource):
+    @auth_required("token")
+    @roles_required("customer")
+    def get(self):
+        """Fetch the current logged-in customer's profile information"""
+        customer_id = current_user.id
+        
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return {"message": "Customer profile not found"}, 404
+        
+        customer_data = marshal(customer, customer_fields)
+        return customer_data, 200
+
+    @auth_required("token")
+    @roles_required("customer")
+    def put(self):
+        """Update the current logged-in customer's own profile"""
+        customer_id = current_user.id
+        
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return {"message": "Customer profile not found"}, 404
+        
+        data = request.get_json()
+        
+        try:
+            customer.customer_name = data.get('customer_name', customer.customer_name)
+            customer.customer_contact = data.get('customer_contact', customer.customer_contact)
+            customer.customer_email = data.get('customer_email', customer.customer_email)
+            customer.customer_address = data.get('customer_address', customer.customer_address)
+            customer.customer_preferences = data.get('customer_preferences', customer.customer_preferences)
+            
+            if 'customer_dob' in data and data['customer_dob']:
+                customer.customer_dob = datetime.strptime(data['customer_dob'], '%Y-%m-%d').date()
+            
+            db.session.commit()
+            return {"message": "Profile updated successfully"}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to update profile: {str(e)}"}, 500
+
 ################################## Maintenance: Cleanup History ##############################
 class AppointmentHistoryCleanup(Resource):
     @auth_required("token")
@@ -1578,6 +1665,8 @@ class CustomerAppointment(Resource):
         }
 
 ###################################### For customer to update/reschedule a specific appointment  ################
+    @auth_required("token")
+    @roles_required("customer")
     def put(self, appointment_id):
         appointment = Appointment.query.filter_by(appointment_id=appointment_id, customer_id=current_user.id).first()
         if not appointment:
@@ -1645,13 +1734,16 @@ class CustomerUpcomingAppointmentsResource(Resource):
         if not customer:
             return {"message": "Customer profile not found"}, 404
         
-        # 0: Booked
-        booked_appointments = Appointment.query.filter_by(customer_id=target_customer_id, status=0).all()
+        # 0: Booked, 4: Rescheduled (both are upcoming appointments)
+        upcoming_appointments = Appointment.query.filter_by(customer_id=target_customer_id).filter(
+            Appointment.status.in_([0, 4])
+        ).all()
 
         result = []
-        for appt in booked_appointments:
+        for appt in upcoming_appointments:
             result.append({
                 "appointment_id": appt.appointment_id,
+                "staff_id": appt.staff_id,
                 "staff_name": appt.staff.staff_name if appt.staff else "Not Assigned",
                 "datetime": appt.appointment_datetime.isoformat(),
                 "status": appt.status,
@@ -1902,18 +1994,25 @@ class CustomerReviewResource(Resource):
 ########################### To fetch appointments for current customer where feedback_given ###########
 class CustomerReviewedAppointments(Resource):
     @auth_required("token")
-    @roles_required("customer")
+    @roles_accepted("customer", "manager")
     def get(self):
-        target_customer_id = current_user.id
-        
-        # Fetch invoices for current customer joined with Appointment where feedback_given is True
-        # We join Invoice with Appointment to filter by the feedback_given flag and customer_id
-        reviewed_invoices = db.session.query(Invoice).join(
-            Appointment, Invoice.appointment_id == Appointment.appointment_id
-        ).filter(
-            Invoice.customer_id == target_customer_id,
-            Appointment.feedback_given == True
-        ).all()
+        # For managers, fetch all reviews; for customers, fetch only their own
+        if current_user.has_role("manager"):
+            # Fetch all reviews for manager view
+            reviewed_invoices = db.session.query(Invoice).join(
+                Appointment, Invoice.appointment_id == Appointment.appointment_id
+            ).filter(
+                Appointment.feedback_given == True
+            ).all()
+        else:
+            # Fetch only current customer's reviews
+            target_customer_id = current_user.id
+            reviewed_invoices = db.session.query(Invoice).join(
+                Appointment, Invoice.appointment_id == Appointment.appointment_id
+            ).filter(
+                Invoice.customer_id == target_customer_id,
+                Appointment.feedback_given == True
+            ).all()
         
         result = []
         for inv in reviewed_invoices:
@@ -1921,13 +2020,14 @@ class CustomerReviewedAppointments(Resource):
             if appt:
                 # Look for corresponding review in customer_review table using appointment_id or invoice_number
                 review = CustomerReview.query.filter_by(
-                    customer_id=target_customer_id,
+                    customer_id=inv.customer_id,
                     apppointment_id=appt.appointment_id
                 ).first()
                 
                 result.append({
                     "invoice_number": inv.invoice_number,
                     "appointment_id": appt.appointment_id,
+                    "customer_name": inv.customer.customer_name if inv.customer else "Unknown",
                     "staff_name": appt.staff.staff_name if appt.staff else "Unknown",
                     "datetime": appt.appointment_datetime.isoformat(),
                     "services": [s.service_desc for s in appt.services],
@@ -2723,6 +2823,18 @@ class GetAllInvoices(Resource):
         
         result = []
         for inv in invoices:
+            # Resolve service names based on service_ids (comma-separated string)
+            service_names = ""
+            if inv.service_ids:
+                try:
+                    # Convert comma-separated string to list of integers
+                    id_list = [int(sid.strip()) for sid in inv.service_ids.split(",") if sid.strip()]
+                    # Query service descriptions
+                    services = Service.query.filter(Service.service_id.in_(id_list)).all()
+                    service_names = ", ".join([s.service_desc for s in services])
+                except Exception:
+                    service_names = "Unknown Service"
+
             result.append({
                 "invoice_number": inv.invoice_number,
                 "invoice_date": str(inv.invoice_date),
@@ -2731,6 +2843,7 @@ class GetAllInvoices(Resource):
                 "staff_id": inv.staff_id,
                 "staff_name": inv.staff.staff_name if inv.staff else "Unknown",
                 "service_ids": inv.service_ids,
+                "service_names": service_names,
                 "other_charges": inv.other_charges,
                 "discount_percentage": inv.discount_percentage,
                 "rewards_earned": inv.rewards_earned,
@@ -2761,6 +2874,8 @@ api.add_resource(StaffDashboard, '/staff-dashboard')
 api.add_resource(StaffCustomerReview, '/staff-customer-reviews')
 api.add_resource(ManagerStaffAttendance, '/manager-staff-attendance')
 api.add_resource(StaffAttendanceResource, '/staff-attendance')
+api.add_resource(CurrentStaffResource, '/staff-info')
+api.add_resource(CurrentCustomerResource, '/customer-info')
 api.add_resource(AppointmentHistoryCleanup, '/cleanup-appointments')
 api.add_resource(SalonDailyAppointmentCountResource, '/daily-appointment-count')
 api.add_resource(CustomerUpcomingAppointmentsResource, '/customer-upcoming-appointments')

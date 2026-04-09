@@ -71,32 +71,7 @@ const routes = [
     name: 'owner-dashboard',
     component: OwnerDashboard,
     meta: { requiresAuth: true }
-  },
-  // Dev/Test routes for bypassing auth
-  {
-    path: '/test/staff',
-    name: 'test-staff',
-    component: StaffDashboard,
-    meta: { testMode: true, testRole: 'staff' }
-  },
-  {
-    path: '/test/customer',
-    name: 'test-customer',
-    component: CustomerDashboard,
-    meta: { testMode: true, testRole: 'customer' }
-  },
-  {
-    path: '/test/manager',
-    name: 'test-manager',
-    component: DashboardView,
-    meta: { testMode: true, testRole: 'manager' }
-  },
-  {
-    path: '/test/owner',
-    name: 'test-owner',
-    component: OwnerDashboard,
-    meta: { testMode: true, testRole: 'owner' }
-  },
+  }
 ]
 
 const router = createRouter({

@@ -28,6 +28,7 @@
         <div class="hero-circle-small"></div>
       </div>
 
+
       <div class="hero-content">
         <div class="hero-eyebrow">
           <span class="hero-eyebrow-line"></span>
@@ -53,25 +54,8 @@
             Discover More ↓
           </a>
         </div>
-
-        <!-- Stats row -->
-        <div class="hero-stats">
-          <div class="hero-stat">
-            <div class="hero-stat-value">500+</div>
-            <div class="hero-stat-label">Partner Salons</div>
-          </div>
-          <div class="hero-stat-divider"></div>
-          <div class="hero-stat">
-            <div class="hero-stat-value">98%</div>
-            <div class="hero-stat-label">Client Satisfaction</div>
-          </div>
-          <div class="hero-stat-divider"></div>
-          <div class="hero-stat">
-            <div class="hero-stat-value">50+</div>
-            <div class="hero-stat-label">Countries</div>
-          </div>
-        </div>
       </div>
+
 
       <div class="hero-scroll">
         <span>Scroll</span>
@@ -150,22 +134,6 @@
       </div>
     </section>
 
-    <!-- ─── TESTIMONIAL ────────────────────────────────────────── -->
-    <section class="testimonial-section">
-      <div class="testimonial-inner">
-        <span class="eyebrow" style="display: block; text-align: center; margin-bottom: 20px">Client Voices</span>
-        <blockquote class="testimonial-quote">
-          "Glow Suite transformed our salon from chaos into a choreography of seamless luxury."
-        </blockquote>
-        <div class="testimonial-author">
-          <div class="testimonial-avatar">S</div>
-          <div>
-            <div class="testimonial-name">Sofia Mensah</div>
-            <div class="testimonial-role">Founder, Lumière Beauty Studios</div>
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- ─── CTA ────────────────────────────────────────────────── -->
     <section class="cta-section" id="contact">
@@ -205,14 +173,15 @@
             <li><a href="#about">About</a></li>
             <li><router-link to="/login/customer">Customer Portal</router-link></li>
             <li><router-link to="/login/manager">Manager Portal</router-link></li>
+            <li><router-link to="/login/staff">Staff Portal</router-link></li>
+            <li><router-link to="/login/owner">Owner Portal</router-link></li>
           </ul>
         </div>
 
         <div class="footer-section">
           <h4>Contact</h4>
-          <p>hello@glowsuite.com</p>
-          <p>+1 (800) 456-GLOW</p>
-          <p style="margin-top: 12px; opacity: 0.5">Mon–Fri, 9am–6pm EST</p>
+          <p>Email</p>
+          <p>Phone Number</p>
         </div>
       </div>
 
@@ -235,31 +204,38 @@ const marqueeItems = [
 ]
 
 const features = [
-  { icon: '📅', title: 'Smart Scheduling',     description: 'Effortlessly manage appointments with an intelligent calendar that anticipates your needs.' },
-  { icon: '💎', title: 'Customer Loyalty',     description: 'Reward your most valued clients with our sophisticated points and VIP membership system.' },
-  { icon: '🤖', title: 'AI-Powered Insights',  description: 'Your personal AI briefing each morning — recommendations, alerts, and daily priorities.' },
-  { icon: '💰', title: 'Financial Clarity',    description: 'Real-time revenue tracking, expense management, and profit analytics in one elegant view.' },
-  { icon: '📦', title: 'Inventory Mastery',    description: 'Never run short of your finest products with automated stock alerts and supplier management.' },
-  { icon: '👔', title: 'Team Excellence',      description: 'Curate your staff, track performance, and cultivate an exceptional service culture.' },
+  { icon: '◐', title: 'Smart Scheduling',     description: 'Effortlessly manage appointments with an intelligent calendar that anticipates your needs.' },
+  { icon: '◆', title: 'Customer Loyalty',     description: 'Reward your most valued clients with our sophisticated points and VIP membership system.' },
+  { icon: '◎', title: 'AI-Powered Insights',  description: 'Your personal AI briefing each morning — recommendations, alerts, and daily priorities.' },
+  { icon: '◈', title: 'Financial Clarity',    description: 'Real-time revenue tracking, expense management, and profit analytics in one elegant view.' },
+  { icon: '▢', title: 'Inventory Mastery',    description: 'Never run short of your finest products with automated stock alerts and supplier management.' },
+  { icon: '◉', title: 'Team Excellence',      description: 'Curate your staff, track performance, and cultivate an exceptional service culture.' },
 ]
 
 const roles = [
   {
-    icon: '🏛️',
+    icon: '◆',
     title: 'For Owners',
     description: 'A birds-eye view of your empire. Track KPIs, review manager reports, and steer your vision.',
     link: '/login/owner',
     features: ['Business Analytics', 'Manager Oversight', 'Shared Reports', 'Revenue Trends'],
   },
   {
-    icon: '⚙️',
+    icon: '◐',
     title: 'For Managers',
     description: 'The command center. Coordinate staff, serve customers, and run operations with precision.',
     link: '/login/manager',
     features: ['Full Appointment Control', 'Staff Scheduling', 'Inventory & Orders', 'AI Daily Briefing'],
   },
   {
-    icon: '✨',
+    icon: '◈',
+    title: 'For Staff',
+    description: 'Streamlined tools to deliver exceptional service and track your daily performance.',
+    link: '/login/staff',
+    features: ['View Appointments', 'Track Performance', 'Service Notes', 'Attendance Management'],
+  },
+  {
+    icon: '◉',
     title: 'For Customers',
     description: 'A seamless, luxurious booking experience that keeps clients coming back.',
     link: '/login/customer',
@@ -269,39 +245,6 @@ const roles = [
 </script>
 
 <style scoped>
-/* ─── HERO STATS ─── */
-.hero-stats {
-  display: flex;
-  align-items: center;
-  gap: 32px;
-  margin-top: 52px;
-  padding-top: 36px;
-  border-top: 1px solid rgba(201,169,110,0.12);
-}
-
-.hero-stat-value {
-  font-family: var(--font-display);
-  font-size: 30px;
-  font-weight: 600;
-  color: var(--gold-pale);
-  letter-spacing: -0.02em;
-  line-height: 1;
-}
-
-.hero-stat-label {
-  font-size: 10px;
-  color: rgba(255,255,255,0.35);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  margin-top: 5px;
-}
-
-.hero-stat-divider {
-  width: 1px;
-  height: 36px;
-  background: rgba(201,169,110,0.18);
-}
-
 /* ─── SCROLL ─── */
 .hero-scroll {
   display: flex;
@@ -358,65 +301,6 @@ const roles = [
 }
 
 .marquee-dot { color: var(--gold); font-size: 8px; }
-
-/* ─── TESTIMONIAL ─── */
-.testimonial-section {
-  background: var(--obsidian-80);
-  padding: 100px 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-top: 1px solid rgba(201,169,110,0.10);
-  border-bottom: 1px solid rgba(201,169,110,0.10);
-  text-align: center;
-}
-
-.testimonial-inner { max-width: 700px; }
-
-.testimonial-quote {
-  font-family: var(--font-display);
-  font-size: clamp(22px, 3vw, 36px);
-  font-style: italic;
-  color: var(--ivory);
-  line-height: 1.4;
-  font-weight: 400;
-  margin-bottom: 32px;
-  letter-spacing: -0.01em;
-}
-
-.testimonial-author {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  justify-content: center;
-}
-
-.testimonial-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--gold-deep), var(--gold));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 18px;
-  color: var(--obsidian);
-  font-weight: 600;
-}
-
-.testimonial-name {
-  font-size: 13.5px;
-  color: var(--gold-pale);
-  font-weight: 500;
-}
-
-.testimonial-role {
-  font-size: 11px;
-  color: rgba(255,255,255,0.3);
-  letter-spacing: 0.06em;
-  margin-top: 3px;
-}
 
 /* ─── CTA DECORATIVE ─── */
 .cta-deco-left, .cta-deco-right {

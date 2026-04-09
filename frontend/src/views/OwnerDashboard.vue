@@ -783,7 +783,7 @@
 
                       <div class="manager-form-item">
                         <label class="manager-form-label">Date of Birth *</label>
-                        <input v-model="newManagerForm.dob" type="date" class="form-input" required />
+                        <input v-model="newManagerForm.dob" type="date" class="form-input" required :max="today" />
                       </div>
                     </div>
                   </section>
@@ -1024,7 +1024,22 @@ export default {
       return baseClasses;
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        try {
+          await fetch(`${API_BASE_URL}/logout`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+              "Authentication-Token": token
+            }
+          });
+        } catch (error) {
+          console.error("Logout error:", error);
+        }
+      }
       appStore.logout();
       router.push('/');
     };
@@ -1470,10 +1485,17 @@ export default {
       }
     };
 
+    // Today's date for DOB max constraint
+    const today = computed(() => {
+      const now = new Date();
+      return now.toISOString().split('T')[0];
+    });
+
     return {
       currentView,
       ownerData,
       ownerProfile,
+      today,
       totalRevenue,
       totalBookings,
       totalCustomers,
@@ -1915,6 +1937,7 @@ export default {
   background-color: var(--light-bg);
   color: var(--text);
   border: 1px solid var(--border);
+  font-size: 12px;
 }
 
 .btn-secondary:hover {

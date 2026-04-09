@@ -20,10 +20,10 @@ const INITIAL_DATA = {
     { id: 5, categoryId: 1, name: "Bridal Package", price: 500, duration: 240, description: "Complete bridal makeup and styling" },
   ],
   appointments: [
-    { id: 1, customerId: 1, serviceId: 1, staffId: 1, date: "2026-03-05", status: "confirmed", notes: "Trim only", invoiceStatus: "pending" },
-    { id: 2, customerId: 2, serviceId: 3, staffId: 2, date: "2026-03-05", status: "in-progress", notes: "", invoiceStatus: "pending" },
-    { id: 3, customerId: 3, serviceId: 4, staffId: null, date: "2026-03-06", status: "pending", notes: "First time client", invoiceStatus: "pending" },
-    { id: 4, customerId: 1, serviceId: 2, staffId: 1, date: "2026-03-04", status: "completed", notes: "", invoiceStatus: "invoiced" },
+    { id: 1, customerId: 1, serviceId: 1, staffId: 1, date: "2026-03-05", status: 0, notes: "Trim only", invoiceStatus: "pending" },
+    { id: 2, customerId: 2, serviceId: 3, staffId: 2, date: "2026-03-05", status: 0, notes: "", invoiceStatus: "pending" },
+    { id: 3, customerId: 3, serviceId: 4, staffId: null, date: "2026-03-06", status: 0, notes: "First time client", invoiceStatus: "pending" },
+    { id: 4, customerId: 1, serviceId: 2, staffId: 1, date: "2026-03-04", status: 1, notes: "", invoiceStatus: "invoiced" },
   ],
   customers: [
     { id: 1, name: "Sofia Mensah", email: "sofia@email.com", phone: "030-111-2222", address: "14 Cantonments Rd", dob: "1992-06-15", preferences: "Prefers Amara, sensitive scalp", registrationDate: "2025-01-10", password: "pass123", customerType: "VIP", totalSpent: 5500, pointsBalance: 550, pointsEarned: 550, lastPointsUpdate: "2026-03-04" },
