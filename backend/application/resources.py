@@ -1,10 +1,12 @@
 from flask_restful import Resource, Api, reqparse, marshal_with, fields, marshal
 from flask_security import auth_required, roles_required, roles_accepted, current_user, hash_password, verify_password
 from datetime import datetime, timedelta, date
-from flask import request, jsonify, send_file
+from flask import request, jsonify, send_file, current_app
+from flask_mail import Message
 import csv
 import io
 import os
+from fpdf import FPDF
 from .sec import datastore
 from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, InventoryTransaction, StaffAttendance, CustomerReview, Finance, Manager, Owner, CustomerReward, SalonConfig, db, Role, UserRoles, appointment_services, Order
 api = Api(prefix = '/api')
@@ -2837,21 +2839,28 @@ class InvoiceResource(Resource):
         # Refresh current points after cleanup
         current_reward_points = customer.customer_available_rewards
 
-        #Calculate Invoice amount if the customer is VIP customer and apply discount mentioned in salon config's VIP_DISCOUNT_PERCENTAGE parameter
+        # Initialize base amount and total discount variables
+        base_invoice_amount = float(invoice_amount)
+        total_discount_amount = 0.0
+
+        # Calculate VIP discount if applicable
         if customer.customer_type == "VIP":
             vip_discount_cfg = SalonConfig.query.filter_by(param_name='VIP_DISCOUNT_PERCENTAGE').first()
             if vip_discount_cfg:
-                discount_percentage = float(vip_discount_cfg.param_value)
-                discount_amount = invoice_amount * (discount_percentage / 100)
-                invoice_amount -= discount_amount
+                vip_discount_percentage = float(vip_discount_cfg.param_value)
+                total_discount_amount += base_invoice_amount * (vip_discount_percentage / 100)
         
-        total_invoice_amount = float(invoice_amount) + float(other_charges)
+        # Calculate subtotal after VIP/Base charges
+        current_total = base_invoice_amount + float(other_charges) - total_discount_amount
         
-        # Apply additional discount if provided
+        # Apply additional manual discount if provided (on top of current subtotal)
         if discount_percentage_input > 0:
-            discount_amount_input = total_invoice_amount * (float(discount_percentage_input) / 100)
-            total_invoice_amount -= discount_amount_input
+            manual_discount = current_total * (float(discount_percentage_input) / 100)
+            total_discount_amount += manual_discount
+            current_total -= manual_discount
 
+        total_invoice_amount = current_total
+        
         # Calculate rewards utilization (Using the final total_invoice_amount after all discounts)
         rewards_utilized_points, rem_reward_points, payable_invoice_amount = calculate_reward_value(total_invoice_amount, current_reward_points)
         
@@ -3026,6 +3035,319 @@ class GetAllInvoices(Resource):
             
         return result, 200
 
+############################################## Generate PDF Invoice for Customer ##############################################
+class GenerateCustomerInvoice(Resource):
+    def get(self, invoice_number):
+        """
+        Generate a PDF file for a specific invoice number.
+        """
+        invoice = Invoice.query.get(invoice_number)
+        if not invoice:
+            return {"message": "Invoice not found"}, 404
+
+        # If logged in as customer, ensure they only access their own invoice
+        if any(role.name == 'customer' for role in current_user.roles):
+            if invoice.customer_id != current_user.id:
+                return {"message": "Access denied"}, 403
+
+        try:
+            # Resolve service names
+            service_names = []
+            if invoice.service_ids:
+                id_list = [int(sid.strip()) for sid in invoice.service_ids.split(",") if sid.strip()]
+                services = Service.query.filter(Service.service_id.in_(id_list)).all()
+                service_names = [s.service_desc for s in services]
+
+            # Generate PDF using FPDF
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Helvetica", size=12)
+
+            # Title
+            pdf.set_font("Helvetica", style="B", size=16)
+            pdf.cell(200, 10, txt="INVOICE", ln=True, align='C')
+            pdf.ln(10)
+
+            # Invoice Details
+            pdf.set_font("Helvetica", size=12)
+            pdf.cell(100, 10, txt=f"Invoice Number: {invoice.invoice_number}")
+            pdf.cell(100, 10, txt=f"Date: {invoice.invoice_date}", ln=True, align='R')
+            pdf.ln(5)
+
+            # Customer Details
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(200, 10, txt="Customer Information:", ln=True)
+            pdf.set_font("Helvetica", size=12)
+            pdf.cell(200, 10, txt=f"Name: {invoice.customer.customer_name if invoice.customer else 'Unknown'}", ln=True)
+            pdf.cell(200, 10, txt=f"Email: {invoice.customer.customer_email if invoice.customer else 'N/A'}", ln=True)
+            pdf.ln(5)
+
+            # Staff Details
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(200, 10, txt="Served By:", ln=True)
+            pdf.set_font("Helvetica", size=12)
+            pdf.cell(200, 10, txt=f"{invoice.staff.staff_name if invoice.staff else 'Unknown'}", ln=True)
+            pdf.ln(10)
+
+            # Services Table Header
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(140, 10, txt="Service Description", border=1)
+            pdf.cell(50, 10, txt="Price", border=1, ln=True, align='R')
+
+            # Services Table Rows
+            pdf.set_font("Helvetica", size=12)
+            if invoice.service_ids:
+                id_list = [int(sid.strip()) for sid in invoice.service_ids.split(",") if sid.strip()]
+                services = Service.query.filter(Service.service_id.in_(id_list)).all()
+                for s in services:
+                    pdf.cell(140, 10, txt=s.service_desc, border=1)
+                    pdf.cell(50, 10, txt=f"{s.service_price:.2f}", border=1, ln=True, align='R')
+
+            pdf.ln(5)
+
+            # Totals
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(140, 10, txt="Subtotal:", align='R')
+            pdf.cell(50, 10, txt=f"{invoice.invoice_amount:.2f}", ln=True, align='R')
+            
+            pdf.cell(140, 10, txt="Other Charges:", align='R')
+            pdf.cell(50, 10, txt=f"{invoice.other_charges or 0.0:.2f}", ln=True, align='R')
+            
+            pdf.cell(140, 10, txt="Discount Percentage:", align='R')
+            pdf.cell(50, 10, txt=f"{invoice.discount_percentage or 0.0:.2f}%", ln=True, align='R')
+            
+            pdf.cell(140, 10, txt="Rewards Utilized:", align='R')
+            pdf.cell(50, 10, txt=f"-{invoice.rewards_utilized or 0:.2f}", ln=True, align='R')
+
+            pdf.set_font("Helvetica", style="B", size=14)
+            pdf.cell(140, 10, txt="Total Payable Amount:", align='R')
+            pdf.cell(50, 10, txt=f"{invoice.payable_invoice_amount:.2f}", ln=True, align='R')
+
+            pdf.ln(10)
+            pdf.set_font("Helvetica", style="I", size=10)
+            pdf.cell(200, 10, txt="Thank you for choosing our salon!", ln=True, align='C')
+
+            # Define directory and ensure it exists under backend
+            # Note: os.getcwd() might be the root or backend depending on how it's run
+            # We want it specifically in backend/customer_invoices
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            invoice_dir = os.path.join(base_dir, 'customer_invoices')
+            if not os.path.exists(invoice_dir):
+                os.makedirs(invoice_dir, exist_ok=True)
+            
+            filename = f"invoice_{invoice.invoice_number}.pdf"
+            filepath = os.path.join(invoice_dir, filename)
+            
+            # Save to file (overwrites if already exists)
+            pdf.output(filepath)
+            
+            # Update invoice_path in database (include filename)
+            invoice.invoice_path = filepath
+            db.session.commit()
+            
+            # --- Automatically Send Email ---
+            try:
+                msg = Message(
+                    subject=f"Invoice for your recent Salon Visit - #{invoice.invoice_number}",
+                    recipients=[invoice.customer.customer_email],
+                    body=f"Dear {invoice.customer.customer_name},\n\nPlease find attached the invoice for your recent visit.\n\nThank you for choosing our salon!"
+                )
+                with open(filepath, "rb") as fp:
+                    msg.attach(filename, "application/pdf", fp.read())
+                
+                current_app.mail.send(msg)
+                
+                # Update status to 2 (Sent) after successful email
+                invoice.status = 2
+                db.session.commit()
+            except Exception as mail_err:
+                print(f"Automatic email failed: {str(mail_err)}")
+
+            # Return PDF as a download from the saved path
+            return send_file(
+                filepath,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=filename
+            )
+
+        except Exception as e:
+            return {"message": f"Failed to generate invoice PDF: {str(e)}"}, 500
+
+############################################## Generate Wholesaler Order PDF ##############################################
+class GenerateWholesalerOrder(Resource):
+    @auth_required("token", "session")
+    @roles_required("manager")
+    def get(self, supplier_email):
+        """
+        Generate a PDF for all pending orders (status=0) matching a specific supplier email.
+        """
+        # Fetch pending orders for this supplier email
+        orders = Order.query.filter_by(supplier_email=supplier_email, status=0).all()
+        if not orders:
+            return {"message": f"No pending orders found for {supplier_email}"}, 404
+
+        try:
+            # Prepare PDF metadata
+            date_str = datetime.now().strftime("%Y%m%d")
+            # Extract part before @, replace dots with underscores, and append date
+            email_part = supplier_email.split('@')[0].replace('.', '_')
+            filename = f"{email_part}_{date_str}.pdf"
+            
+            # Define directory and ensure it exists under backend
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            order_dir = os.path.join(base_dir, 'wholesaler_orders')
+            if not os.path.exists(order_dir):
+                os.makedirs(order_dir, exist_ok=True)
+            
+            filepath = os.path.join(order_dir, filename)
+
+            # Generate PDF using FPDF
+            pdf = FPDF()
+            pdf.add_page()
+            
+            # Wholesaler Name from first record
+            wholesaler_name = orders[0].supplier_name
+            
+            pdf.set_font("Helvetica", style="B", size=16)
+            pdf.cell(200, 10, txt=f"PURCHASE ORDER: {wholesaler_name}", ln=True, align='C')
+            pdf.set_font("Helvetica", size=10)
+            pdf.cell(200, 10, txt=f"Supplier Email: {supplier_email}", ln=True, align='C')
+            pdf.cell(200, 10, txt=f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align='C')
+            pdf.ln(10)
+
+            # Table Header
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(30, 10, txt="Order ID", border=1)
+            pdf.cell(110, 10, txt="Product Description", border=1)
+            pdf.cell(25, 10, txt="Qty", border=1, align='C')
+            pdf.cell(25, 10, txt="Cost", border=1, ln=True, align='R')
+
+            # Table Rows
+            pdf.set_font("Helvetica", size=11)
+            total_order_cost = 0.0
+
+            for o in orders:
+                desc = o.product.product_desc if o.product else "Unknown Product"
+                pdf.cell(30, 10, txt=str(o.order_id), border=1)
+                pdf.cell(110, 10, txt=desc, border=1)
+                pdf.cell(25, 10, txt=str(o.order_quantity), border=1, align='C')
+                pdf.cell(25, 10, txt=f"{o.order_cost:.2f}", border=1, ln=True, align='R')
+                total_order_cost += o.order_cost
+                
+                # Assign the path to EACH order record and update status
+                o.order_path = filepath
+                o.status = 1 # Mark as Processed
+
+            pdf.ln(5)
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(165, 10, txt="Total Estimated Cost:", align='R')
+            pdf.cell(25, 10, txt=f"{total_order_cost:.2f}", border=1, ln=True, align='R')
+
+            # Save PDF (overwrites if exists)
+            pdf.output(filepath)
+            
+            # Commit status and path updates to DB
+            db.session.commit()
+
+            # --- Automatically Send Email to Manager and Wholesaler ---
+            email_recipients = []
+            
+            # 1. Add Manager email
+            if current_user.has_role("manager"):
+                manager_profile = Manager.query.filter_by(manager_id=current_user.id).first()
+                if manager_profile and manager_profile.manager_email:
+                    email_recipients.append(manager_profile.manager_email)
+            
+            # 2. Add Wholesaler email
+            if supplier_email not in email_recipients:
+                email_recipients.append(supplier_email)
+            
+            if email_recipients:
+                try:
+                    msg = Message(
+                        subject=f"Purchase Order Generated - {wholesaler_name}",
+                        recipients=email_recipients,
+                        body=f"Hello,\n\nPlease find attached the purchase order for {wholesaler_name} ({supplier_email}) generated on {date_str}.\n\nTotal Orders Processed: {len(orders)}"
+                    )
+                    with open(filepath, "rb") as fp:
+                        msg.attach(filename, "application/pdf", fp.read())
+                    
+                    current_app.mail.send(msg)
+                except Exception as mail_err:
+                    print(f"PO email dispatch failed: {str(mail_err)}")
+            else:
+                print("No email recipients found, skipping PO email dispatch.")
+
+            # Return PDF as download
+            return send_file(
+                filepath,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=filename
+            )
+
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to generate wholesaler order: {str(e)}"}, 500
+
+############################################## Send Email API ##############################################
+class SendEmail(Resource):
+    @auth_required("token")
+    @roles_accepted("manager")
+    def post(self):
+        """
+        Send an email with an attachment.
+        Expects JSON: { "document_path": "...", "subject": "...", "email_id": "..." }
+        """
+        data = request.get_json()
+        document_path = data.get('document_path')
+        subject = data.get('subject')
+        email_id = data.get('email_id')
+
+        if not all([document_path, subject, email_id]):
+            return {"message": "Missing required fields: document_path, subject, email_id"}, 400
+
+        if not os.path.exists(document_path):
+            return {"message": f"File not found: {document_path}"}, 404
+
+        try:
+            msg = Message(
+                subject=subject,
+                recipients=[email_id],
+                body=f"Please find the attached document: {os.path.basename(document_path)}"
+            )
+
+            with open(document_path, "rb") as fp:
+                msg.attach(
+                    os.path.basename(document_path),
+                    "application/pdf",
+                    fp.read()
+                )
+
+            current_app.mail.send(msg)
+
+            # --- Update Invoice Status if applicable ---
+            if "customer_invoices" in document_path:
+                # Extract invoice number from path (e.g., invoice_123.pdf)
+                filename = os.path.basename(document_path)
+                try:
+                    # filename format is "invoice_<number>.pdf"
+                    invoice_number_str = filename.replace("invoice_", "").replace(".pdf", "")
+                    if invoice_number_str.isdigit():
+                        invoice_number = int(invoice_number_str)
+                        invoice = Invoice.query.get(invoice_number)
+                        if invoice:
+                            invoice.status = 2
+                            db.session.commit()
+                except Exception as status_err:
+                    print(f"Failed to update invoice status in SendEmail: {str(status_err)}")
+
+            return {"message": "Email sent successfully"}, 200
+
+        except Exception as e:
+            return {"message": f"Failed to send email: {str(e)}"}, 500
+
 #############################################################################################
 # Add API resources to the app
 
@@ -3063,3 +3385,6 @@ api.add_resource(FinanceResource, '/finance')
 api.add_resource(TodaysAppointmentsResource, '/todays-appointments')
 api.add_resource(GetAppointmentIDsForInvoice, "/get-appointments-for-invoice")
 api.add_resource(GetAllInvoices, "/get-all-invoices")
+api.add_resource(GenerateCustomerInvoice, '/generate-invoice-pdf/<int:invoice_number>')
+api.add_resource(GenerateWholesalerOrder, '/generate-wholesaler-order/<string:supplier_email>')
+api.add_resource(SendEmail, '/send-email')

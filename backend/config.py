@@ -24,6 +24,14 @@ class Config(object):
     SECURITY_USERNAME_ENABLE = True
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
+    # Mail configuration (using a placeholder/local server by default)
+    MAIL_SERVER = os.getenv("MAIL_SERVER", "localhost")
+    MAIL_PORT = int(os.getenv("MAIL_PORT", 1025))
+    MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "False").lower() == "true"
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME", None)
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", None)
+    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "glowsuite8@gmail.com")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

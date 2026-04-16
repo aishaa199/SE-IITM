@@ -136,6 +136,7 @@ class Invoice(db.Model):
     payable_invoice_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.Integer, nullable=False, default=0) # 0: Pending, 1: Invoiced, 2: Sent
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.appointment_id'), nullable=True)
+    invoice_path = db.Column(db.String(512), nullable=True)
 
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('invoices', lazy=True))
@@ -286,6 +287,7 @@ class Order(db.Model):
     supplier_name = db.Column(db.Text, nullable=False)
     supplier_email = db.Column(db.String(120), nullable=False)
     status = db.Column(db.Integer, default=0) # 0 for Pending, 1 for Processed, 2 for Cancelled
+    order_path = db.Column(db.String(512), nullable=True)
 
     # Relationship
     product = db.relationship('Product', backref=db.backref('orders', lazy=True))

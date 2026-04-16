@@ -4,6 +4,7 @@ load_dotenv()
 
 from flask import Flask, render_template, request
 from flask_cors import CORS
+from flask_mail import Mail
 from application.models import db
 from application.sec import datastore
 from flask_security import Security
@@ -18,6 +19,8 @@ def create_app():
     app.config.from_object(DevelopmentConfig)
     CORS(app, resources={r"/*": {"origins": "*"}})
     db.init_app(app)
+    mail = Mail(app)
+    app.mail = mail
     
     # Initialize Security
     app.security = Security(app, datastore)
