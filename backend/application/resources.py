@@ -1,9 +1,14 @@
 from flask_restful import Resource, Api, reqparse, marshal_with, fields, marshal
 from flask_security import auth_required, roles_required, roles_accepted, current_user, hash_password, verify_password
 from datetime import datetime, timedelta, date
-from flask import request, jsonify
+from flask import request, jsonify, send_file, current_app
+from flask_mail import Message
+import csv
+import io
+import os
+from fpdf import FPDF
 from .sec import datastore
-from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, InventoryTransaction, StaffAttendance, CustomerReview, Finance, Manager, Owner, CustomerReward, SalonConfig, db, Role, UserRoles, appointment_services, Order
+from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, InventoryTransaction, StaffAttendance, CustomerReview, Finance, Manager, Owner, CustomerReward, SalonConfig, db, Role, UserRoles, appointment_services, Order, Notification
 api = Api(prefix = '/api')
 
 ################################# HELPER FUNCTIONS ########################################
@@ -825,7 +830,7 @@ class StaffResource(Resource):
             # Check attendance for today
             attendance = StaffAttendance.query.filter(
                 StaffAttendance.staff_id == staff_id,
-                db.func.date(StaffAttendance.register_datetime) == today
+                StaffAttendance.present_flag == True
             ).first()
 
             # Count appointments for today
@@ -845,7 +850,7 @@ class StaffResource(Resource):
         for staff in staff_members:
             attendance = StaffAttendance.query.filter(
                 StaffAttendance.staff_id == staff.staff_id,
-                db.func.date(StaffAttendance.register_datetime) == today
+                StaffAttendance.present_flag == True
             ).first()
 
             appointment_count = Appointment.query.filter(
@@ -1013,7 +1018,8 @@ class ServiceResource(Resource):
                 return {"message": "Service not found"}, 404
             return marshal(service, service_fields)
         
-        services = Service.query.filter_by(active_flg=True).all()
+        # Managers can see all services (including deleted/inactive)
+        services = Service.query.all()
         return marshal(services, service_fields)
 
 ################################## Create Service ###########################################
@@ -1133,6 +1139,7 @@ class AppointmentResource(Resource):
                 "staff_id": appointment.staff_id,
                 "staff_name": appointment.staff.staff_name if appointment.staff else None,
                 "datetime": appointment.appointment_datetime.isoformat(),
+                "status": appointment.status,
                 "services": [{"id": s.service_id, "name": s.service_desc, "price": s.service_price} 
                              for s in appointment.services if s.active_flg]
             }
@@ -1159,6 +1166,7 @@ class AppointmentResource(Resource):
                     "staff_id": appt.staff_id,
                     "staff_name": appt.staff.staff_name if appt.staff else None,
                     "datetime": appt.appointment_datetime.isoformat(),
+                    "status": appt.status,
                     "services": [{"id": s.service_id, "name": s.service_desc, "price": s.service_price} 
                                  for s in appt.services if s.active_flg]
                 })
@@ -1290,7 +1298,6 @@ class AppointmentResource(Resource):
 class SalonConfigResource(Resource):
 ################################## Get Salon Config Data ####################################
     @auth_required("token")
-    @roles_required("manager")
     def get(self, setting_id=None):
         if setting_id:
             config = SalonConfig.query.get(setting_id)
@@ -1311,7 +1318,24 @@ class SalonConfigResource(Resource):
             
         data = request.get_json()
         try:
-            config.param_value = data.get('param_value', config.param_value)
+            # Allow updating based on param_name for convenience if desired, 
+            # but primary logic here updates param_value from the request body.
+            # The user provided {"SALON_CLOSE_TIME": "23:00"} which suggests a key-value pair
+            # matching param_name and new param_value.
+            
+            updated = False
+            # Check if the param_name matches the request key
+            if config.param_name in data:
+                config.param_value = str(data[config.param_name])
+                updated = True
+            
+            # Also support standard 'param_value' key
+            if 'param_value' in data:
+                config.param_value = data['param_value']
+                updated = True
+            
+            if not updated and not any(k in data for k in ['from_date', 'to_date']):
+                return {"message": "No valid parameters provided for update"}, 400
             
             if 'from_date' in data:
                 config.from_date = datetime.strptime(data['from_date'], '%Y-%m-%d')
@@ -1370,6 +1394,7 @@ staff_attendance_fields = {
     'register_id': fields.Integer,
     'staff_id': fields.Integer,
     'register_datetime': fields.String,
+    'present_flag': fields.Boolean
 }
 
 class ManagerStaffAttendance(Resource):
@@ -1413,8 +1438,7 @@ class StaffAttendanceResource(Resource):
         
         records = StaffAttendance.query.filter(
             StaffAttendance.staff_id == target_staff_id,
-            db.extract('month', StaffAttendance.register_datetime) == today.month,
-            db.extract('year', StaffAttendance.register_datetime) == today.year
+           StaffAttendance.present_flag == True
         ).all()
 
         if not records:
@@ -1431,7 +1455,7 @@ class StaffAttendanceResource(Resource):
             today = date.today()
             already_marked = StaffAttendance.query.filter(
                 StaffAttendance.staff_id == current_user.id,
-                db.func.date(StaffAttendance.register_datetime) == today
+                StaffAttendance.present_flag == True
             ).first()
 
             if already_marked:
@@ -1439,7 +1463,8 @@ class StaffAttendanceResource(Resource):
 
             new_attendance = StaffAttendance(
                 staff_id=current_user.id,
-                register_datetime=datetime.now()
+                register_datetime=datetime.now(),
+                present_flag=True
             )
             db.session.add(new_attendance)
             db.session.commit()
@@ -1447,6 +1472,154 @@ class StaffAttendanceResource(Resource):
         except Exception as e:
             db.session.rollback()
             return {"message": f"Failed to mark attendance: {str(e)}"}, 500
+
+class MarkStaffAbsent(Resource):
+    @auth_required("token")
+    @roles_required("manager")
+    def post(self):
+        # Manager marking absent for current day for all staff members who haven't marked attendance
+        try:
+            today = date.today()
+            all_staff = Staff.query.all()
+            
+            # Subquery to find staff who have already marked attendance today
+            marked_staff_ids = db.session.query(StaffAttendance.staff_id).filter(
+                StaffAttendance.present_flag == True
+            ).all()
+            marked_ids = [s[0] for s in marked_staff_ids]
+            
+            absent_count = 0
+            for staff in all_staff:
+                if staff.staff_id not in marked_ids:
+                    # Mark as absent (present_flag = False)
+                    absent_record = StaffAttendance(
+                        staff_id=staff.staff_id,
+                        register_datetime=datetime.now(),
+                        present_flag=False
+                    )
+                    db.session.add(absent_record)
+                    absent_count += 1
+            
+            db.session.commit()
+            return {"message": f"Bulk attendance processing complete. {absent_count} staff members marked as absent for today."}, 201
+            
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to mark staff absent: {str(e)}"}, 500
+        
+########################### Create CSV for Pending Orders Grouped by Supplier ############################
+class SupplierOrderReportResource(Resource):
+    @auth_required("token")
+    @roles_required("manager")
+    def get(self):
+        # API to aggregate pending orders (status=0) by supplier email and generate CSV files.
+        try:
+            pending_orders = Order.query.filter_by(status=0).all()
+            if not pending_orders:
+                return {"message": "No pending orders found."}, 404
+
+            # Aggregate by supplier email
+            supplier_data = {}
+            for order in pending_orders:
+                email = order.supplier_email
+                if email not in supplier_data:
+                    supplier_data[email] = []
+                supplier_data[email].append(order)
+
+            # Define report directory
+            report_dir = os.path.join(os.getcwd(), 'reports', 'supplier_orders')
+            if not os.path.exists(report_dir):
+                os.makedirs(report_dir, exist_ok=True)
+
+            generated_files = []
+            for email, orders in supplier_data.items():
+                # Get supplier name from first order
+                supplier_name = orders[0].supplier_name if orders else "Unknown_Supplier"
+                
+                # Format month and year
+                current_month = date.today().strftime('%B')
+                current_year = date.today().year
+                
+                # Sanitize filename components
+                safe_supplier_name = supplier_name.replace(' ', '_').replace('/', '_')
+                filename = f"{safe_supplier_name}_{current_month}_{current_year}.csv"
+                filepath = os.path.join(report_dir, filename)
+
+                with open(filepath, 'w', newline='') as csvfile:
+                    # Header with Supplier Name
+                    csvfile.write(f"Supplier Name: {supplier_name}\n")
+                    
+                    fieldnames = ['product_desc', 'order_quantity', 'order_date', 'reason_for_order']
+                    writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                    writer.writeheader()
+                    for order in orders:
+                        writer.writerow({
+                            'product_desc': order.product.product_desc if order.product else "Unknown",
+                            'order_quantity': order.order_quantity,
+                            'order_date': order.order_date.isoformat(),
+                            'reason_for_order': order.reason_for_order
+                        })
+                generated_files.append(filename)
+
+            return {
+                "message": f"Successfully generated {len(generated_files)} supplier reports.",
+                "directory": report_dir,
+                "files": generated_files
+            }, 200
+
+        except Exception as e:
+            return {"message": f"Failed to generate supplier reports: {str(e)}"}, 500
+        
+
+#####################################   CSV to PDF Conversion Resource #####################################
+class CSVToPDFResource(Resource):
+    @auth_required("token")
+    @roles_accepted("manager", "staff")
+    def post(self):
+        if 'file' not in request.files:
+            return {"message": "No file part in the request"}, 400
+        
+        file = request.files['file']
+        if file.filename == '':
+            return {"message": "No selected file"}, 400
+        
+        if not file.filename.endswith('.csv'):
+            return {"message": "Only CSV files are allowed"}, 400
+
+        try:
+            # Read CSV content
+            stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
+            csv_reader = csv.reader(stream)
+            data = list(csv_reader)
+
+            if not data:
+                return {"message": "CSV file is empty"}, 400
+
+            # Generate PDF using fpdf2
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=10)
+
+            # Determine column widths
+            col_width = pdf.epw / len(data[0]) if data[0] else pdf.epw
+            line_height = pdf.font_size * 2
+
+            for row in data:
+                for datum in row:
+                    pdf.multi_cell(col_width, line_height, str(datum), border=1, ln=3, max_line_height=pdf.font_size)
+                pdf.ln(line_height)
+
+            # Return PDF as a download
+            pdf_output = io.BytesIO(pdf.output())
+            return send_file(
+                pdf_output,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=f"{os.path.splitext(file.filename)[0]}.pdf"
+            )
+
+        except Exception as e:
+            return {"message": f"Conversion failed: {str(e)}"}, 500
 
 ################################## Staff Customer Review API ################################
 class StaffCustomerReview(Resource):
@@ -1482,6 +1655,92 @@ class StaffCustomerReview(Resource):
             })
             
         return result, 200
+
+################################## Current Staff Resource #################################
+class CurrentStaffResource(Resource):
+    @auth_required("token")
+    @roles_required("staff")
+    def get(self):
+        """Fetch the current logged-in staff member's profile information"""
+        staff_id = current_user.id
+        
+        staff = Staff.query.get(staff_id)
+        if not staff:
+            return {"message": "Staff profile not found"}, 404
+        
+        staff_data = marshal(staff, staff_fields)
+        staff_data['active'] = staff.user.active
+        return staff_data, 200
+
+    @auth_required("token")
+    @roles_required("staff")
+    def put(self):
+        """Update the current logged-in staff member's own profile"""
+        staff_id = current_user.id
+        
+        staff = Staff.query.get(staff_id)
+        if not staff:
+            return {"message": "Staff profile not found"}, 404
+        
+        data = request.get_json()
+        
+        try:
+            staff.staff_name = data.get('staff_name', staff.staff_name)
+            staff.staff_contact = data.get('staff_contact', staff.staff_contact)
+            staff.staff_email = data.get('staff_email', staff.staff_email)
+            staff.staff_skills = data.get('staff_skills', staff.staff_skills)
+            
+            if 'staff_dob' in data and data['staff_dob']:
+                staff.staff_dob = datetime.strptime(data['staff_dob'], '%Y-%m-%d').date()
+            
+            db.session.commit()
+            return {"message": "Profile updated successfully"}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to update profile: {str(e)}"}, 500
+
+################################## Current Customer Resource ###############################
+class CurrentCustomerResource(Resource):
+    @auth_required("token")
+    @roles_required("customer")
+    def get(self):
+        """Fetch the current logged-in customer's profile information"""
+        customer_id = current_user.id
+        
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return {"message": "Customer profile not found"}, 404
+        
+        customer_data = marshal(customer, customer_fields)
+        return customer_data, 200
+
+    @auth_required("token")
+    @roles_required("customer")
+    def put(self):
+        """Update the current logged-in customer's own profile"""
+        customer_id = current_user.id
+        
+        customer = Customer.query.get(customer_id)
+        if not customer:
+            return {"message": "Customer profile not found"}, 404
+        
+        data = request.get_json()
+        
+        try:
+            customer.customer_name = data.get('customer_name', customer.customer_name)
+            customer.customer_contact = data.get('customer_contact', customer.customer_contact)
+            customer.customer_email = data.get('customer_email', customer.customer_email)
+            customer.customer_address = data.get('customer_address', customer.customer_address)
+            customer.customer_preferences = data.get('customer_preferences', customer.customer_preferences)
+            
+            if 'customer_dob' in data and data['customer_dob']:
+                customer.customer_dob = datetime.strptime(data['customer_dob'], '%Y-%m-%d').date()
+            
+            db.session.commit()
+            return {"message": "Profile updated successfully"}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to update profile: {str(e)}"}, 500
 
 ################################## Maintenance: Cleanup History ##############################
 class AppointmentHistoryCleanup(Resource):
@@ -1577,6 +1836,8 @@ class CustomerAppointment(Resource):
         }
 
 ###################################### For customer to update/reschedule a specific appointment  ################
+    @auth_required("token")
+    @roles_required("customer")
     def put(self, appointment_id):
         appointment = Appointment.query.filter_by(appointment_id=appointment_id, customer_id=current_user.id).first()
         if not appointment:
@@ -1644,13 +1905,16 @@ class CustomerUpcomingAppointmentsResource(Resource):
         if not customer:
             return {"message": "Customer profile not found"}, 404
         
-        # 0: Booked
-        booked_appointments = Appointment.query.filter_by(customer_id=target_customer_id, status=0).all()
+        # 0: Booked, 4: Rescheduled (both are upcoming appointments)
+        upcoming_appointments = Appointment.query.filter_by(customer_id=target_customer_id).filter(
+            Appointment.status.in_([0, 4])
+        ).all()
 
         result = []
-        for appt in booked_appointments:
+        for appt in upcoming_appointments:
             result.append({
                 "appointment_id": appt.appointment_id,
+                "staff_id": appt.staff_id,
                 "staff_name": appt.staff.staff_name if appt.staff else "Not Assigned",
                 "datetime": appt.appointment_datetime.isoformat(),
                 "status": appt.status,
@@ -1901,18 +2165,25 @@ class CustomerReviewResource(Resource):
 ########################### To fetch appointments for current customer where feedback_given ###########
 class CustomerReviewedAppointments(Resource):
     @auth_required("token")
-    @roles_required("customer")
+    @roles_accepted("customer", "manager")
     def get(self):
-        target_customer_id = current_user.id
-        
-        # Fetch invoices for current customer joined with Appointment where feedback_given is True
-        # We join Invoice with Appointment to filter by the feedback_given flag and customer_id
-        reviewed_invoices = db.session.query(Invoice).join(
-            Appointment, Invoice.appointment_id == Appointment.appointment_id
-        ).filter(
-            Invoice.customer_id == target_customer_id,
-            Appointment.feedback_given == True
-        ).all()
+        # For managers, fetch all reviews; for customers, fetch only their own
+        if current_user.has_role("manager"):
+            # Fetch all reviews for manager view
+            reviewed_invoices = db.session.query(Invoice).join(
+                Appointment, Invoice.appointment_id == Appointment.appointment_id
+            ).filter(
+                Appointment.feedback_given == True
+            ).all()
+        else:
+            # Fetch only current customer's reviews
+            target_customer_id = current_user.id
+            reviewed_invoices = db.session.query(Invoice).join(
+                Appointment, Invoice.appointment_id == Appointment.appointment_id
+            ).filter(
+                Invoice.customer_id == target_customer_id,
+                Appointment.feedback_given == True
+            ).all()
         
         result = []
         for inv in reviewed_invoices:
@@ -1920,13 +2191,14 @@ class CustomerReviewedAppointments(Resource):
             if appt:
                 # Look for corresponding review in customer_review table using appointment_id or invoice_number
                 review = CustomerReview.query.filter_by(
-                    customer_id=target_customer_id,
+                    customer_id=inv.customer_id,
                     apppointment_id=appt.appointment_id
                 ).first()
                 
                 result.append({
                     "invoice_number": inv.invoice_number,
                     "appointment_id": appt.appointment_id,
+                    "customer_name": inv.customer.customer_name if inv.customer else "Unknown",
                     "staff_name": appt.staff.staff_name if appt.staff else "Unknown",
                     "datetime": appt.appointment_datetime.isoformat(),
                     "services": [s.service_desc for s in appt.services],
@@ -2295,6 +2567,7 @@ def birthday_bonus_rewards(customer_id):
                 check_vip_status(customer_id, customer.customer_available_rewards)
                 
                 db.session.commit()
+
                 return bonus_points
                 
     return 0
@@ -2567,21 +2840,28 @@ class InvoiceResource(Resource):
         # Refresh current points after cleanup
         current_reward_points = customer.customer_available_rewards
 
-        #Calculate Invoice amount if the customer is VIP customer and apply discount mentioned in salon config's VIP_DISCOUNT_PERCENTAGE parameter
+        # Initialize base amount and total discount variables
+        base_invoice_amount = float(invoice_amount)
+        total_discount_amount = 0.0
+
+        # Calculate VIP discount if applicable
         if customer.customer_type == "VIP":
             vip_discount_cfg = SalonConfig.query.filter_by(param_name='VIP_DISCOUNT_PERCENTAGE').first()
             if vip_discount_cfg:
-                discount_percentage = float(vip_discount_cfg.param_value)
-                discount_amount = invoice_amount * (discount_percentage / 100)
-                invoice_amount -= discount_amount
+                vip_discount_percentage = float(vip_discount_cfg.param_value)
+                total_discount_amount += base_invoice_amount * (vip_discount_percentage / 100)
         
-        total_invoice_amount = float(invoice_amount) + float(other_charges)
+        # Calculate subtotal after VIP/Base charges
+        current_total = base_invoice_amount + float(other_charges) - total_discount_amount
         
-        # Apply additional discount if provided
+        # Apply additional manual discount if provided (on top of current subtotal)
         if discount_percentage_input > 0:
-            discount_amount_input = total_invoice_amount * (float(discount_percentage_input) / 100)
-            total_invoice_amount -= discount_amount_input
+            manual_discount = current_total * (float(discount_percentage_input) / 100)
+            total_discount_amount += manual_discount
+            current_total -= manual_discount
 
+        total_invoice_amount = current_total
+        
         # Calculate rewards utilization (Using the final total_invoice_amount after all discounts)
         rewards_utilized_points, rem_reward_points, payable_invoice_amount = calculate_reward_value(total_invoice_amount, current_reward_points)
         
@@ -2756,6 +3036,404 @@ class GetAllInvoices(Resource):
             
         return result, 200
 
+############################################## Generate PDF Invoice for Customer ##############################################
+class GenerateCustomerInvoice(Resource):
+    def get(self, invoice_number):
+        """
+        Generate a PDF file for a specific invoice number.
+        """
+        invoice = Invoice.query.get(invoice_number)
+        if not invoice:
+            return {"message": "Invoice not found"}, 404
+
+        # If logged in as customer, ensure they only access their own invoice
+        if any(role.name == 'customer' for role in current_user.roles):
+            if invoice.customer_id != current_user.id:
+                return {"message": "Access denied"}, 403
+
+        try:
+            # Resolve service names
+            service_names = []
+            if invoice.service_ids:
+                id_list = [int(sid.strip()) for sid in invoice.service_ids.split(",") if sid.strip()]
+                services = Service.query.filter(Service.service_id.in_(id_list)).all()
+                service_names = [s.service_desc for s in services]
+
+            # Generate PDF using FPDF
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Helvetica", size=12)
+
+            # Title
+            pdf.set_font("Helvetica", style="B", size=16)
+            pdf.cell(200, 10, txt="INVOICE", ln=True, align='C')
+            pdf.ln(10)
+
+            # Invoice Details
+            pdf.set_font("Helvetica", size=12)
+            pdf.cell(100, 10, txt=f"Invoice Number: {invoice.invoice_number}")
+            pdf.cell(100, 10, txt=f"Date: {invoice.invoice_date}", ln=True, align='R')
+            pdf.ln(5)
+
+            # Customer Details
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(200, 10, txt="Customer Information:", ln=True)
+            pdf.set_font("Helvetica", size=12)
+            pdf.cell(200, 10, txt=f"Name: {invoice.customer.customer_name if invoice.customer else 'Unknown'}", ln=True)
+            pdf.cell(200, 10, txt=f"Email: {invoice.customer.customer_email if invoice.customer else 'N/A'}", ln=True)
+            pdf.ln(5)
+
+            # Staff Details
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(200, 10, txt="Served By:", ln=True)
+            pdf.set_font("Helvetica", size=12)
+            pdf.cell(200, 10, txt=f"{invoice.staff.staff_name if invoice.staff else 'Unknown'}", ln=True)
+            pdf.ln(10)
+
+            # Services Table Header
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(140, 10, txt="Service Description", border=1)
+            pdf.cell(50, 10, txt="Price", border=1, ln=True, align='R')
+
+            # Services Table Rows
+            pdf.set_font("Helvetica", size=12)
+            if invoice.service_ids:
+                id_list = [int(sid.strip()) for sid in invoice.service_ids.split(",") if sid.strip()]
+                services = Service.query.filter(Service.service_id.in_(id_list)).all()
+                for s in services:
+                    pdf.cell(140, 10, txt=s.service_desc, border=1)
+                    pdf.cell(50, 10, txt=f"{s.service_price:.2f}", border=1, ln=True, align='R')
+
+            pdf.ln(5)
+
+            # Totals
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(140, 10, txt="Subtotal:", align='R')
+            pdf.cell(50, 10, txt=f"{invoice.invoice_amount:.2f}", ln=True, align='R')
+            
+            pdf.cell(140, 10, txt="Other Charges:", align='R')
+            pdf.cell(50, 10, txt=f"{invoice.other_charges or 0.0:.2f}", ln=True, align='R')
+            
+            pdf.cell(140, 10, txt="Discount Percentage:", align='R')
+            pdf.cell(50, 10, txt=f"{invoice.discount_percentage or 0.0:.2f}%", ln=True, align='R')
+            
+            pdf.cell(140, 10, txt="Rewards Utilized:", align='R')
+            pdf.cell(50, 10, txt=f"-{invoice.rewards_utilized or 0:.2f}", ln=True, align='R')
+
+            pdf.set_font("Helvetica", style="B", size=14)
+            pdf.cell(140, 10, txt="Total Payable Amount:", align='R')
+            pdf.cell(50, 10, txt=f"{invoice.payable_invoice_amount:.2f}", ln=True, align='R')
+
+            pdf.ln(10)
+            pdf.set_font("Helvetica", style="I", size=10)
+            pdf.cell(200, 10, txt="Thank you for choosing our salon!", ln=True, align='C')
+
+            # Define directory and ensure it exists under backend
+            # Note: os.getcwd() might be the root or backend depending on how it's run
+            # We want it specifically in backend/customer_invoices
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            invoice_dir = os.path.join(base_dir, 'customer_invoices')
+            if not os.path.exists(invoice_dir):
+                os.makedirs(invoice_dir, exist_ok=True)
+            
+            filename = f"invoice_{invoice.invoice_number}.pdf"
+            filepath = os.path.join(invoice_dir, filename)
+            
+            # Save to file (overwrites if already exists)
+            pdf.output(filepath)
+            
+            # Update invoice_path in database (include filename)
+            invoice.invoice_path = filepath
+            db.session.commit()
+            
+            # --- Automatically Send Email ---
+            try:
+                msg = Message(
+                    subject=f"Invoice for your recent Salon Visit - #{invoice.invoice_number}",
+                    recipients=[invoice.customer.customer_email],
+                    body=f"Dear {invoice.customer.customer_name},\n\nPlease find attached the invoice for your recent visit.\n\nThank you for choosing our salon!"
+                )
+                with open(filepath, "rb") as fp:
+                    msg.attach(filename, "application/pdf", fp.read())
+                
+                current_app.mail.send(msg)
+                
+                # Update status to 2 (Sent) after successful email
+                invoice.status = 2
+                db.session.commit()
+            except Exception as mail_err:
+                print(f"Automatic email failed: {str(mail_err)}")
+
+            # Return PDF as a download from the saved path
+            return send_file(
+                filepath,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=filename
+            )
+
+        except Exception as e:
+            return {"message": f"Failed to generate invoice PDF: {str(e)}"}, 500
+
+############################################## Generate Wholesaler Order PDF ##############################################
+class GenerateWholesalerOrder(Resource):
+    @auth_required("token", "session")
+    @roles_required("manager")
+    def get(self, supplier_email):
+        """
+        Generate a PDF for all pending orders (status=0) matching a specific supplier email.
+        """
+        # Fetch pending orders for this supplier email
+        orders = Order.query.filter_by(supplier_email=supplier_email, status=0).all()
+        if not orders:
+            return {"message": f"No pending orders found for {supplier_email}"}, 404
+
+        try:
+            # Prepare PDF metadata
+            date_str = datetime.now().strftime("%Y%m%d")
+            # Extract part before @, replace dots with underscores, and append date
+            email_part = supplier_email.split('@')[0].replace('.', '_')
+            filename = f"{email_part}_{date_str}.pdf"
+            
+            # Define directory and ensure it exists under backend
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            order_dir = os.path.join(base_dir, 'wholesaler_orders')
+            if not os.path.exists(order_dir):
+                os.makedirs(order_dir, exist_ok=True)
+            
+            filepath = os.path.join(order_dir, filename)
+
+            # Generate PDF using FPDF
+            pdf = FPDF()
+            pdf.add_page()
+            
+            # Wholesaler Name from first record
+            wholesaler_name = orders[0].supplier_name
+            
+            pdf.set_font("Helvetica", style="B", size=16)
+            pdf.cell(200, 10, txt=f"PURCHASE ORDER: {wholesaler_name}", ln=True, align='C')
+            pdf.set_font("Helvetica", size=10)
+            pdf.cell(200, 10, txt=f"Supplier Email: {supplier_email}", ln=True, align='C')
+            pdf.cell(200, 10, txt=f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align='C')
+            pdf.ln(10)
+
+            # Table Header
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(30, 10, txt="Order ID", border=1)
+            pdf.cell(110, 10, txt="Product Description", border=1)
+            pdf.cell(25, 10, txt="Qty", border=1, align='C')
+            pdf.cell(25, 10, txt="Cost", border=1, ln=True, align='R')
+
+            # Table Rows
+            pdf.set_font("Helvetica", size=11)
+            total_order_cost = 0.0
+
+            for o in orders:
+                desc = o.product.product_desc if o.product else "Unknown Product"
+                pdf.cell(30, 10, txt=str(o.order_id), border=1)
+                pdf.cell(110, 10, txt=desc, border=1)
+                pdf.cell(25, 10, txt=str(o.order_quantity), border=1, align='C')
+                pdf.cell(25, 10, txt=f"{o.order_cost:.2f}", border=1, ln=True, align='R')
+                total_order_cost += o.order_cost
+                
+                # Assign the path to EACH order record and update status
+                o.order_path = filepath
+                o.status = 1 # Mark as Processed
+
+            pdf.ln(5)
+            pdf.set_font("Helvetica", style="B", size=12)
+            pdf.cell(165, 10, txt="Total Estimated Cost:", align='R')
+            pdf.cell(25, 10, txt=f"{total_order_cost:.2f}", border=1, ln=True, align='R')
+
+            # Save PDF (overwrites if exists)
+            pdf.output(filepath)
+            
+            # Commit status and path updates to DB
+            db.session.commit()
+
+            # --- Automatically Send Email to Manager and Wholesaler ---
+            email_recipients = []
+            
+            # 1. Add Manager email
+            if current_user.has_role("manager"):
+                manager_profile = Manager.query.filter_by(manager_id=current_user.id).first()
+                if manager_profile and manager_profile.manager_email:
+                    email_recipients.append(manager_profile.manager_email)
+            
+            # 2. Add Wholesaler email
+            if supplier_email not in email_recipients:
+                email_recipients.append(supplier_email)
+            
+            if email_recipients:
+                try:
+                    msg = Message(
+                        subject=f"Purchase Order Generated - {wholesaler_name}",
+                        recipients=email_recipients,
+                        body=f"Hello,\n\nPlease find attached the purchase order for {wholesaler_name} ({supplier_email}) generated on {date_str}.\n\nTotal Orders Processed: {len(orders)}"
+                    )
+                    with open(filepath, "rb") as fp:
+                        msg.attach(filename, "application/pdf", fp.read())
+                    
+                    current_app.mail.send(msg)
+                except Exception as mail_err:
+                    print(f"PO email dispatch failed: {str(mail_err)}")
+            else:
+                print("No email recipients found, skipping PO email dispatch.")
+
+            # Return PDF as download
+            return send_file(
+                filepath,
+                mimetype='application/pdf',
+                as_attachment=True,
+                download_name=filename
+            )
+
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to generate wholesaler order: {str(e)}"}, 500
+
+############################################## Send Email API ##############################################
+class SendEmail(Resource):
+    @auth_required("token")
+    @roles_accepted("manager")
+    def post(self):
+        """
+        Send an email with an attachment.
+        Expects JSON: { "document_path": "...", "subject": "...", "email_id": "..." }
+        """
+        data = request.get_json()
+        document_path = data.get('document_path')
+        subject = data.get('subject')
+        email_id = data.get('email_id')
+
+        if not all([document_path, subject, email_id]):
+            return {"message": "Missing required fields: document_path, subject, email_id"}, 400
+
+        if not os.path.exists(document_path):
+            return {"message": f"File not found: {document_path}"}, 404
+
+        try:
+            msg = Message(
+                subject=subject,
+                recipients=[email_id],
+                body=f"Please find the attached document: {os.path.basename(document_path)}"
+            )
+
+            with open(document_path, "rb") as fp:
+                msg.attach(
+                    os.path.basename(document_path),
+                    "application/pdf",
+                    fp.read()
+                )
+
+            current_app.mail.send(msg)
+
+            # --- Update Invoice Status if applicable ---
+            if "customer_invoices" in document_path:
+                # Extract invoice number from path (e.g., invoice_123.pdf)
+                filename = os.path.basename(document_path)
+                try:
+                    # filename format is "invoice_<number>.pdf"
+                    invoice_number_str = filename.replace("invoice_", "").replace(".pdf", "")
+                    if invoice_number_str.isdigit():
+                        invoice_number = int(invoice_number_str)
+                        invoice = Invoice.query.get(invoice_number)
+                        if invoice:
+                            invoice.status = 2
+                            db.session.commit()
+                except Exception as status_err:
+                    print(f"Failed to update invoice status in SendEmail: {str(status_err)}")
+
+            return {"message": "Email sent successfully"}, 200
+
+        except Exception as e:
+            return {"message": f"Failed to send email: {str(e)}"}, 500
+
+
+############################################## Send Notification API ##############################################
+class SendNotification(Resource):
+    @auth_required("token")
+    @roles_accepted("manager", "staff", "customer")
+    def post(self):
+        """
+        Send a notification (App Notification) which includes storing it in the database.
+        Expects JSON: { "subject": "...", "body": "...", "phone_number": "..." }
+        """
+        data = request.get_json()
+        subject = data.get('subject')
+        message = data.get('body')
+        phone_number = data.get('phone_number')
+
+        if not all([subject, message, phone_number]):
+            return {"message": "Missing required fields: subject, body, phone_number"}, 400
+
+        try:
+            # Create a new Notification record assigned to the current user
+            new_notification = Notification(
+                user_id=current_user.id,
+                subject=subject,
+                message=message,
+                phone_number=phone_number,
+                is_read=False
+            )
+            db.session.add(new_notification)
+            db.session.commit()
+
+            return {"message": "Notification generated and saved successfully", "id": new_notification.id}, 201
+
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to send notification: {str(e)}"}, 500
+
+    @auth_required("token")
+    def get(self):
+        """
+        Fetch notifications for the current user. 
+        By default, only returns Unread notifications. 
+        Pass ?include_read=true to see all.
+        """
+        include_read = request.args.get('include_read', 'false').lower() == 'true'
+        
+        query = Notification.query.filter_by(user_id=current_user.id)
+        if not include_read:
+            query = query.filter_by(is_read=False)
+            
+        notifications = query.order_by(Notification.created_at.desc()).all()
+        
+        result = []
+        for n in notifications:
+            result.append({
+                "id": n.id,
+                "subject": n.subject,
+                "message": n.message,
+                "phone_number": n.phone_number,
+                "is_read": n.is_read,
+                "created_at": n.created_at.isoformat()
+            })
+        return result, 200
+
+    @auth_required("token")
+    def put(self, notification_id=None):
+        """
+        Mark a notification as read.
+        Expects notification_id in the URL or 'id' in the JSON body.
+        """
+        target_id = notification_id or request.get_json().get('id')
+        if not target_id:
+            return {"message": "Notification ID is required"}, 400
+
+        notification = Notification.query.filter_by(id=target_id, user_id=current_user.id).first()
+        if not notification:
+            return {"message": "Notification not found or access denied"}, 404
+
+        try:
+            notification.is_read = True
+            db.session.commit()
+            return {"message": f"Notification {target_id} marked as read"}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to update notification: {str(e)}"}, 500
+
 #############################################################################################
 # Add API resources to the app
 
@@ -2772,7 +3450,12 @@ api.add_resource(StaffAppointmentResource, '/staff-appointments')
 api.add_resource(StaffDashboard, '/staff-dashboard')
 api.add_resource(StaffCustomerReview, '/staff-customer-reviews')
 api.add_resource(ManagerStaffAttendance, '/manager-staff-attendance')
+api.add_resource(MarkStaffAbsent, '/mark-staff-absent')
+api.add_resource(SupplierOrderReportResource, '/supplier-order-reports')
+api.add_resource(CSVToPDFResource, '/csv-to-pdf')
 api.add_resource(StaffAttendanceResource, '/staff-attendance')
+api.add_resource(CurrentStaffResource, '/staff-info')
+api.add_resource(CurrentCustomerResource, '/customer-info')
 api.add_resource(AppointmentHistoryCleanup, '/cleanup-appointments')
 api.add_resource(SalonDailyAppointmentCountResource, '/daily-appointment-count')
 api.add_resource(CustomerUpcomingAppointmentsResource, '/customer-upcoming-appointments')
@@ -2788,3 +3471,7 @@ api.add_resource(FinanceResource, '/finance')
 api.add_resource(TodaysAppointmentsResource, '/todays-appointments')
 api.add_resource(GetAppointmentIDsForInvoice, "/get-appointments-for-invoice")
 api.add_resource(GetAllInvoices, "/get-all-invoices")
+api.add_resource(GenerateCustomerInvoice, '/generate-invoice-pdf/<int:invoice_number>')
+api.add_resource(GenerateWholesalerOrder, '/generate-wholesaler-order/<string:supplier_email>')
+api.add_resource(SendEmail, '/send-email')
+api.add_resource(SendNotification, '/send-notification', '/send-notification/<int:notification_id>')

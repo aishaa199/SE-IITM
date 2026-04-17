@@ -64,7 +64,7 @@ def manager_login():
         return jsonify({"message": "Access denied: User is not a Manager"}), 403
     
     if verify_password(password, user.password):
-        return jsonify({"token": user.get_auth_token(), "username": user.username, "role": user.roles[0].name})
+        return jsonify({"token": user.get_auth_token(), "username": user.username, "role": user.roles[0].name, "userId": user.id})
     else:
         return jsonify({"message":"Wrong Password"}), 400
 #######################################################################################

@@ -191,37 +191,37 @@ def seed_products():
 
 # ── Staff ─────────────────────────────────────────────────────────────────────
 STAFF_PROFILES = [
-    # (name, role, skills, salary)
-    ("Priya Sharma",        "Senior Stylist",      "Ladies Haircut, Hair Coloring, Hair Spa, Blow Dry",         38000),
-    ("Anjali Singh",        "Beautician",          "Facial, Waxing, Threading, Cleanup, De-Tan Pack",          32000),
-    ("Kavitha Reddy",       "Nail Technician",     "Manicure, Pedicure, Gel Extensions, Nail Art",              29000),
-    ("Neha Gupta",          "Makeup Artist",       "Bridal Makeup, Party Makeup, Saree Draping",               42000),
-    ("Sunita Patel",        "Spa Therapist",       "Swedish Massage, Aromatherapy, Body Scrub & Wrap",         35000),
-    ("Meera Nair",          "Senior Beautician",   "Gold Facial, Diamond Facial, Waxing, Eyebrow Tint",        36000),
-    ("Ritu Verma",          "Stylist",             "Ladies Haircut, Blow Dry, Hair Spa, Head Massage",         28000),
-    ("Deepika Joshi",       "Beautician",          "Threading, Cleanup, De-Tan, Full Body Waxing",             27000),
-    ("Pooja Agarwal",       "Junior Stylist",      "Gents Haircut, Ladies Haircut, Blow Dry",                  24000),
-    ("Sonal Mehta",         "Senior Nail Tech",    "Nail Art, Gel Extensions, Acrylic Extensions, Pedicure",   31000),
-    ("Divya Iyer",          "Spa Therapist",       "Aromatherapy, Swedish Massage, Head Massage",              33000),
-    ("Sneha Kulkarni",      "Beautician",          "Facial, Waxing, Threading, Eyebrow Tint",                  26000),
-    ("Lakshmi Rao",         "Senior Stylist",      "Hair Coloring, Highlights, Keratin Treatment, Blow Dry",   40000),
-    ("Swati Desai",         "Makeup Artist",       "Party Makeup, Bridal Makeup, HD Makeup",                   39000),
-    ("Preeti Mishra",       "Beautician",          "Cleanup, Facial, De-Tan, Waxing",                          25000),
-    ("Nandita Bose",        "Junior Stylist",      "Ladies Haircut, Head Massage, Blow Dry",                   22000),
-    ("Rekha Pillai",        "Senior Beautician",   "Gold Facial, Cleanup, Waxing, Threading",                  34000),
-    ("Ananya Chatterjee",   "Nail Technician",     "Manicure, Pedicure, Nail Art, Gel Top Coat",               28000),
-    ("Shilpa Kaur",         "Stylist",             "Hair Coloring, Hair Spa, Blow Dry, Ladies Haircut",        30000),
-    ("Kiran Rao",           "Spa Therapist",       "Body Scrub & Wrap, Swedish Massage, Hot Stone Therapy",    34000),
-    ("Nalini Murthy",       "Beautician",          "Diamond Facial, Waxing, De-Tan, Eyebrow Shaping",          27000),
-    ("Vasudha Singh",       "Junior Nail Tech",    "Manicure, Pedicure, Basic Nail Art",                       21000),
-    ("Padmavathi Reddy",    "Senior Stylist",      "Keratin Treatment, Hair Coloring, Blow Dry",               41000),
-    ("Usha Srinivasan",     "Beautician",          "Threading, Waxing, Facial, Cleanup",                       26000),
-    ("Geeta Krishnan",      "Makeup Artist",       "Bridal Makeup, Party Makeup, Airbrush Makeup",             44000),
-    ("Sangeeta Bhatt",      "Stylist",             "Ladies Haircut, Highlights, Hair Spa",                     30000),
-    ("Radha Menon",         "Beautician",          "Facial, De-Tan, Cleanup, Waxing",                          25000),
-    ("Sumitha Suresh",      "Nail Technician",     "Nail Art, Gel Extensions, Acrylic Nails, Pedicure",        29000),
-    ("Yamini Nambiar",      "Junior Stylist",      "Gents Haircut, Head Massage, Blow Dry",                    22000),
-    ("Bindhu Pillai",       "Senior Beautician",   "Gold Facial, Waxing, Threading, De-Tan Pack",              35000),
+    # (name, role, skills, salary) - divided by 20
+    ("Priya Sharma",        "Senior Stylist",      "Ladies Haircut, Hair Coloring, Hair Spa, Blow Dry",         1900),
+    ("Anjali Singh",        "Beautician",          "Facial, Waxing, Threading, Cleanup, De-Tan Pack",          1600),
+    ("Kavitha Reddy",       "Nail Technician",     "Manicure, Pedicure, Gel Extensions, Nail Art",              1450),
+    ("Neha Gupta",          "Makeup Artist",       "Bridal Makeup, Party Makeup, Saree Draping",               2100),
+    ("Sunita Patel",        "Spa Therapist",       "Swedish Massage, Aromatherapy, Body Scrub & Wrap",         1750),
+    ("Meera Nair",          "Senior Beautician",   "Gold Facial, Diamond Facial, Waxing, Eyebrow Tint",        1800),
+    ("Ritu Verma",          "Stylist",             "Ladies Haircut, Blow Dry, Hair Spa, Head Massage",         1400),
+    ("Deepika Joshi",       "Beautician",          "Threading, Cleanup, De-Tan, Full Body Waxing",             1350),
+    ("Pooja Agarwal",       "Junior Stylist",      "Gents Haircut, Ladies Haircut, Blow Dry",                  1200),
+    ("Sonal Mehta",         "Senior Nail Tech",    "Nail Art, Gel Extensions, Acrylic Extensions, Pedicure",   1550),
+    ("Divya Iyer",          "Spa Therapist",       "Aromatherapy, Swedish Massage, Head Massage",              1650),
+    ("Sneha Kulkarni",      "Beautician",          "Facial, Waxing, Threading, Eyebrow Tint",                  1300),
+    ("Lakshmi Rao",         "Senior Stylist",      "Hair Coloring, Highlights, Keratin Treatment, Blow Dry",   2000),
+    ("Swati Desai",         "Makeup Artist",       "Party Makeup, Bridal Makeup, HD Makeup",                   1950),
+    ("Preeti Mishra",       "Beautician",          "Cleanup, Facial, De-Tan, Waxing",                          1250),
+    ("Nandita Bose",        "Junior Stylist",      "Ladies Haircut, Head Massage, Blow Dry",                   1100),
+    ("Rekha Pillai",        "Senior Beautician",   "Gold Facial, Cleanup, Waxing, Threading",                  1700),
+    ("Ananya Chatterjee",   "Nail Technician",     "Manicure, Pedicure, Nail Art, Gel Top Coat",               1400),
+    ("Shilpa Kaur",         "Stylist",             "Hair Coloring, Hair Spa, Blow Dry, Ladies Haircut",        1500),
+    ("Kiran Rao",           "Spa Therapist",       "Body Scrub & Wrap, Swedish Massage, Hot Stone Therapy",    1700),
+    ("Nalini Murthy",       "Beautician",          "Diamond Facial, Waxing, De-Tan, Eyebrow Shaping",          1350),
+    ("Vasudha Singh",       "Junior Nail Tech",    "Manicure, Pedicure, Basic Nail Art",                       1050),
+    ("Padmavathi Reddy",    "Senior Stylist",      "Keratin Treatment, Hair Coloring, Blow Dry",               2050),
+    ("Usha Srinivasan",     "Beautician",          "Threading, Waxing, Facial, Cleanup",                       1300),
+    ("Geeta Krishnan",      "Makeup Artist",       "Bridal Makeup, Party Makeup, Airbrush Makeup",             2200),
+    ("Sangeeta Bhatt",      "Stylist",             "Ladies Haircut, Highlights, Hair Spa",                     1500),
+    ("Radha Menon",         "Beautician",          "Facial, De-Tan, Cleanup, Waxing",                          1250),
+    ("Sumitha Suresh",      "Nail Technician",     "Nail Art, Gel Extensions, Acrylic Nails, Pedicure",        1450),
+    ("Yamini Nambiar",      "Junior Stylist",      "Gents Haircut, Head Massage, Blow Dry",                    1100),
+    ("Bindhu Pillai",       "Senior Beautician",   "Gold Facial, Waxing, Threading, De-Tan Pack",              1750),
 ]
 
 def seed_staff(users):
@@ -447,22 +447,13 @@ def seed_reviews():
     print(f"  Seeded {added} customer reviews.")
 
 
-# ── Finance (Jan – Apr 2026) ──────────────────────────────────────────────────
-MONTHLY_FINANCE = [
-    # (year, month, revenue_base, cost_base, salary_base, overhead_base)
-    (2026, 1, 125000, 22000, 280000, 32000),   # January
-    (2026, 2, 138000, 24000, 280000, 30000),   # February – Valentine's spike
-    (2026, 3, 152000, 26000, 285000, 33000),   # March – pre-summer bookings
-    (2026, 4,  48000,  9000, 285000, 12000),   # April – partial month (till Apr 4)
-]
-
 def seed_finance():
     for (yr, mo, rev, cost, salary, overhead) in MONTHLY_FINANCE:
         revenue = rev + random.randint(-8000, 8000)
         product_cost = cost + random.randint(-2000, 2000)
         staff_salary = salary
         overheads    = overhead + random.randint(-2000, 2000)
-        other        = random.randint(4000, 12000)
+        other        = 0.0  # Changed: Don't auto-fill, let manager enter via Edit button
         net_profit   = revenue - product_cost - (staff_salary / 10) - overheads - other
         # (salary divided by 10 since we're tracking one branch portion)
 
@@ -479,6 +470,52 @@ def seed_finance():
 
     db.session.commit()
     print(f"  Seeded {len(MONTHLY_FINANCE)} months of finance data (Jan–Apr 2026).")
+
+
+# ── Staff Attendance ──────────────────────────────────────────────────────────
+def seed_staff_attendance():
+    staff = Staff.query.all()
+    attendance_records = 0
+    today_date = datetime(2026, 4, 8)
+    
+    # Ensure 5-8 staff are present today (2026-04-08)
+    staff_list = list(staff)
+    random.shuffle(staff_list)
+    num_present_today = random.randint(5, min(8, len(staff_list)))
+    
+    for idx, s in enumerate(staff_list):
+        # For today's attendance: mark 5-8 staff as present
+        if idx < num_present_today:
+            today_time = today_date.replace(hour=random.randint(9, 11), minute=random.randint(0, 59))
+            attendance = StaffAttendance(
+                staff_id=s.staff_id,
+                register_datetime=today_time,
+            )
+            db.session.add(attendance)
+            attendance_records += 1
+        
+        # Add past attendance records (Jan 1 – Apr 7) - reduced to 30-40 per staff
+        for _ in range(random.randint(30, 40)):
+            dt = random_past_dt(days_back_max=93)
+            # Skip if this happens to be today
+            if dt.date() == today_date.date():
+                continue
+            # Ensure attendance is during working hours (9 AM - 7 PM)
+            if dt.hour < 9:
+                dt = dt.replace(hour=random.randint(9, 11))
+            elif dt.hour > 18:
+                dt = dt.replace(hour=random.randint(9, 18))
+            
+            attendance = StaffAttendance(
+                staff_id=s.staff_id,
+                register_datetime=dt,
+            )
+            db.session.add(attendance)
+            attendance_records += 1
+    
+    db.session.commit()
+    print(f"  Seeded {attendance_records} staff attendance records (Jan–Apr 2026).")
+    print(f"  ✓ Today (2026-04-08): {num_present_today} staff marked present.")
 
 
 # ── Inventory Transactions ────────────────────────────────────────────────────
@@ -521,7 +558,8 @@ def seed_data():
     seed_appointments()
     seed_invoices()
     seed_reviews()
-    seed_finance()
+    # seed_finance()  # Disabled: Finance records should be generated manually via POST API, not pre-seeded
+    seed_staff_attendance()
     seed_inventory_transactions()
 
     print("\n✅ Done! Database seeded with realistic Indian salon data.\n")
