@@ -8,7 +8,7 @@ import io
 import os
 from fpdf import FPDF
 from .sec import datastore
-from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, InventoryTransaction, StaffAttendance, CustomerReview, Finance, Manager, Owner, CustomerReward, SalonConfig, db, Role, UserRoles, appointment_services, Order
+from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, InventoryTransaction, StaffAttendance, CustomerReview, Finance, Manager, Owner, CustomerReward, SalonConfig, db, Role, UserRoles, appointment_services, Order, Notification
 api = Api(prefix = '/api')
 
 ################################# HELPER FUNCTIONS ########################################
@@ -3348,6 +3348,91 @@ class SendEmail(Resource):
         except Exception as e:
             return {"message": f"Failed to send email: {str(e)}"}, 500
 
+
+############################################## Send Notification API ##############################################
+class SendNotification(Resource):
+    @auth_required("token")
+    @roles_accepted("manager", "staff")
+    def post(self):
+        """
+        Send a notification (App Notification) which includes storing it in the database.
+        Expects JSON: { "subject": "...", "body": "...", "phone_number": "..." }
+        """
+        data = request.get_json()
+        subject = data.get('subject')
+        message = data.get('body')
+        phone_number = data.get('phone_number')
+
+        if not all([subject, message, phone_number]):
+            return {"message": "Missing required fields: subject, body, phone_number"}, 400
+
+        try:
+            # Create a new Notification record assigned to the current user
+            new_notification = Notification(
+                user_id=current_user.id,
+                subject=subject,
+                message=message,
+                phone_number=phone_number,
+                is_read=False
+            )
+            db.session.add(new_notification)
+            db.session.commit()
+
+            return {"message": "Notification generated and saved successfully", "id": new_notification.id}, 201
+
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to send notification: {str(e)}"}, 500
+
+    @auth_required("token")
+    def get(self):
+        """
+        Fetch notifications for the current user. 
+        By default, only returns Unread notifications. 
+        Pass ?include_read=true to see all.
+        """
+        include_read = request.args.get('include_read', 'false').lower() == 'true'
+        
+        query = Notification.query.filter_by(user_id=current_user.id)
+        if not include_read:
+            query = query.filter_by(is_read=False)
+            
+        notifications = query.order_by(Notification.created_at.desc()).all()
+        
+        result = []
+        for n in notifications:
+            result.append({
+                "id": n.id,
+                "subject": n.subject,
+                "message": n.message,
+                "phone_number": n.phone_number,
+                "is_read": n.is_read,
+                "created_at": n.created_at.isoformat()
+            })
+        return result, 200
+
+    @auth_required("token")
+    def put(self, notification_id=None):
+        """
+        Mark a notification as read.
+        Expects notification_id in the URL or 'id' in the JSON body.
+        """
+        target_id = notification_id or request.get_json().get('id')
+        if not target_id:
+            return {"message": "Notification ID is required"}, 400
+
+        notification = Notification.query.filter_by(id=target_id, user_id=current_user.id).first()
+        if not notification:
+            return {"message": "Notification not found or access denied"}, 404
+
+        try:
+            notification.is_read = True
+            db.session.commit()
+            return {"message": f"Notification {target_id} marked as read"}, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"message": f"Failed to update notification: {str(e)}"}, 500
+
 #############################################################################################
 # Add API resources to the app
 
@@ -3388,3 +3473,4 @@ api.add_resource(GetAllInvoices, "/get-all-invoices")
 api.add_resource(GenerateCustomerInvoice, '/generate-invoice-pdf/<int:invoice_number>')
 api.add_resource(GenerateWholesalerOrder, '/generate-wholesaler-order/<string:supplier_email>')
 api.add_resource(SendEmail, '/send-email')
+api.add_resource(SendNotification, '/send-notification', '/send-notification/<int:notification_id>')

@@ -32,6 +32,31 @@ class Config(object):
     MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", None)
     MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "glowsuite8@gmail.com")
 
+    # Scheduler Configuration
+    SCHEDULER_API_ENABLED = True
+    JOBS = [
+        {
+            'id': 'job1',
+            'func': 'application.tasks:daily_notification_cleanup',
+            'trigger': 'interval',
+            'seconds': 3600  # Run every hour
+        },
+        {
+            'id': 'job2',
+            'func': 'application.tasks:send_daily_reminder',
+            'trigger': 'cron',
+            'hour': 9,
+            'minute': 0  # Run every day at 9:00 AM
+        },
+        {
+            'id': 'attendance_threshold_job',
+            'func': 'application.tasks:mark_absent_staff',
+            'trigger': 'cron',
+            'hour': 10,
+            'minute': 27 # Placeholder: 12:01 PM
+        }
+    ]
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
