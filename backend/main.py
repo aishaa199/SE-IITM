@@ -34,10 +34,15 @@ def create_app():
 
     # Update attendance job time from Database dynamically
     with app.app_context():
+        # create_all is idempotent — creates only tables that don't exist yet
+        db_path = os.path.join(app.instance_path, 'sm_devdb.db')
+        if not os.path.exists(db_path):
+            db.create_all()
+
         from application.models import SalonConfig
-        threshold = SalonConfig.query.filter_by(param_name='ATTENDANCE_THRESHOLD_TIME').first()
-        if threshold and ":" in threshold.param_value:
-            try:
+        try:
+            threshold = SalonConfig.query.filter_by(param_name='ATTENDANCE_THRESHOLD_TIME').first()
+            if threshold and ":" in threshold.param_value:
                 h, m = map(int, threshold.param_value.split(":"))
                 # Add 1 minute to the threshold
                 m += 1
@@ -46,7 +51,6 @@ def create_app():
                     h = (h + 1) % 24
                 
                 # Reschedule the job specifically using the scheduler's API
-                # This ensures the running scheduler instance is updated correctly.
                 scheduler.add_job(
                     id='attendance_threshold_job',
                     func='application.tasks:mark_absent_staff',
@@ -56,8 +60,9 @@ def create_app():
                     replace_existing=True
                 )
                 print(f"Scheduler: Attendance job dynamically re-configured for {h:02d}:{m:02d} UTC")
-            except Exception as e:
-                print(f"Scheduler: Failed to dynamically update job: {str(e)}")
+        except Exception as e:
+            # Table might not exist yet during first creation
+            print(f"Scheduler: Skipping dynamic update (table may not exist yet): {str(e)}")
     
     # Initialize Security
     app.security = Security(app, datastore)

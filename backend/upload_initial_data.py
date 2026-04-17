@@ -18,7 +18,7 @@ def seed_initial_data():
         db.session.commit()
         
         # Create corresponding Owner entry
-        if not Owner.query.get(owner_user.id):
+        if not db.session.get(Owner, owner_user.id):
             new_owner = Owner(
                 owner_id=owner_user.id,
                 owner_name='owner_name',

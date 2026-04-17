@@ -3129,10 +3129,8 @@ class GenerateCustomerInvoice(Resource):
             pdf.cell(200, 10, txt="Thank you for choosing our salon!", ln=True, align='C')
 
             # Define directory and ensure it exists under backend
-            # Note: os.getcwd() might be the root or backend depending on how it's run
-            # We want it specifically in backend/customer_invoices
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            invoice_dir = os.path.join(base_dir, 'customer_invoices')
+            # Note: current_app.root_path points to the application folder
+            invoice_dir = os.path.join(current_app.root_path, 'customer_invoices')
             if not os.path.exists(invoice_dir):
                 os.makedirs(invoice_dir, exist_ok=True)
             
@@ -3196,8 +3194,7 @@ class GenerateWholesalerOrder(Resource):
             filename = f"{email_part}_{date_str}.pdf"
             
             # Define directory and ensure it exists under backend
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            order_dir = os.path.join(base_dir, 'wholesaler_orders')
+            order_dir = os.path.join(current_app.root_path, 'wholesaler_orders')
             if not os.path.exists(order_dir):
                 os.makedirs(order_dir, exist_ok=True)
             
