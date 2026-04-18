@@ -40,7 +40,7 @@ class TestInvoiceAPI:
 
     def test_list_invoices_manager(self, client, manager_token):
         """TC-INV-01: Manager can list all invoices with correct fields."""
-        rv = client.get('/api/invoice', headers=auth_headers(manager_token))
+        rv = client.get('/api/get-all-invoices', headers=auth_headers(manager_token))
         assert rv.status_code == 200
         data = rv.get_json()
         assert isinstance(data, list)
@@ -52,12 +52,12 @@ class TestInvoiceAPI:
 
     def test_list_invoices_unauthenticated(self, client):
         """TC-INV-02: No token → 302/401 (depends on setup)."""
-        rv = client.get('/api/invoice')
+        rv = client.get('/api/get-all-invoices')
         assert rv.status_code in (302, 401)
 
     def test_list_invoices_customer_forbidden(self, client, customer_token):
         """TC-INV-03: Customer role cannot access invoice list."""
-        rv = client.get('/api/invoice', headers=auth_headers(customer_token))
+        rv = client.get('/api/get-all-invoices', headers=auth_headers(customer_token))
         assert rv.status_code == 403
 
     def test_get_invoice_data_for_appointment(self, client, manager_token):

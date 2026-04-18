@@ -30,8 +30,8 @@ def app():
         'TESTING': True,
         'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
         'WTF_CSRF_ENABLED': False,
-        'SECURITY_PASSWORD_SALT': 'test-salt',
-        'SECRET_KEY': 'test-secret',
+        'SECURITY_PASSWORD_SALT': 'salt',
+        'SECRET_KEY': 'secret-key',
         # Disable external AI calls in tests
         'ANTHROPIC_API_KEY': 'test-key',
     })
@@ -189,8 +189,12 @@ def staff_token(client):
 
 
 @pytest.fixture(scope='session')
-def customer_token(client):
-    return _login(client, '/customer-login', 'test_customer', 'Test@1234')
+def customer_token(client, app):
+    with app.app_context():
+        user = User.query.filter_by(username='test_customer').first()
+        token = user.get_auth_token()
+        print(f"DEBUG: customer_token FIXTURE: user={user.username}, id={user.id}, token={token[:10]}...")
+        return token
 
 
 # ─────────────────────────────────────────────────────────────────────────────

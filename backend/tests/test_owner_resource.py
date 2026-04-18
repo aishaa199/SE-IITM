@@ -14,14 +14,14 @@ class TestOwnerResource:
         """TC-OWN-01: Owner can successfully create a new manager."""
         payload = {
             'fullname': 'New Manager',
-            'email': 'newmgr@test.com',
+            'email': 'newmgr1@test.com',
             'phone': '1234567890',
             'skills': 'Management',
             'role': 'Store Manager',
             'dob': '1990-01-01',
             'doj': '2023-01-01',
             'branch_name': 'Downtown',
-            'username': 'unique_mgr_user',
+            'username': 'unique_mgr_user1',
             'password': 'password123'
         }
         rv = client.post('/api/create-manager', 

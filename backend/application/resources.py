@@ -1027,6 +1027,8 @@ class ServiceResource(Resource):
     @roles_required("manager")
     def post(self):
         data = request.get_json()
+        if not data or not data.get('service_price'):
+            return {"message": "Service price is required"}, 400
         try:
             from_date_str = data.get('from_date')
             from_date = datetime.strptime(from_date_str, '%Y-%m-%d').date() if from_date_str else datetime.now().date()
@@ -1298,6 +1300,7 @@ class AppointmentResource(Resource):
 class SalonConfigResource(Resource):
 ################################## Get Salon Config Data ####################################
     @auth_required("token")
+    @roles_required("manager")
     def get(self, setting_id=None):
         if setting_id:
             config = SalonConfig.query.get(setting_id)
@@ -1930,7 +1933,6 @@ class CustomerUpcomingAppointmentsResource(Resource):
 
         return result, 200
 
-##################################Customer Book Appointment API (for Customers to book appointments by themselves) ##############################
     @auth_required("token")
     @roles_required("customer")
     def post(self):

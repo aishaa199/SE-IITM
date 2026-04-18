@@ -6,6 +6,7 @@ Endpoints covered:
 """
 import pytest
 from tests.conftest import auth_headers
+from main import create_app
 
 class TestManagerStaffAttendance:
     """Manager-facing bulk attendance operations."""
@@ -38,8 +39,9 @@ class TestManagerStaffAttendance:
         # Ensure staff is present
         client.post('/api/staff-attendance', headers=auth_headers(staff_token))
         
-        # Manager runs bulk absent marking
-        rv = client.post('/api/mark-staff-absent', headers=auth_headers(manager_token))
+        # Manager runs bulk absent marking - using a fresh client to avoid session leakage
+        fresh_client = create_app().test_client()
+        rv = fresh_client.post('/api/mark-staff-absent', headers=auth_headers(manager_token))
         assert rv.status_code == 201
         data = rv.get_json()
         

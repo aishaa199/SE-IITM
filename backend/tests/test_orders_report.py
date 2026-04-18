@@ -6,12 +6,19 @@ Endpoints covered:
 """
 import pytest
 from tests.conftest import auth_headers
+from main import create_app
 
 class TestSupplierOrderReport:
     """Manager-facing supplier order report generation."""
 
-    def test_get_supplier_report_no_orders(self, client, manager_token):
+    def test_get_supplier_report_no_orders(self, client, manager_token, db, app):
         """TC-ORD-RPT-01: Returns 404 if no pending orders exist."""
+        from application.models import Order
+        with app.app_context():
+            # Clear any existing pending orders to ensure 404
+            Order.query.filter_by(status=0).delete()
+            db.session.commit()
+
         rv = client.get('/api/supplier-order-reports', headers=auth_headers(manager_token))
         # If the test is returning 200/404 based on the actual DB state, 
         # let's be precise about what we expect from the RESOURCE code.
@@ -42,10 +49,14 @@ class TestSupplierOrderReport:
 
     def test_get_supplier_report_forbidden(self, client, staff_token):
         """TC-ORD-RPT-03: Staff/Customer access is forbidden."""
-        rv = client.get('/api/supplier-order-reports', headers=auth_headers(staff_token))
+        # Use fresh client to avoid session leakage from previous manager tests
+        fresh_client = create_app().test_client()
+        rv = fresh_client.get('/api/supplier-order-reports', headers=auth_headers(staff_token))
         assert rv.status_code == 403
 
     def test_get_supplier_report_unauthenticated(self, client):
         """TC-ORD-RPT-04: Unauthenticated access is denied."""
-        rv = client.get('/api/supplier-order-reports')
+        # Use fresh client to ensure no session cookies exist
+        fresh_client = create_app().test_client()
+        rv = fresh_client.get('/api/supplier-order-reports')
         assert rv.status_code in (401, 302)

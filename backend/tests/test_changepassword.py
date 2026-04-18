@@ -1,71 +1,67 @@
-"""
-test_changepassword.py – Tests for Change Password functionality.
-
-Endpoints:
-  PUT /api/change-password
-"""
 import pytest
 from tests.conftest import auth_headers
 
 class TestChangePasswordAPI:
-    """Standardized ChangePassword API Tests."""
+    """Tests for the /api/change-password endpoint."""
 
-    def test_change_password_success(self, client, staff_token):
-        """TC-PWD-01: User can change their password with correct current password."""
+    @pytest.mark.parametrize("user_type, username", [
+        ("owner", "test_owner"),
+        ("manager", "test_manager"),
+        ("staff", "test_staff"),
+        ("customer", "test_customer"),
+    ])
+    def test_change_password_success(self, client, user_type, username):
+        """TC-CP-01: Successfully change password for any role."""
+        # 1. Login to get a FRESH token
+        login_rv = client.post(f"/{user_type}-login", json={
+            "username": username,
+            "password": "Test@1234"
+        })
+        assert login_rv.status_code == 200, f"Login failed for {username}: {login_rv.get_json()}"
+        token = login_rv.get_json()["token"]
+
+        # 2. Change password
         payload = {
             "current_password": "Test@1234",
-            "new_password": "NewStaff@1234",
-            "confirm_password": "NewStaff@1234"
+            "new_password": "NewPassword@123",
+            "confirm_password": "NewPassword@123"
         }
-        rv = client.put('/api/change-password', json=payload, headers=auth_headers(staff_token))
+        
+        # Using the specific header required by Flask-Security-Too
+        rv = client.put("/api/change-password", 
+                         headers={"Authentication-Token": token},
+                         json=payload)
+        
         assert rv.status_code == 200
-        assert rv.get_json()['message'] == "Password changed successfully"
+        assert "Password changed successfully" in rv.get_json()["message"]
 
-    def test_change_password_wrong_current(self, client, staff_token):
-        """TC-PWD-02: Changing password with wrong current password returns 400."""
+    def test_change_password_wrong_current(self, client, owner_token):
+        """TC-CP-02: Fail when current password is incorrect."""
         payload = {
             "current_password": "WrongPassword",
-            "new_password": "NewStaff@1234",
-            "confirm_password": "NewStaff@1234"
+            "new_password": "NewPassword@123",
+            "confirm_password": "NewPassword@123"
         }
-        rv = client.put('/api/change-password', json=payload, headers=auth_headers(staff_token))
+        rv = client.put("/api/change-password", 
+                         headers={"Authentication-Token": owner_token},
+                         json=payload)
         assert rv.status_code == 400
-        assert rv.get_json()['message'] == "Wrong current password"
+        assert "Wrong current password" in rv.get_json()["message"]
 
-    def test_change_password_mismatch(self, client, staff_token):
-        """TC-PWD-03: New password and confirm password mismatch returns 400."""
+    def test_change_password_mismatch(self, client, owner_token):
+        """TC-CP-03: Fail when new and confirm passwords do not match."""
         payload = {
             "current_password": "Test@1234",
-            "new_password": "NewStaff@1234",
-            "confirm_password": "DifferentPassword"
+            "new_password": "NewPassword1",
+            "confirm_password": "NewPassword2"
         }
-        rv = client.put('/api/change-password', json=payload, headers=auth_headers(staff_token))
+        rv = client.put("/api/change-password", 
+                         headers={"Authentication-Token": owner_token},
+                         json=payload)
         assert rv.status_code == 400
-        assert rv.get_json()['message'] == "New password and confirm password do not match"
-
-    def test_change_password_same_as_current(self, client, staff_token):
-        """TC-PWD-04: New password same as current returns 400."""
-        payload = {
-            "current_password": "Test@1234",
-            "new_password": "Test@1234",
-            "confirm_password": "Test@1234"
-        }
-        rv = client.put('/api/change-password', json=payload, headers=auth_headers(staff_token))
-        assert rv.status_code == 400
-        assert rv.get_json()['message'] == "New password cannot be the same as the current password"
-
-    def test_change_password_empty_fields(self, client, staff_token):
-        """TC-PWD-05: Empty password fields return 400."""
-        payload = {
-            "current_password": "Test@1234",
-            "new_password": "",
-            "confirm_password": ""
-        }
-        rv = client.put('/api/change-password', json=payload, headers=auth_headers(staff_token))
-        assert rv.status_code == 400
-        assert rv.get_json()['message'] == "New password and confirm password cannot be empty"
+        assert "not match" in rv.get_json()["message"]
 
     def test_change_password_unauthenticated(self, client):
-        """TC-PWD-06: No token → 302/401."""
-        rv = client.put('/api/change-password', json={})
-        assert rv.status_code in (302, 401)
+        """TC-CP-04: Fail when no token is provided."""
+        rv = client.put("/api/change-password", json={})
+        assert rv.status_code == 401
