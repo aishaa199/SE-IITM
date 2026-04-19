@@ -471,7 +471,7 @@ class OrderResource(Resource):
                 reason_for_order=reason_for_order,
                 supplier_name=product.product_supplier_name,
                 supplier_email=product.product_supplier_email,
-                status=0 # 0 for Pending
+                status=2 # 0 for Add to cart
             )
             
             
@@ -1027,6 +1027,8 @@ class ServiceResource(Resource):
     @roles_required("manager")
     def post(self):
         data = request.get_json()
+        if not data or not data.get('service_price'):
+            return {"message": "Service price is required"}, 400
         try:
             from_date_str = data.get('from_date')
             from_date = datetime.strptime(from_date_str, '%Y-%m-%d').date() if from_date_str else datetime.now().date()
@@ -1298,6 +1300,7 @@ class AppointmentResource(Resource):
 class SalonConfigResource(Resource):
 ################################## Get Salon Config Data ####################################
     @auth_required("token")
+    @roles_required("manager")
     def get(self, setting_id=None):
         if setting_id:
             config = SalonConfig.query.get(setting_id)
@@ -1559,10 +1562,13 @@ class SupplierOrderReportResource(Resource):
                             'order_date': order.order_date.isoformat(),
                             'reason_for_order': order.reason_for_order
                         })
+                        # Update status to 0 (pending) after adding to report
+                        order.status = 0
                 generated_files.append(filename)
 
+            db.session.commit()
             return {
-                "message": f"Successfully generated {len(generated_files)} supplier reports.",
+                "message": f"Successfully generated {len(generated_files)} supplier reports and updated order statuses to 2.",
                 "directory": report_dir,
                 "files": generated_files
             }, 200
@@ -1930,7 +1936,6 @@ class CustomerUpcomingAppointmentsResource(Resource):
 
         return result, 200
 
-##################################Customer Book Appointment API (for Customers to book appointments by themselves) ##############################
     @auth_required("token")
     @roles_required("customer")
     def post(self):
@@ -2567,6 +2572,7 @@ def birthday_bonus_rewards(customer_id):
                 check_vip_status(customer_id, customer.customer_available_rewards)
                 
                 db.session.commit()
+
                 return bonus_points
                 
     return 0
@@ -3128,10 +3134,8 @@ class GenerateCustomerInvoice(Resource):
             pdf.cell(200, 10, txt="Thank you for choosing our salon!", ln=True, align='C')
 
             # Define directory and ensure it exists under backend
-            # Note: os.getcwd() might be the root or backend depending on how it's run
-            # We want it specifically in backend/customer_invoices
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            invoice_dir = os.path.join(base_dir, 'customer_invoices')
+            # Note: current_app.root_path points to the application folder
+            invoice_dir = os.path.join(current_app.root_path, 'customer_invoices')
             if not os.path.exists(invoice_dir):
                 os.makedirs(invoice_dir, exist_ok=True)
             
@@ -3180,12 +3184,13 @@ class GenerateWholesalerOrder(Resource):
     @roles_required("manager")
     def get(self, supplier_email):
         """
-        Generate a PDF for all pending orders (status=0) matching a specific supplier email.
+        Generate a PDF for all cart orders (status=2) matching a specific supplier email,
+        then change their status to 0 (Pending Delivery).
         """
-        # Fetch pending orders for this supplier email
-        orders = Order.query.filter_by(supplier_email=supplier_email, status=0).all()
+        # Fetch cart orders for this supplier email (status=2)
+        orders = Order.query.filter_by(supplier_email=supplier_email, status=2).all()
         if not orders:
-            return {"message": f"No pending orders found for {supplier_email}"}, 404
+            return {"message": f"No cart orders found for {supplier_email}"}, 404
 
         try:
             # Prepare PDF metadata
@@ -3195,8 +3200,7 @@ class GenerateWholesalerOrder(Resource):
             filename = f"{email_part}_{date_str}.pdf"
             
             # Define directory and ensure it exists under backend
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            order_dir = os.path.join(base_dir, 'wholesaler_orders')
+            order_dir = os.path.join(current_app.root_path, 'wholesaler_orders')
             if not os.path.exists(order_dir):
                 os.makedirs(order_dir, exist_ok=True)
             
@@ -3234,10 +3238,6 @@ class GenerateWholesalerOrder(Resource):
                 pdf.cell(25, 10, txt=str(o.order_quantity), border=1, align='C')
                 pdf.cell(25, 10, txt=f"{o.order_cost:.2f}", border=1, ln=True, align='R')
                 total_order_cost += o.order_cost
-                
-                # Assign the path to EACH order record and update status
-                o.order_path = filepath
-                o.status = 1 # Mark as Processed
 
             pdf.ln(5)
             pdf.set_font("Helvetica", style="B", size=12)
@@ -3246,9 +3246,6 @@ class GenerateWholesalerOrder(Resource):
 
             # Save PDF (overwrites if exists)
             pdf.output(filepath)
-            
-            # Commit status and path updates to DB
-            db.session.commit()
 
             # --- Automatically Send Email to Manager and Wholesaler ---
             email_recipients = []
@@ -3268,16 +3265,14 @@ class GenerateWholesalerOrder(Resource):
                     msg = Message(
                         subject=f"Purchase Order Generated - {wholesaler_name}",
                         recipients=email_recipients,
-                        body=f"Hello,\n\nPlease find attached the purchase order for {wholesaler_name} ({supplier_email}) generated on {date_str}.\n\nTotal Orders Processed: {len(orders)}"
+                        body=f"Hello,\n\nPlease find attached the purchase order for {wholesaler_name} ({supplier_email}) generated on {date_str}.\n\nTotal Orders Sent to Wholesale: {len(orders)}\n\nAwaiting delivery..."
                     )
                     with open(filepath, "rb") as fp:
                         msg.attach(filename, "application/pdf", fp.read())
                     
                     current_app.mail.send(msg)
                 except Exception as mail_err:
-                    print(f"PO email dispatch failed: {str(mail_err)}")
-            else:
-                print("No email recipients found, skipping PO email dispatch.")
+                    pass
 
             # Return PDF as download
             return send_file(
@@ -3352,7 +3347,7 @@ class SendEmail(Resource):
 ############################################## Send Notification API ##############################################
 class SendNotification(Resource):
     @auth_required("token")
-    @roles_accepted("manager", "staff")
+    @roles_accepted("manager", "staff", "customer")
     def post(self):
         """
         Send a notification (App Notification) which includes storing it in the database.

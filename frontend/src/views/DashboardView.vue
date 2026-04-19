@@ -97,7 +97,57 @@
       <div class="topbar">
         <div class="topbar-title">{{ pageTitle }}</div>
         <div class="topbar-right">
-          <button class="notif-btn">🔔</button>
+          <button class="notif-btn" @click="toggleNotificationPanel">
+            🔔
+            <span v-if="unreadCount > 0" class="notif-badge">{{ unreadCount }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Notification Panel -->
+      <div v-if="showNotificationPanel" class="notification-panel">
+        <div class="notification-panel-header">
+          <h3>Notifications</h3>
+          <div class="notification-header-actions">
+            <button 
+              v-if="unreadCount > 0"
+              @click="markAllNotificationsAsRead" 
+              class="mark-all-btn"
+              title="Mark all as read"
+            >
+              ✓ Mark All
+            </button>
+            <button @click="showNotificationPanel = false" class="close-btn">✕</button>
+          </div>
+        </div>
+        
+        <div class="notification-panel-content">
+          <!-- Loading state -->
+          <div v-if="notificationsLoading" class="notification-loading">
+            <p>Loading notifications...</p>
+          </div>
+          
+          <!-- Empty state -->
+          <div v-else-if="unreadNotifications.length === 0" class="notification-empty">
+            <p>No unread notifications</p>
+          </div>
+          
+          <!-- Unread Notifications list -->
+          <div v-else class="notifications-list">
+            <div v-for="notif in unreadNotifications" :key="notif.id" class="notification-item">
+              <div class="notification-content">
+                <div class="notification-subject">{{ notif.subject }}</div>
+                <div class="notification-message">{{ notif.message }}</div>
+                <div class="notification-time">{{ new Date(notif.created_at).toLocaleString('en-IN') }}</div>
+              </div>
+              <button 
+                @click="markNotificationAsRead(notif.id)" 
+                class="mark-read-btn"
+              >
+                Mark as Read
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -324,17 +374,17 @@
                 <h3 class="card-title">⚡ Alerts & Notifications</h3>
               </div>
               <div class="card-body">
-                <div v-if="systemAlerts.length === 0" class="empty-state">
+                <div v-if="unreadNotifications.length === 0" class="empty-state">
                   <div class="empty-state-icon">✅</div>
                   <div class="empty-state-text">All systems operational</div>
                 </div>
-                <div v-for="(alert, idx) in systemAlerts" :key="idx" :class="['alert-item', alert.type]">
-                  <div class="alert-icon">{{ alert.icon }}</div>
+                <div v-for="notif in unreadNotifications" :key="notif.id" class="alert-item warning">
+                  <div class="alert-icon">⚠️</div>
                   <div style="flex: 1">
-                    <div class="alert-title">{{ alert.title }}</div>
-                    <div class="alert-message">{{ alert.message }}</div>
+                    <div class="alert-title">{{ notif.subject }}</div>
+                    <div class="alert-message">{{ notif.message }}</div>
                   </div>
-                  <div class="alert-time">{{ alert.time }}</div>
+                  <div class="alert-time">{{ new Date(notif.created_at).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' }) }}</div>
                 </div>
               </div>
             </div>
@@ -352,8 +402,15 @@
               <form @submit.prevent="handleCreateBooking" style="max-width: 800px">
                 <div class="form-group">
                   <label>Select Services * (You can choose multiple)</label>
+                  <input 
+                    v-model="bookingServiceSearch"
+                    type="text"
+                    class="form-input"
+                    placeholder="Search services..."
+                    style="margin-bottom: 12px"
+                  />
                   <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 300px; overflow-y: auto">
-                    <div v-for="service in data.services.filter(s => getServiceStatus(s) === 'Active')" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+                    <div v-for="service in data.services.filter(s => getServiceStatus(s) === 'Active' && s.name.toLowerCase().includes(bookingServiceSearch.toLowerCase()))" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
                       <input 
                         :id="'service-' + service.id"
                         type="checkbox" 
@@ -634,6 +691,7 @@
                       v-model="serviceForm.fromDate"
                       type="date"
                       class="form-input"
+                      :min="today()"
                     />
                   </div>
 
@@ -644,6 +702,7 @@
                       v-model="serviceForm.toDate"
                       type="date"
                       class="form-input"
+                      :min="today()"
                     />
                   </div>
                 </div>
@@ -949,7 +1008,7 @@
               <h3 class="card-title">📅 Select Staff by Day</h3>
             </div>
             <div class="card-body">
-              <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px">
+              <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap">
                 <label style="font-weight: 600">Select Date:</label>
                 <input 
                   v-model="selectedStaffDate" 
@@ -958,6 +1017,14 @@
                   style="max-width: 200px"
                   :max="new Date().toISOString().split('T')[0]"
                 />
+                <button 
+                  @click="handleMarkStaffAbsentWithNotifications" 
+                  class="btn btn-primary"
+                  style="padding: 8px 16px; font-size: 13px; background: #e74c3c"
+                  title="Mark all unmarked staff as absent for today and send notifications to manager"
+                >
+                  🔔 Mark All Absent & Notify
+                </button>
               </div>
 
               <div v-if="(appStore.data?.staff || []).length === 0" style="text-align: center; padding: 32px; color: var(--text-muted)">
@@ -1464,16 +1531,16 @@
                   <div class="empty-state-icon">✅</div>
                   <div class="empty-state-text">No pending orders</div>
                 </div>
-                <div v-for="order in pendingOrders" :key="order.id" class="order-item">
+                <div v-for="order in pendingOrders" :key="order.order_id" class="order-item">
                   <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px">
                     <div>
-                      <div style="font-weight: 600">{{ getProductNameForOrder(order.productId) }}</div>
-                      <div class="text-muted">Ordered: {{ order.date }}</div>
+                      <div style="font-weight: 600">{{ order.product_name }}</div>
+                      <div class="text-muted">Ordered: {{ new Date(order.order_date).toLocaleDateString('en-IN') }}</div>
                     </div>
-                    <span class="badge badge-gold">{{ order.qty }} units</span>
+                    <span class="badge badge-gold">{{ order.order_quantity }} units</span>
                   </div>
                   <div style="display: flex; align-items: center; gap: 8px">
-                    <span style="flex: 1" class="text-muted">📝 {{ order.notes }}</span>
+                    <span style="flex: 1" class="text-muted">📝 {{ order.reason_for_order }}</span>
                   </div>
                 </div>
               </div>
@@ -1586,6 +1653,19 @@
               <!-- Staff Replenishments -->
               <div style="margin-bottom: 24px">
                 <h4 style="margin-bottom: 16px; font-weight: 600">📥 Staff Replenishments</h4>
+                <!-- Search and filter controls -->
+                <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                  <div style="flex: 1; min-width: 200px">
+                    <label style="font-size: 12px; color: var(--text-muted)">Search</label>
+                    <input 
+                      v-model="staffReplenishmentSearch"
+                      type="text" 
+                      class="form-input"
+                      placeholder="Search by product, staff, or service..."
+                      style="width: 100%"
+                    />
+                  </div>
+                </div>
                 <!-- Date range filter -->
                 <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
                   <div>
@@ -1623,9 +1703,9 @@
                 </div>
 
                 <!-- Transaction Table -->
-                <div v-if="staffOrderRequests.length === 0" class="empty-state">
+                <div v-if="filteredStaffReplenishments.length === 0" class="empty-state">
                   <div class="empty-state-icon">📊</div>
-                  <div class="empty-state-text">No staff orders found</div>
+                  <div class="empty-state-text">{{ staffOrderRequests.length === 0 ? 'No staff orders found' : 'No results match your search' }}</div>
                 </div>
                 <div v-else class="table-wrap">
                   <table>
@@ -1639,7 +1719,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="txn in staffOrderRequests" :key="txn.txn_id">
+                      <tr v-for="txn in filteredStaffReplenishments" :key="txn.txn_id">
                         <td><strong>{{ txn.product_name }}</strong></td>
                         <td>{{ txn.quantity }}</td>
                         <td>{{ getStaffName(txn.staff_id) || "Unknown" }}</td>
@@ -1702,15 +1782,15 @@
                             <th>Product</th>
                             <th>Qty</th>
                             <th>Cost (₹)</th>
-                            <th>Date</th>
+                            <th>Order Date</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="item in group.items" :key="item.txn_id">
-                            <td><strong>{{ getProductName(item.product_id) }}</strong></td>
-                            <td>{{ item.quantity }}</td>
-                            <td><strong>₹{{ (item.quantity * (data.products.find(p => p.id === item.product_id)?.price || 0)).toFixed(2) }}</strong></td>
-                            <td><small>{{ formatDate(item.date_of_txn) }}</small></td>
+                          <tr v-for="item in group.items" :key="item.order_id">
+                            <td><strong>{{ item.product_name }}</strong></td>
+                            <td>{{ item.order_quantity }}</td>
+                            <td><strong>₹{{ item.order_cost.toFixed(2) }}</strong></td>
+                            <td><small>{{ new Date(item.order_date).toLocaleDateString('en-IN') }}</small></td>
                           </tr>
                         </tbody>
                       </table>
@@ -1740,7 +1820,7 @@
                 </div>
 
                 <!-- Orders Table -->
-                <div v-if="managerOrders.length === 0" class="empty-state">
+                <div v-if="filteredWholesaleOrders.length === 0" class="empty-state">
                   <div class="empty-state-icon">📮</div>
                   <div class="empty-state-text">No wholesale orders placed yet</div>
                 </div>
@@ -1760,7 +1840,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="order in orderStatusFilter ? managerOrders.filter(o => parseInt(orderStatusFilter) === o.status) : managerOrders" :key="order.order_id">
+                      <tr v-for="order in orderStatusFilter ? filteredWholesaleOrders.filter(o => parseInt(orderStatusFilter) === o.status) : filteredWholesaleOrders" :key="order.order_id">
                         <td><strong>{{ order.product_name }}</strong></td>
                         <td style="text-align: center">{{ order.order_quantity }}</td>
                         <td style="text-align: right">₹{{ (order.order_quantity * (data.products.find(p => p.id === order.product_id)?.price || 0)).toFixed(2) }}</td>
@@ -1778,85 +1858,16 @@
                             {{ getStatusLabel(order.status) }}
                           </span>
                         </td>
-                        <td><small>{{ formatDate(order.order_date) }}</small></td>
-                        <td><small>{{ order.order_replenishment_date ? formatDate(order.order_replenishment_date) : '-' }}</small></td>
+                        <td><small>{{ new Date(order.order_date).toLocaleDateString('en-IN') }}</small></td>
+                        <td><small>{{ order.order_replenishment_date ? new Date(order.order_replenishment_date).toLocaleDateString('en-IN') : '-' }}</small></td>
                         <td style="display: flex; gap: 6px; flex-wrap: wrap">
                           <button v-if="order.status === 0" @click="handleMarkOrderDelivered(order)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #27ae60; border-color: #27ae60">✓ Delivered</button>
-                          <button @click="openEditOrderModal(order)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px">✏️ Edit</button>
-                          <button @click="handleDeleteOrder(order.order_id)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #e74c3c; border-color: #e74c3c">🗑️ Delete</button>
                         </td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Edit Order Modal -->
-        <div v-if="showEditOrderModal && editingOrder" class="modal-overlay" @click.self="showEditOrderModal = false">
-          <div class="modal">
-            <div class="modal-header">
-              <h4 class="modal-title">✏️ Edit Order</h4>
-              <button type="button" class="close" @click="showEditOrderModal = false">&times;</button>
-            </div>
-            <div class="modal-body">
-              <div v-if="editOrderError" class="error-message">{{ editOrderError }}</div>
-              <form @submit.prevent="handleUpdateOrder">
-                <div class="form-group">
-                  <label>Product</label>
-                  <input type="text" class="form-input" :value="editingOrder.product_name" disabled />
-                </div>
-                <div class="form-group">
-                  <label>Quantity</label>
-                  <input 
-                    v-model.number="editOrderForm.quantity" 
-                    type="number" 
-                    min="1" 
-                    class="form-input" 
-                    required 
-                  />
-                </div>
-                <div class="form-group">
-                  <label>Cost (₹)</label>
-                  <input 
-                    type="text" 
-                    class="form-input" 
-                    :value="(editOrderForm.quantity * editingOrder.product_price).toFixed(2)" 
-                    disabled 
-                  />
-                </div>
-                <div class="form-group">
-                  <label>Status</label>
-                  <select v-model.number="editOrderForm.status" class="form-input">
-                    <option :value="0">Pending</option>
-                    <option :value="1">Processed</option>
-                    <option :value="2">Cancelled</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Reason for Order</label>
-                  <textarea 
-                    v-model="editOrderForm.reason" 
-                    class="form-input" 
-                    rows="3"
-                    placeholder="e.g., Low stock, seasonal demand..."
-                  ></textarea>
-                </div>
-                <div class="form-group">
-                  <label>Replenishment Date</label>
-                  <input 
-                    v-model="editOrderForm.replenishment_date" 
-                    type="date" 
-                    class="form-input"
-                  />
-                </div>
-                <div style="display: flex; gap: 8px; margin-top: 16px">
-                  <button type="submit" class="btn btn-primary">💾 Save Changes</button>
-                  <button type="button" @click="showEditOrderModal = false" class="btn btn-secondary">Cancel</button>
-                </div>
-              </form>
             </div>
           </div>
         </div>
@@ -2613,11 +2624,11 @@
   </div>
 
   <!-- Change Password Modal -->
-  <div v-if="showChangePasswordModal" class="modal-overlay" @click="showChangePasswordModal = false">
+  <div v-if="showChangePasswordModal" class="modal-overlay" @click="showChangePasswordModal = false; showCurrentPassword.value = false; showNewPassword.value = false; showConfirmPassword.value = false">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h3 class="modal-title">🔑 Change Password</h3>
-        <button class="modal-close" @click="showChangePasswordModal = false">✕</button>
+        <button class="modal-close" @click="showChangePasswordModal = false; showCurrentPassword.value = false; showNewPassword.value = false; showConfirmPassword.value = false">✕</button>
       </div>
       <div class="modal-body">
         <form @submit.prevent="handleChangePassword">
@@ -2627,13 +2638,13 @@
               <input 
                 id="current-password"
                 v-model="passwordForm.currentPassword" 
-                :type="showCurrentPassword ? 'text' : 'password'" 
+                :type="showCurrentPassword.value ? 'text' : 'password'" 
                 placeholder="Enter current password"
                 class="form-input"
                 required
               />
-              <button type="button" @click="showCurrentPassword = !showCurrentPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
-                {{ showCurrentPassword ? '👁️' : '👁️‍🗨️' }}
+              <button type="button" @click.prevent="showCurrentPassword.value = !showCurrentPassword.value" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px; line-height: 1">
+                {{ showCurrentPassword.value ? '🙈' : '👁️' }}
               </button>
             </div>
           </div>
@@ -2643,13 +2654,13 @@
               <input 
                 id="new-password"
                 v-model="passwordForm.newPassword" 
-                :type="showNewPassword ? 'text' : 'password'" 
+                :type="showNewPassword.value ? 'text' : 'password'" 
                 placeholder="Enter new password"
                 class="form-input"
                 required
               />
-              <button type="button" @click="showNewPassword = !showNewPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
-                {{ showNewPassword ? '👁️' : '👁️‍🗨️' }}
+              <button type="button" @click.prevent="showNewPassword.value = !showNewPassword.value" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px; line-height: 1">
+                {{ showNewPassword.value ? '🙈' : '👁️' }}
               </button>
             </div>
             <div class="form-hint">At least 8 characters</div>
@@ -2660,20 +2671,20 @@
               <input 
                 id="confirm-password"
                 v-model="passwordForm.confirmPassword" 
-                :type="showConfirmPassword ? 'text' : 'password'" 
+                :type="showConfirmPassword.value ? 'text' : 'password'" 
                 placeholder="Confirm new password"
                 class="form-input"
                 required
               />
-              <button type="button" @click="showConfirmPassword = !showConfirmPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
-                {{ showConfirmPassword ? '👁️' : '👁️‍🗨️' }}
+              <button type="button" @click.prevent="showConfirmPassword.value = !showConfirmPassword.value" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px; line-height: 1">
+                {{ showConfirmPassword.value ? '🙈' : '👁️' }}
               </button>
             </div>
           </div>
           <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
           <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
           <div style="display: flex; gap: 12px; margin-top: 20px">
-            <button type="button" class="btn btn-outline" @click="showChangePasswordModal = false" style="flex: 1">
+            <button type="button" class="btn btn-outline" @click="showChangePasswordModal = false; showCurrentPassword.value = false; showNewPassword.value = false; showConfirmPassword.value = false" style="flex: 1">
               Cancel
             </button>
             <button type="submit" class="btn btn-primary" style="flex: 1">
@@ -3500,6 +3511,9 @@ const hoveredStaff = ref(null);
 const showChangePasswordModal = ref(false);
 const showProfileMenu = ref(false);
 const showProfileEditModal = ref(false);
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 const profileEditForm = ref({
   name: '',
   email: '',
@@ -3623,6 +3637,7 @@ const bookingForm = ref({
   staffId: "",
   appointmentId: null
 });
+const bookingServiceSearch = ref("");
 const bookingError = ref("");
 const bookingSuccess = ref("");
 
@@ -3667,6 +3682,7 @@ const customerForm = ref({
 });
 // Customer form ref for scrolling
 const customerFormRef = ref(null);
+const isEditingCustomer = ref(false);
 const editingCustomerId = ref(null);
 const editingCustomerData = ref(null);
 const customerError = ref("");
@@ -3811,6 +3827,21 @@ const selectedInvoice = ref(null);
 const showProductDetailsModal = ref(false);
 const selectedProduct = ref(null);
 
+// Notification panel state
+const showNotificationPanel = ref(false);
+const notificationsList = ref([]);
+const notificationsLoading = ref(false);
+
+// Computed property for unread notifications count
+const unreadCount = computed(() => {
+  return notificationsList.value.filter(n => !n.is_read).length;
+});
+
+// Computed property for only unread notifications
+const unreadNotifications = computed(() => {
+  return notificationsList.value.filter(n => !n.is_read);
+});
+
 // Order Tab & Replenishment
 const orderTab = ref("pending-orders");
 const replenishmentForm = ref({
@@ -3897,20 +3928,13 @@ const managerInventoryTransactions = ref([]);
 const allManagerReplenishmentTransactions = ref([]);
 const managerTransactionDateFrom = ref("");
 const managerTransactionDateTo = ref("");
+const staffReplenishmentSearch = ref("");
+
+// Track which products already have low stock notifications to prevent duplicates
+const notifiedLowStockProducts = new Set();
 
 // Manager wholesale orders tracking
 const managerOrders = ref([]);
-
-// Edit order modal state
-const showEditOrderModal = ref(false);
-const editingOrder = ref(null);
-const editOrderForm = ref({
-  status: 0,
-  quantity: 1,
-  reason: "",
-  replenishment_date: ""
-});
-const editOrderError = ref("");
 
 const fetchManagerAttendance = async (selectedDate = null) => {
   attendanceLoading.value = true;
@@ -4170,7 +4194,7 @@ const lowStockItems = computed(() => {
 });
 
 const pendingOrders = computed(() => {
-  return data.value.orders.filter(o => o.status === "pending");
+  return allManagerReplenishmentTransactions.value.filter(o => o.status === 0);
 });
 
 const completedAppointments = computed(() => {
@@ -4351,17 +4375,27 @@ const staffOrderRequests = computed(() => {
   return managerInventoryTransactions.value.filter(txn => txn.txn_type === 0);
 });
 
+const filteredStaffReplenishments = computed(() => {
+  if (!staffReplenishmentSearch.value.trim()) return staffOrderRequests.value;
+  const query = staffReplenishmentSearch.value.toLowerCase();
+  return staffOrderRequests.value.filter(txn => {
+    const productMatch = txn.product_name?.toLowerCase().includes(query);
+    const staffMatch = getStaffName(txn.staff_id)?.toLowerCase().includes(query);
+    const serviceMatch = txn.service_name?.toLowerCase().includes(query);
+    return productMatch || staffMatch || serviceMatch;
+  });
+});
+
 const managerReplenishmentOrders = computed(() => {
-  const replenishments = allManagerReplenishmentTransactions.value.filter(txn => txn.txn_type === 1);
-  // Filter out replenishment orders that already have wholesale orders placed
-  const placedProductIds = new Set(managerOrders.value.map(order => order.product_id));
-  return replenishments.filter(txn => !placedProductIds.has(txn.product_id));
+  // Show all cart orders (status === 2) - not yet sent to wholesale
+  const filtered = allManagerReplenishmentTransactions.value.filter(order => order.status === 2);
+  return sortData(filtered, tableSort.value.orders);
 });
 
 const groupedSupplierOrders = computed(() => {
   const grouped = {};
   managerReplenishmentOrders.value.forEach(order => {
-    const supplier = getProductSupplier(order.product_id);
+    const supplier = order.supplier_name || "Unknown Supplier";
     if (!grouped[supplier]) {
       grouped[supplier] = {
         supplier: supplier,
@@ -4371,6 +4405,13 @@ const groupedSupplierOrders = computed(() => {
     grouped[supplier].items.push(order);
   });
   return Object.values(grouped);
+});
+
+const filteredWholesaleOrders = computed(() => {
+  // Only show orders that have been sent to wholesale (status 0) or delivered (status 1)
+  // Exclude cart items (status 2)
+  const filtered = managerOrders.value.filter(order => order.status === 0 || order.status === 1);
+  return sortData(filtered, tableSort.value.orders);
 });
 
 const totalRevenue = computed(() => {
@@ -5452,7 +5493,7 @@ const fetchAllManagerReplenishments = async () => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/inventory-transaction`, {
+    const response = await fetch(`${API_BASE_URL}/api/order`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -5462,14 +5503,14 @@ const fetchAllManagerReplenishments = async () => {
     });
 
     if (response.ok) {
-      const transactions = await response.json();
-      allManagerReplenishmentTransactions.value = transactions;
-      console.log("All manager replenishments fetched:", transactions.filter(t => t.txn_type === 1));
+      const orders = await response.json();
+      allManagerReplenishmentTransactions.value = orders;
+      console.log("All manager replenishment orders fetched:", orders);
     } else {
-      console.error("Failed to fetch manager replenishments:", response.status);
+      console.error("Failed to fetch manager replenishment orders:", response.status);
     }
   } catch (error) {
-    console.error("Error fetching manager replenishments:", error);
+    console.error("Error fetching manager replenishment orders:", error);
   }
 };
 
@@ -5542,7 +5583,7 @@ const handleAddInvoice = async () => {
       service_ids: serviceIds.join(','),
       invoice_amount: totalAmount,
       other_charges: 0,
-      discount_percentage: 0
+      discount_percentage: invoiceForm.value.discount || 0
     };
 
     console.log("📋 Creating invoice for appointment:", invoiceForm.value.appointmentId);
@@ -5643,113 +5684,6 @@ const fetchManagerOrders = async () => {
   }
 };
 
-// Create supplier order
-// Open edit order modal
-const openEditOrderModal = (order) => {
-  editingOrder.value = order;
-  editOrderForm.value = {
-    status: order.status,
-    quantity: order.order_quantity,
-    reason: order.reason_for_order || "",
-    replenishment_date: order.order_replenishment_date ? new Date(order.order_replenishment_date).toISOString().split('T')[0] : ""
-  };
-  editOrderError.value = "";
-  showEditOrderModal.value = true;
-};
-
-// Update supplier order
-const handleUpdateOrder = async () => {
-  editOrderError.value = "";
-
-  if (!editingOrder.value) {
-    editOrderError.value = "No order selected";
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      editOrderError.value = "Authentication required. Please login again.";
-      return;
-    }
-
-    const payload = {
-      status: parseInt(editOrderForm.value.status),
-      order_quantity: parseInt(editOrderForm.value.quantity),
-      reason_for_order: editOrderForm.value.reason
-    };
-
-    if (editOrderForm.value.replenishment_date) {
-      payload.order_replenishment_date = editOrderForm.value.replenishment_date;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/order/${editingOrder.value.order_id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        "Authentication-Token": token
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const result = await response.json();
-
-    if (response.ok) {
-      console.log("Order updated successfully:", result);
-      showEditOrderModal.value = false;
-      editingOrder.value = null;
-      
-      // Refresh orders list
-      await fetchManagerOrders();
-    } else {
-      editOrderError.value = result.message || "Failed to update order";
-      console.error("Error updating order:", result);
-    }
-  } catch (error) {
-    editOrderError.value = "Unable to connect to server. Please try again.";
-    console.error("Network error:", error);
-  }
-};
-
-// Delete supplier order
-const handleDeleteOrder = async (orderId) => {
-  if (!confirm("Are you sure you want to delete this order? This action cannot be undone.")) {
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      alert("Authentication required. Please login again.");
-      return;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/order/${orderId}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        "Authentication-Token": token
-      }
-    });
-
-    const result = await response.json();
-
-    if (response.ok) {
-      console.log("Order deleted successfully");
-      // Refresh orders list
-      await fetchManagerOrders();
-    } else {
-      alert(result.message || "Failed to delete order");
-      console.error("Error deleting order:", result);
-    }
-  } catch (error) {
-    alert("Unable to connect to server. Please try again.");
-    console.error("Network error:", error);
-  }
-};
-
 // Mark order as delivered and auto-replenish stock
 const handleMarkOrderDelivered = async (order) => {
   if (!confirm(`Mark order for "${order.product_name}" as Delivered? This will auto-replenish the stock.`)) {
@@ -5763,33 +5697,92 @@ const handleMarkOrderDelivered = async (order) => {
       return;
     }
 
-    const payload = {
+    // Create order delivered notification IMMEDIATELY when clicked
+    try {
+      const notificationPayload = {
+        subject: "Order Delivered",
+        body: `Order for ${order.product_name} has been successfully delivered. Stock replenished by ${order.order_quantity} units.`,
+        phone_number: "N/A"
+      };
+
+      await fetch(`${API_BASE_URL}/api/send-notification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        },
+        body: JSON.stringify(notificationPayload)
+      });
+    } catch (notifError) {
+      console.warn("Failed to create order delivered notification:", notifError);
+    }
+
+    // Step 1: Update order status to Delivered (1) via PUT order API
+    const orderPayload = {
       status: 1, // Mark as Processed/Delivered
       order_quantity: order.order_quantity
     };
 
-    const response = await fetch(`${API_BASE_URL}/api/order/${order.order_id}`, {
+    const orderResponse = await fetch(`${API_BASE_URL}/api/order/${order.order_id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
         "Authentication-Token": token
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(orderPayload)
     });
 
-    const result = await response.json();
+    const orderResult = await orderResponse.json();
 
-    if (response.ok) {
+    if (!orderResponse.ok) {
+      alert(orderResult.message || "Failed to mark order as delivered");
+      console.error("Error marking order delivered:", orderResult);
+      return;
+    }
+
+    // Step 2: Create inventory transaction to replenish stock via POST inventory-transaction API
+    const txnPayload = {
+      product_id: order.product_id,
+      quantity: order.order_quantity
+      // txn_type will be set to 1 (manager replenishment) by the backend
+    };
+
+    const txnResponse = await fetch(`${API_BASE_URL}/api/inventory-transaction`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(txnPayload)
+    });
+
+    const txnResult = await txnResponse.json();
+
+    if (txnResponse.ok) {
       alert(`Order marked as Delivered! Stock replenished by ${order.order_quantity} units.`);
-      console.log("Order delivered and stock replenished:", result);
+      console.log("Order delivered:", orderResult);
+      console.log("Inventory transaction created:", txnResult);
       
       // Refresh both orders and products
       await fetchManagerOrders();
+      console.log("Manager orders refreshed after delivery");
+      
+      await fetchAllManagerReplenishments();
+      console.log("Manager replenishments refreshed after delivery");
+      
       await fetchProducts();
+      console.log("Products refreshed after delivery");
     } else {
-      alert(result.message || "Failed to mark order as delivered");
-      console.error("Error marking order delivered:", result);
+      alert("Order marked as delivered, but failed to create inventory transaction: " + (txnResult.message || "Unknown error"));
+      console.error("Error creating inventory transaction:", txnResult);
+      
+      // Still refresh since order was updated
+      await fetchManagerOrders();
+      await fetchAllManagerReplenishments();
+      await fetchProducts();
     }
   } catch (error) {
     alert("Unable to connect to server. Please try again.");
@@ -5799,7 +5792,7 @@ const handleMarkOrderDelivered = async (order) => {
 
 // Place grouped supplier orders to wholesale
 const handlePlaceOrderToWholesale = async (supplierGroup) => {
-  if (!confirm(`Are you sure you want to place all ${supplierGroup.items.length} item(s) to wholesale for supplier "${supplierGroup.supplier}"?`)) {
+  if (!confirm(`Are you sure you want to mark all ${supplierGroup.items.length} item(s) as sent to wholesale for supplier "${supplierGroup.supplier}"?`)) {
     return;
   }
 
@@ -5810,21 +5803,47 @@ const handlePlaceOrderToWholesale = async (supplierGroup) => {
       return;
     }
 
-    let successCount = 0;
-    let failCount = 0;
+    // Get supplier email from the first item
+    const supplierEmail = supplierGroup.items[0]?.supplier_email;
+    if (!supplierEmail) {
+      alert("Error: Supplier email not found");
+      return;
+    }
 
-    // Post each item as a separate order to wholesale
-    for (const item of supplierGroup.items) {
+    // Create pending delivery notification IMMEDIATELY when clicked
+    try {
+      const notificationPayload = {
+        subject: "Order Pending Delivery",
+        body: `${supplierGroup.items.length} order(s) placed with supplier "${supplierGroup.supplier}" and sent to wholesaler. Awaiting delivery.`,
+        phone_number: "N/A"
+      };
+
+      await fetch(`${API_BASE_URL}/api/send-notification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        },
+        body: JSON.stringify(notificationPayload)
+      });
+    } catch (notifError) {
+      console.warn("Failed to create pending delivery notification:", notifError);
+    }
+
+    // Step 1: Update each order status from 2 to 0 via PUT (like handleMarkOrderDelivered does)
+    console.log(`Updating ${supplierGroup.items.length} orders to status=0 (Pending Delivery)...`);
+    let successCount = 0;
+    
+    for (const order of supplierGroup.items) {
       try {
-        const product = data.value.products.find(p => p.id === item.product_id);
         const orderPayload = {
-          product_id: item.product_id,
-          order_quantity: item.quantity,
-          reason_for_order: item.reason || "Manager replenishment order"
+          status: 0, // Change to Pending Delivery
+          order_quantity: order.order_quantity
         };
 
-        const response = await fetch(`${API_BASE_URL}/api/order`, {
-          method: "POST",
+        const orderResponse = await fetch(`${API_BASE_URL}/api/order/${order.order_id}`, {
+          method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
@@ -5833,29 +5852,65 @@ const handlePlaceOrderToWholesale = async (supplierGroup) => {
           body: JSON.stringify(orderPayload)
         });
 
-        if (response.ok) {
+        if (orderResponse.ok) {
           successCount++;
-          console.log(`Order placed for product ID ${item.product_id}`);
+          console.log(`✓ Order ${order.order_id} status updated to 0`);
         } else {
-          failCount++;
-          console.error(`Failed to place order for product ID ${item.product_id}`);
+          const errorResult = await orderResponse.json();
+          console.error(`✗ Failed to update order ${order.order_id}:`, errorResult);
         }
-      } catch (error) {
-        failCount++;
-        console.error("Error placing order:", error);
+      } catch (err) {
+        console.error(`Error updating order ${order.order_id}:`, err);
       }
     }
 
-    const summary = `Orders Placed to Wholesale!\n================================\nSupplier: ${supplierGroup.supplier}\nSuccessful: ${successCount}\nFailed: ${failCount}\nTotal Items: ${supplierGroup.items.length}`;
+    console.log(`Successfully updated ${successCount}/${supplierGroup.items.length} orders`);
+
+    // Step 2: Call API to generate and send wholesale order PDF
+    console.log(`Calling API to generate wholesale order PDF for ${supplierEmail}...`);
+    
+    const generateResponse = await fetch(`${API_BASE_URL}/api/generate-wholesaler-order/${encodeURIComponent(supplierEmail)}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    console.log("Generate response status:", generateResponse.status);
+
+    if (generateResponse.ok) {
+      // Handle PDF file download
+      const blob = await generateResponse.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `order_${supplierGroup.supplier.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log("PDF downloaded successfully");
+    } else {
+      const errorText = await generateResponse.text();
+      console.error("Error generating PDF:", generateResponse, errorText);
+    }
+
+    // Step 3: Refresh the lists to show the updated status (status changed from 2 to 0)
+    console.log("Refreshing order lists...");
+    await fetchManagerOrders();
+    console.log("Manager orders refreshed:", managerOrders.value);
+    
+    await fetchAllManagerReplenishments();
+    console.log("All manager replenishments refreshed:", allManagerReplenishmentTransactions.value);
+    
+    const summary = `Orders Confirmed for Wholesale!\n================================\nSupplier: ${supplierGroup.supplier}\nTotal Items Updated: ${successCount}/${supplierGroup.items.length}\n\nWholesale Order PDF has been generated and sent to: ${supplierEmail}\n\nOrders are now visible in "Wholesale Orders Placed"`;
     alert(summary);
     
-    // Refresh manager orders and replenishments
-    await fetchManagerOrders();
-    await fetchAllManagerReplenishments();
-    
-    console.log(`${successCount} orders placed to wholesale, ${failCount} failed`);
+    console.log(`${successCount} orders confirmed for wholesale with ${supplierGroup.supplier}`);
   } catch (error) {
-    alert("Error placing orders: " + error.message);
+    alert("Error: " + error.message);
     console.error("Critical error:", error);
   }
 };
@@ -5863,12 +5918,12 @@ const handlePlaceOrderToWholesale = async (supplierGroup) => {
 // Get status color
 const getStatusColor = (status) => {
   switch(status) {
-    case 0: // Pending
+    case 2: // Added to Cart - In progress
       return { bg: '#fff3cd', text: '#856404' };
-    case 1: // Processed
+    case 0: // Pending - Sent to wholesale, awaiting delivery
+      return { bg: '#cfe2ff', text: '#084298' };
+    case 1: // Delivered - Completed
       return { bg: '#d4edda', text: '#155724' };
-    case 2: // Cancelled
-      return { bg: '#f8d7da', text: '#721c24' };
     default:
       return { bg: '#e2e3e5', text: '#383d41' };
   }
@@ -5877,9 +5932,9 @@ const getStatusColor = (status) => {
 // Get status label
 const getStatusLabel = (status) => {
   switch(status) {
-    case 0: return "Pending";
-    case 1: return "Processed";
-    case 2: return "Cancelled";
+    case 2: return "Added to Cart";
+    case 0: return "Pending Delivery";
+    case 1: return "Delivered";
     default: return "Unknown";
   }
 };
@@ -5993,6 +6048,7 @@ const handleCreateBooking = async () => {
           staffId: ""
         };
         bookingCustomerSearch.value = "";
+        bookingServiceSearch.value = "";
         bookingSuccess.value = "";
       }, 1500);
     } else {
@@ -7112,7 +7168,7 @@ const handleAddStaff = async () => {
 
 // Invoice handlers
 
-const handleSendInvoice = (invoice) => {
+const handleSendInvoice = async (invoice) => {
   const customerEmail = data.value.customers.find(c => c.id === invoice.customer_id)?.email;
   const customerName = getCustomerName(invoice.customer_id);
   
@@ -7122,14 +7178,245 @@ const handleSendInvoice = (invoice) => {
   }
 
   // Show confirmation dialog
-  if (confirm(`Send invoice to ${customerName} (${customerEmail})?\n\nInvoice: #${invoice.invoice_number}\nAmount: ₹${invoice.total_charges}`)) {
-    // Update invoice status to Invoiced (1) in the local state
-    invoice.status = 1;
+  if (!confirm(`Send invoice to ${customerName} (${customerEmail})?\n\nInvoice: #${invoice.invoice_number}\nAmount: ₹${invoice.total_charges}`)) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    // Call API to generate and send invoice PDF
+    const response = await fetch(`${API_BASE_URL}/api/generate-invoice-pdf/${encodeURIComponent(invoice.invoice_number)}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      // Update invoice status to Invoiced (1)
+      invoice.status = 1;
+      
+      // Show success message
+      alert(`✓ Invoice #${invoice.invoice_number} PDF generated and sent successfully to ${customerEmail}!`);
+      
+      console.log(`Invoice ${invoice.invoice_number} PDF sent to ${customerEmail}`, result);
+      
+      // Refresh invoices list
+      await fetchInvoices();
+    } else {
+      alert(`Error sending invoice: ${result.message || "Failed to generate PDF"}`);
+      console.error("Error sending invoice:", result);
+    }
+  } catch (error) {
+    alert("Unable to connect to server. Please try again.");
+    console.error("Network error:", error);
+  }
+};
+
+// Mark staff absent with automated notifications
+const handleMarkStaffAbsentWithNotifications = async () => {
+  if (!confirm("Are you sure you want to mark all unmarked staff as absent for today? Notifications will be sent to manager.")) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    // Step 1: Mark all unmarked staff as absent
+    const markResponse = await fetch(`${API_BASE_URL}/api/mark-staff-absent`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    const markResult = await markResponse.json();
+
+    if (!markResponse.ok) {
+      alert("Error marking staff absent: " + (markResult.message || "Unknown error"));
+      console.error("Error marking staff absent:", markResult);
+      return;
+    }
+
+    // Step 2: Get today's absent staff for notifications
+    const attendanceResponse = await fetch(`${API_BASE_URL}/api/manager-staff-attendance?date=${new Date().toISOString().split('T')[0]}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    const attendanceData = await attendanceResponse.json();
     
-    // Show success message
-    alert(`✓ Invoice #${invoice.invoice_number} sent successfully to ${customerEmail}!`);
+    if (!attendanceResponse.ok) {
+      // Still show success since staff were marked absent, but notify about notification error
+      alert(markResult.message || "Staff marked absent (notification fetch failed)");
+      return;
+    }
+
+    // Step 3: Find absent staff (present_flag = false)
+    const absentStaffList = Array.isArray(attendanceData) ? attendanceData.filter(a => !a.present_flag) : [];
+
+    let notificationsSent = 0;
+    let notificationsFailed = 0;
+
+    // Step 4: Send notifications for each absent staff member
+    for (const attendance of absentStaffList) {
+      try {
+        const staffMember = data.value.staff.find(s => s.id === attendance.staff_id);
+        if (!staffMember) continue;
+
+        const notificationPayload = {
+          subject: "Staff Absent Notification",
+          body: `${staffMember.name} is marked absent today (${new Date().toLocaleDateString()})`,
+          phone_number: staffMember.phone || "N/A"
+        };
+
+        const notifResponse = await fetch(`${API_BASE_URL}/api/send-notification`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "Authentication-Token": token
+          },
+          body: JSON.stringify(notificationPayload)
+        });
+
+        if (notifResponse.ok) {
+          notificationsSent++;
+          console.log(`Notification sent for ${staffMember.name}`);
+        } else {
+          notificationsFailed++;
+          console.error(`Failed to send notification for ${staffMember.name}`);
+        }
+      } catch (error) {
+        notificationsFailed++;
+        console.error("Error sending notification:", error);
+      }
+    }
+
+    const summary = `Staff Marked Absent!\n================================\n${markResult.message}\n\nNotifications Sent: ${notificationsSent}\nNotifications Failed: ${notificationsFailed}`;
+    alert(summary);
+
+    // Refresh attendance data
+    await fetchManagerAttendance();
     
-    console.log(`Invoice ${invoice.invoice_number} marked as sent to ${customerEmail}`);
+    console.log(`Marked staff absent and sent ${notificationsSent} notifications`);
+  } catch (error) {
+    alert("Critical error: " + error.message);
+    console.error("Critical error:", error);
+  }
+};
+
+// Fetch all notifications for current user
+const fetchNotifications = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    notificationsLoading.value = true;
+    const response = await fetch(`${API_BASE_URL}/api/send-notification?include_read=false`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      notificationsList.value = await response.json();
+    } else {
+      console.error("Failed to fetch notifications:", response.statusText);
+      notificationsList.value = [];
+    }
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    notificationsList.value = [];
+  } finally {
+    notificationsLoading.value = false;
+  }
+};
+
+// Mark a notification as read
+const markNotificationAsRead = async (notificationId) => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/send-notification/${notificationId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      // Update local state to mark as read
+      const notification = notificationsList.value.find(n => n.id === notificationId);
+      if (notification) {
+        notification.is_read = true;
+      }
+      console.log(`Notification ${notificationId} marked as read`);
+    } else {
+      console.error("Failed to mark notification as read:", response.statusText);
+    }
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+  }
+};
+
+// Toggle notification panel
+const toggleNotificationPanel = async () => {
+  showNotificationPanel.value = !showNotificationPanel.value;
+  if (showNotificationPanel.value) {
+    await fetchNotifications();
+  }
+};
+
+// Mark all notifications as read
+const markAllNotificationsAsRead = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    const unreadNotifs = notificationsList.value.filter(n => !n.is_read);
+    
+    for (const notification of unreadNotifs) {
+      await markNotificationAsRead(notification.id);
+    }
+    
+    console.log(`Marked ${unreadNotifs.length} notifications as read`);
+  } catch (error) {
+    console.error("Error marking all notifications as read:", error);
   }
 };
 
@@ -8930,15 +9217,18 @@ const handleAddReplenishment = async () => {
       return;
     }
 
+    const product = data.value.products.find(p => p.id === parseInt(replenishmentForm.value.productId));
+    const productName = product?.name || "Product";
+
     const payload = {
       product_id: parseInt(replenishmentForm.value.productId),
-      quantity: parseInt(replenishmentForm.value.quantity)
-      // Note: service_id is optional - manager replenishment doesn't require it
+      order_quantity: parseInt(replenishmentForm.value.quantity),
+      reason_for_order: replenishmentForm.value.reason.trim()
     };
 
-    console.log("Creating replenishment with payload:", payload);
+    console.log("Creating replenishment order with payload:", payload);
 
-    const response = await fetch(`${API_BASE_URL}/api/inventory-transaction`, {
+    const response = await fetch(`${API_BASE_URL}/api/order`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -8951,14 +9241,6 @@ const handleAddReplenishment = async () => {
     const result = await response.json();
 
     if (response.ok) {
-      const product = data.value.products.find(p => p.id === parseInt(replenishmentForm.value.productId));
-      const productName = product?.name || "Product";
-      
-      // Update product stock if returned from backend
-      if (result.updated_stock !== undefined && product) {
-        product.currentStock = result.updated_stock;
-      }
-      
       // Reset form
       replenishmentForm.value = {
         productId: "",
@@ -8967,13 +9249,13 @@ const handleAddReplenishment = async () => {
         supplier: ""
       };
       
-      // Refresh manager replenishments list only (not staff transactions)
+      // Refresh manager replenishments list
       await fetchAllManagerReplenishments();
       
-      console.log(`Replenishment added for ${productName}`, result);
+      console.log(`Replenishment order added for ${productName}`, result);
     } else {
-      replenishmentError.value = result.message || "Failed to add replenishment";
-      console.error("Error adding replenishment:", result);
+      replenishmentError.value = result.message || "Failed to add replenishment order";
+      console.error("Error adding replenishment order:", result);
     }
   } catch (error) {
     replenishmentError.value = "Unable to connect to server. Please try again.";
@@ -9104,9 +9386,69 @@ const fetchProducts = async () => {
         product_low_stock_alert: p.product_low_stock_alert,
         unit: "unit"
       }));
+      
+      // Create notifications for low stock items
+      await createLowStockNotifications();
     }
   } catch (error) {
     console.error("Error fetching products:", error);
+  }
+};
+
+// Create notifications for low stock items (prevent duplicates)
+const createLowStockNotifications = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    // Initialize notifiedLowStockProducts from existing unread notifications
+    // This prevents duplicate notifications on page reload
+    notificationsList.value.forEach(n => {
+      if (n.subject === "Low Stock Alert" && !n.is_read) {
+        // Extract product ID or name from the notification body
+        const products = data.value.products.filter(p => n.body.includes(p.name));
+        products.forEach(p => notifiedLowStockProducts.add(p.id));
+      }
+    });
+
+    // Get current low stock items
+    const lowStockProducts = data.value.products.filter(p => p.stock <= p.minStock);
+    
+    if (lowStockProducts.length === 0) return;
+
+    // Create notification only for products we haven't notified about yet
+    for (const product of lowStockProducts) {
+      // Skip if we've already notified about this product
+      if (notifiedLowStockProducts.has(product.id)) {
+        continue;
+      }
+
+      const notificationPayload = {
+        subject: "Low Stock Alert",
+        body: `${product.name} is running low on stock. Current: ${product.stock} units, Minimum: ${product.minStock} units.`,
+        phone_number: "N/A"
+      };
+
+      try {
+        await fetch(`${API_BASE_URL}/api/send-notification`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "Authentication-Token": token
+          },
+          body: JSON.stringify(notificationPayload)
+        });
+        // Mark this product as notified
+        notifiedLowStockProducts.add(product.id);
+        // Refresh notifications to show the newly created one
+        await fetchNotifications();
+      } catch (notifError) {
+        console.warn(`Failed to create low stock notification for ${product.name}:`, notifError);
+      }
+    }
+  } catch (error) {
+    console.warn("Error creating low stock notifications:", error);
   }
 };
 
@@ -9244,6 +9586,8 @@ const fetchBriefing = async () => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  // Fetch notifications FIRST so we can check against existing ones
+  fetchNotifications();
   // Fetch AI daily briefing
   fetchBriefing();
   // Fetch manager profile data for name display
@@ -10094,8 +10438,9 @@ watch(() => currentView.value, (newView) => {
 }
 .report-card-title {
   font-weight: 700;
-  font-size: 14px;
-  color: var(--charcoal);
+  font-size: 15px;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 .report-card-desc {
   font-size: 12px;
@@ -10109,5 +10454,222 @@ watch(() => currentView.value, (newView) => {
   margin-top: 6px;
   flex-wrap: wrap;
 }
+
+/* Bell icon badge for unread count */
+.notif-btn {
+  position: relative;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.notif-btn:hover {
+  transform: scale(1.1);
+}
+
+.notif-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Notification Panel Styles */
+.notification-panel {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  width: 420px;
+  max-height: 600px;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  z-index: 999;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notification-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
+}
+
+.notification-panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gold-bright);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-panel-header h3::before {
+  content: "⚡";
+  font-size: 18px;
+}
+
+.notification-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mark-all-btn {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.1));
+  border: 1px solid rgba(76, 175, 80, 0.4);
+  color: #7cfc7c;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.mark-all-btn:hover {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.5), rgba(76, 175, 80, 0.3));
+  border-color: #7cfc7c;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: var(--gold);
+}
+
+.notification-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.notification-loading,
+.notification-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  transition: background-color 0.2s;
+  border-left: 3px solid rgba(230, 126, 34, 0.6);
+}
+
+.notification-item:hover {
+  background-color: rgba(212, 175, 55, 0.08);
+}
+
+.notification-item::before {
+  content: "⚠";
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  margin-right: 4px;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-subject {
+  font-weight: 600;
+  font-size: 13px;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.notification-message {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.4;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+.notification-time {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 8px;
+}
+
+.mark-read-btn {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.1));
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: var(--gold-bright);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mark-read-btn:hover {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.5), rgba(212, 175, 55, 0.3));
+  border-color: var(--gold);
+}
+
 </style>
 

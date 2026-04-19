@@ -72,7 +72,41 @@
       <div class="topbar">
         <div class="topbar-title">{{ pageTitle }}</div>
         <div class="topbar-right">
-          <button class="notif-btn">🔔</button>
+          <button class="notif-btn" @click="toggleNotificationPanel" style="position: relative">
+            🔔
+            <span v-if="unreadNotificationsCount > 0" style="position: absolute; top: -5px; right: -5px; background: #ff4444; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold">{{ unreadNotificationsCount }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Notifications Panel -->
+      <div v-if="showNotificationPanel" class="notification-panel" style="position: absolute; top: 80px; right: 20px; width: 350px; max-height: 500px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; display: flex; flex-direction: column">
+        <div style="padding: 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center">
+          <div style="font-weight: 600; font-size: 14px">Notifications</div>
+          <button @click="showNotificationPanel = false" style="background: none; border: none; cursor: pointer; font-size: 18px; color: #999">✕</button>
+        </div>
+        
+        <div v-if="notificationsLoading" style="padding: 20px; text-align: center; color: #999">
+          Loading notifications...
+        </div>
+        <div v-else-if="notificationsList.length === 0" style="padding: 20px; text-align: center; color: #999">
+          No notifications
+        </div>
+        <div v-else style="flex: 1; overflow-y: auto">
+          <div v-for="notification in notificationsList" :key="notification.id" style="padding: 12px; border-bottom: 1px solid #2a2a2a; cursor: pointer; transition: background 0.2s" @mouseover="(e) => e.currentTarget.style.background = '#242424'" @mouseout="(e) => e.currentTarget.style.background = 'transparent'">
+            <div style="display: flex; justify-content: space-between; align-items: start">
+              <div style="flex: 1">
+                <div style="font-weight: 600; font-size: 13px; color: #fff">{{ notification.subject }}</div>
+                <div style="font-size: 12px; color: #bbb; margin-top: 4px">{{ notification.body }}</div>
+                <div style="font-size: 11px; color: #666; margin-top: 6px">{{ new Date(notification.created_at).toLocaleString('en-IN') }}</div>
+              </div>
+              <button v-if="!notification.is_read" @click="markNotificationAsRead(notification.id)" style="background: none; border: none; cursor: pointer; font-size: 12px; color: #d4af37; margin-left: 8px; padding: 4px 8px; white-space: nowrap">Mark Read</button>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="notificationsList.length > 0" style="padding: 12px; border-top: 1px solid #333; text-align: center">
+          <button @click="markAllNotificationsAsRead" style="background: none; border: none; cursor: pointer; font-size: 12px; color: #d4af37">✓ Mark All as Read</button>
         </div>
       </div>
 
@@ -309,9 +343,6 @@
                       <th>Service</th>
                       <th>Date & Time</th>
                       <th>Duration</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -320,16 +351,6 @@
                       <td>{{ appt.service }}</td>
                       <td>{{ appt.date }} {{ appt.time }}</td>
                       <td>{{ appt.duration }} min</td>
-                      <td>₹{{ appt.amount }}</td>
-                      <td>
-                        <span :class="['badge', getStatusBadgeClass(appt.status)]">{{ appt.status }}</span>
-                      </td>
-                      <td>
-                        <button v-if="appt.status !== 'completed'" class="btn btn-sm btn-primary" @click.stop="handleMarkAppointmentComplete(appt)" style="padding: 4px 8px; font-size: 12px">
-                          ✓ Complete
-                        </button>
-                        <span v-else class="text-muted" style="font-size: 12px">Completed</span>
-                      </td>
                     </tr>
                   </tbody>
                 </table>
@@ -642,39 +663,39 @@
 
   <!-- Appointment Details Modal -->
   <div v-if="showAppointmentDetailsModal" class="modal-overlay" @click="showAppointmentDetailsModal = false">
-    <div class="modal-content" @click.stop>
+    <div class="modal-content" @click.stop style="background: #1a1a1a">
       <div class="modal-header">
         <h3 class="modal-title">📅 Appointment Details</h3>
         <button class="modal-close" @click="showAppointmentDetailsModal = false">✕</button>
       </div>
       <div class="modal-body" v-if="selectedAppointment">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px">
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)"> 
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Customer Name</div>
-            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.customerName }}</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)"> 
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Customer Name</div>
+            <div style="font-weight: 600; font-size: 14px; color: #fff">{{ selectedAppointment.customerName }}</div>
           </div>
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Service</div>
-            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.service }}</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Service</div>
+            <div style="font-weight: 600; font-size: 14px; color: #fff">{{ selectedAppointment.service }}</div>
           </div>
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Date</div>
-            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.date ? selectedAppointment.date : 'Today' }}</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Date</div>
+            <div style="font-weight: 600; font-size: 14px; color: #fff">{{ selectedAppointment.date ? selectedAppointment.date : 'Today' }}</div>
           </div>
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Time</div>
-            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.time }}</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Time</div>
+            <div style="font-weight: 600; font-size: 14px; color: #fff">{{ selectedAppointment.time }}</div>
           </div>
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Duration</div>
-            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.duration }} minutes</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Duration</div>
+            <div style="font-weight: 600; font-size: 14px; color: #fff">{{ selectedAppointment.duration }} minutes</div>
           </div>
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Amount</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Amount</div>
             <div style="font-weight: 600; font-size: 14px; color: var(--success)">₹{{ selectedAppointment.amount }}</div>
           </div>
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Status</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Status</div>
             <span :class="['badge', getStatusBadgeClass(selectedAppointment.status)]">{{ selectedAppointment.status }}</span>
           </div>
         </div>
@@ -905,6 +926,11 @@ const fetchedAttendance = ref([]);
 const customerReviews = ref([]);
 const reviewsLoading = ref(false);
 
+// Notifications
+const showNotificationPanel = ref(false);
+const notificationsList = ref([]);
+const notificationsLoading = ref(false);
+
 // Filter states
 const appointmentCustomerFilter = ref("");
 const appointmentSortBy = ref("date"); // date, customer, status, amount
@@ -1119,8 +1145,7 @@ const fetchAppointmentsByMode = async (mode = "today") => {
         date: date,
         time: time,
         duration: 60, // Default, if not in API response
-        status: "confirmed", // Default status if not in API response
-        amount: 0 // Default, if not in API response
+        status: "confirmed" // Default status if not in API response
       };
     });
 
@@ -1142,6 +1167,122 @@ const fetchAppointmentsByMode = async (mode = "today") => {
     appointmentLoading.value = false;
   }
 };
+
+// Create notifications for today's appointments
+const createTodayAppointmentNotifications = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token || fetchedTodayAppointments.value.length === 0) return;
+
+    for (const appt of fetchedTodayAppointments.value) {
+      const notificationPayload = {
+        subject: "Today's Appointment",
+        body: `You have an appointment with ${appt.customerName} at ${appt.time} for ${appt.service}.`,
+        phone_number: "N/A"
+      };
+
+      try {
+        await fetch(`${API_BASE_URL}/api/send-notification`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "Authentication-Token": token
+          },
+          body: JSON.stringify(notificationPayload)
+        });
+      } catch (notifError) {
+        console.warn(`Failed to create notification for appointment with ${appt.customerName}:`, notifError);
+      }
+    }
+  } catch (error) {
+    console.warn("Error creating appointment notifications:", error);
+  }
+};
+
+// Fetch notifications
+const fetchNotifications = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    notificationsLoading.value = true;
+    const response = await fetch(`${API_BASE_URL}/api/send-notification?include_read=false`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      notificationsList.value = await response.json();
+    } else {
+      notificationsList.value = [];
+    }
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    notificationsList.value = [];
+  } finally {
+    notificationsLoading.value = false;
+  }
+};
+
+// Toggle notification panel
+const toggleNotificationPanel = async () => {
+  showNotificationPanel.value = !showNotificationPanel.value;
+  if (showNotificationPanel.value) {
+    await fetchNotifications();
+  }
+};
+
+// Mark notification as read
+const markNotificationAsRead = async (notificationId) => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    const response = await fetch(`${API_BASE_URL}/api/send-notification/${notificationId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const notification = notificationsList.value.find(n => n.id === notificationId);
+      if (notification) {
+        notification.is_read = true;
+      }
+    }
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+  }
+};
+
+// Mark all notifications as read
+const markAllNotificationsAsRead = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    for (const notification of notificationsList.value) {
+      if (!notification.is_read) {
+        await markNotificationAsRead(notification.id);
+      }
+    }
+  } catch (error) {
+    console.error("Error marking all as read:", error);
+  }
+};
+
+// Unread notifications count
+const unreadNotificationsCount = computed(() => {
+  return notificationsList.value.filter(n => !n.is_read).length;
+});
 
 // Fetch attendance data for current month
 const fetchAttendance = async () => {
@@ -2012,10 +2153,20 @@ const handleClickOutside = (e) => {
   if (sidebarUser && !sidebarUser.contains(e.target)) {
     showProfileMenu.value = false;
   }
+
+  // Close notification panel
+  const notificationPanel = document.querySelector('.notification-panel');
+  const notifBtn = document.querySelector('.notif-btn');
+  if (notificationPanel && !notificationPanel.contains(e.target) && !notifBtn?.contains(e.target)) {
+    showNotificationPanel.value = false;
+  }
 };
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  
+  // Fetch notifications
+  fetchNotifications();
   
   // Fetch staff info and widget data
   fetchStaffInfo();
@@ -2023,8 +2174,10 @@ onMounted(() => {
   // Fetch today's appointment stats from StaffDashboard API
   fetchDashboardStats();
   
-  // Fetch today's appointments on mount
-  fetchAppointmentsByMode("today");
+  // Fetch today's appointments on mount and create notifications
+  fetchAppointmentsByMode("today").then(() => {
+    createTodayAppointmentNotifications();
+  });
   
   // Fetch attendance data on mount
   fetchAttendance();

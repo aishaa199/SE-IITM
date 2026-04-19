@@ -1,8 +1,4 @@
 Invoice #,Date,Customer,Services,Staff,Invoice Amount (₹),Rewards Used,Payable Amount (₹)
-43,01 Apr 2026,Aditi Sharma,"De-Tan Pack, Classic Manicure",Sneha Kulkarni,1050.00,6,1194.00
-39,04 Apr 2026,Lavanya Bose,Swedish Body Massage,Yamini Nambiar,2500.00,25,2475.00
-51,08 Apr 2026,Chandrika Rao,Ladies Haircut & Styling,N/A,550.00,0,550.00
-52,08 Apr 2026,Roshni Bhatt,Hair Spa & Deep Condition.,N/A,1100.00,0,1100.00
-53,08 Apr 2026,Qureshi Fatima,Hair Spa & Deep Condition.,N/A,1100.00,0,1100.00
-54,08 Apr 2026,Chandrika Rao,Ladies Haircut & Styling,Padmavathi Reddy,550.00,55,547.25
-55,08 Apr 2026,Sheetal Menon,Diamond Facial,Radha Menon,1900.00,0,1900.00
+36,01 Apr 2026,Pallavi Krishnan,Eyebrow Threading,Radha Menon,60.00,1,159.00
+55,19 Apr 2026,Aditi Sharma,"Ladies Haircut & Styling, Hair Highlights",Priya Sharma,3350.00,0,3350.00
+56,19 Apr 2026,Bhavna Patel,Bridal Makeup Package,Anjali Singh,12000.00,0,10800.00
