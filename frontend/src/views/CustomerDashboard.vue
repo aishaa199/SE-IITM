@@ -81,7 +81,62 @@
       <div class="topbar">
         <div class="topbar-title">{{ pageTitle }}</div>
         <div class="topbar-right">
-          <button class="notif-btn">🔔</button>
+          <div style="position: relative">
+            <button 
+              class="notif-btn" 
+              @click="showNotificationDropdown = !showNotificationDropdown"
+              style="position: relative; cursor: pointer"
+            >
+              🔔
+            </button>
+            
+            <!-- Notification Dropdown -->
+            <div v-if="showNotificationDropdown" style="
+              position: absolute;
+              top: 100%;
+              right: 0;
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              width: 380px;
+              max-height: 450px;
+              overflow-y: auto;
+              z-index: 1000;
+              margin-top: 8px;
+            " @click.stop>
+              <div style="padding: 16px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 14px; color: var(--charcoal); background: var(--light-bg)">
+                📅 Today's Appointments
+              </div>
+              
+              <div v-if="loadingTodayAppointments" style="padding: 20px; text-align: center; color: var(--charcoal); font-size: 13px; background: var(--surface)">
+                Loading appointments...
+              </div>
+              
+              <div v-else-if="todayAppointmentsNotifications.length === 0" style="padding: 20px; text-align: center; color: var(--charcoal); font-size: 13px; background: var(--surface)">
+                No appointments scheduled for today
+              </div>
+              
+              <div v-else style="background: var(--surface)">
+                <div v-for="(appt, idx) in todayAppointmentsNotifications" :key="appt.id" style="
+                  padding: 14px 16px;
+                  border-bottom: 1px solid var(--border);
+                  background: idx % 2 === 0 ? 'var(--surface)' : 'var(--light-bg)';
+                ">
+                  <div style="display: flex; align-items: flex-start; gap: 12px">
+                    <div style="font-size: 20px">✨</div>
+                    <div style="flex: 1">
+                      <div style="font-weight: 600; font-size: 13px; color: var(--charcoal)">{{ appt.service_name }}</div>
+                      <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px">with {{ appt.staff_name }}</div>
+                      <div style="font-size: 12px; color: white; margin-top: 5px; font-weight: 500; display: flex; gap: 12px">
+                        <span>₹{{ appt.price }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1299,6 +1354,12 @@ const chatMessages = ref([
   { type: "bot", text: "Hi! I'm your beauty assistant. How can I help you today?", time: "Now" }
 ]);
 
+// Notification state
+const showNotificationDropdown = ref(false);
+const todayAppointmentsNotifications = ref([]);
+const loadingTodayAppointments = ref(false);
+const todayAppointmentsError = ref("");
+
 // Filter state
 const appointmentHistoryFilter = ref("");
 const selectedServiceCategory = ref(null);
@@ -1313,6 +1374,12 @@ const currentPageReviews = ref(1);
 const upcomingAppointmentsData = ref([]);
 const upcomingAppointmentsError = ref("");
 const loadingUpcomingAppointments = ref(false);
+
+// Compute today's appointment count
+const todayAppointmentCount = computed(() => {
+  const today = new Date().toISOString().split('T')[0];
+  return todayAppointmentsNotifications.value.filter(appt => appt.date === today).length;
+});
 const historyAppointmentsData = ref([]);
 const historyAppointmentsError = ref("");
 const loadingHistoryAppointments = ref(false);
@@ -2171,6 +2238,54 @@ const getReviewForBooking = (appointmentId) => {
   });
 };
 
+// Fetch today's appointments for notifications
+const fetchTodayAppointments = async () => {
+  const token = localStorage.getItem("authToken");
+  
+  if (!token) {
+    console.warn("No authentication token found");
+    return;
+  }
+  
+  loadingTodayAppointments.value = true;
+  todayAppointmentsError.value = "";
+  
+  try {
+    const data = await apiClient.get("/api/customer-upcoming-appointments");
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Filter appointments for today only
+    todayAppointmentsNotifications.value = data
+      .filter(appt => appt.datetime && appt.datetime.split('T')[0] === today)
+      .map(appt => {
+        // Convert UTC datetime to IST
+        const dateObj = new Date(appt.datetime);
+        const istTime = new Date(dateObj.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const istHours = String(istTime.getHours()).padStart(2, '0');
+        const istMinutes = String(istTime.getMinutes()).padStart(2, '0');
+        
+        return {
+          id: appt.appointment_id,
+          service_name: appt.services && appt.services.length > 0 
+            ? appt.services.map(s => s.service_name).join(", ")
+            : "Service",
+          staff_name: appt.staff_name || "Not Assigned",
+          datetime: appt.datetime,
+          price: appt.total_price || 0,
+          date: appt.datetime ? appt.datetime.split('T')[0] : '',
+          time: `${istHours}:${istMinutes}`
+        };
+      });
+    
+    console.log("Today's appointments for notifications:", todayAppointmentsNotifications.value);
+  } catch (error) {
+    console.error("Error fetching today's appointments:", error);
+    todayAppointmentsError.value = "Failed to load today's appointments";
+  } finally {
+    loadingTodayAppointments.value = false;
+  }
+};
+
 // Fetch upcoming appointments from API
 const fetchUpcomingAppointments = async () => {
   const token = localStorage.getItem("authToken");
@@ -2526,6 +2641,7 @@ onMounted(() => {
   fetchPendingReviews();
   fetchReviewedAppointments();
   fetchAvailableStaff();
+  fetchTodayAppointments();
 });
 
 // Book appointment API using apiClient

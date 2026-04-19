@@ -286,7 +286,7 @@ class Order(db.Model):
     reason_for_order = db.Column(db.String(255), nullable=True)
     supplier_name = db.Column(db.Text, nullable=False)
     supplier_email = db.Column(db.String(120), nullable=False)
-    status = db.Column(db.Integer, default=0) # 0 for Pending, 1 for Processed, 2 for Cancelled
+    status = db.Column(db.Integer, default=2) # 0 for Pending, 1 for Processed, 2 for Cancelled
     order_path = db.Column(db.String(512), nullable=True)
 
     # Relationship
