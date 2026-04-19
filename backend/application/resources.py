@@ -471,7 +471,7 @@ class OrderResource(Resource):
                 reason_for_order=reason_for_order,
                 supplier_name=product.product_supplier_name,
                 supplier_email=product.product_supplier_email,
-                status=0 # 0 for Pending
+                status=2 # 0 for Add to cart
             )
             
             
@@ -1562,10 +1562,13 @@ class SupplierOrderReportResource(Resource):
                             'order_date': order.order_date.isoformat(),
                             'reason_for_order': order.reason_for_order
                         })
+                        # Update status to 0 (pending) after adding to report
+                        order.status = 0
                 generated_files.append(filename)
 
+            db.session.commit()
             return {
-                "message": f"Successfully generated {len(generated_files)} supplier reports.",
+                "message": f"Successfully generated {len(generated_files)} supplier reports and updated order statuses to 2.",
                 "directory": report_dir,
                 "files": generated_files
             }, 200
