@@ -1,32 +1,31 @@
 Staff Name,Role,Skills,Appointments Handled,Completed,Attendance Days,Avg Rating
-Ananya Chatterjee,Nail Technician,"Manicure, Pedicure, Nail Art, Gel Top Coat",1,0,0,3.8
-Anjali Singh,Beautician,"Facial, Waxing, Threading, Cleanup, De-Tan Pack",1,0,0,4.2
-Bindhu Pillai,Senior Beautician,"Gold Facial, Waxing, Threading, De-Tan Pack",0,0,0,4.6
-Deepika Joshi,Beautician,"Threading, Cleanup, De-Tan, Full Body Waxing",0,0,0,4.2
-Divya Iyer,Spa Therapist,"Aromatherapy, Swedish Massage, Head Massage",0,0,0,4.6
-Geeta Krishnan,Makeup Artist,"Bridal Makeup, Party Makeup, Airbrush Makeup",1,0,0,4.4
-Kavitha Reddy,Nail Technician,"Manicure, Pedicure, Gel Extensions, Nail Art",0,0,0,4.2
-Kiran Rao,Spa Therapist,"Body Scrub & Wrap, Swedish Massage, Hot Stone Therapy",0,0,0,4.0
-Lakshmi Rao,Senior Stylist,"Hair Coloring, Highlights, Keratin Treatment, Blow Dry",0,0,0,3.8
-Meera Nair,Senior Beautician,"Gold Facial, Diamond Facial, Waxing, Eyebrow Tint",0,0,0,4.8
-Nalini Murthy,Beautician,"Diamond Facial, Waxing, De-Tan, Eyebrow Shaping",0,0,0,4.5
-Nandita Bose,Junior Stylist,"Ladies Haircut, Head Massage, Blow Dry",1,0,0,4.6
-Neha Gupta,Makeup Artist,"Bridal Makeup, Party Makeup, Saree Draping",0,0,0,4.1
-Padmavathi Reddy,Senior Stylist,"Keratin Treatment, Hair Coloring, Blow Dry",0,0,0,4.5
-Pooja Agarwal,Junior Stylist,"Gents Haircut, Ladies Haircut, Blow Dry",0,0,0,4.1
-Preeti Mishra,Beautician,"Cleanup, Facial, De-Tan, Waxing",0,0,0,4.4
-Priya Sharma,Senior Stylist,"Ladies Haircut, Hair Coloring, Hair Spa, Blow Dry",1,0,0,4.6
-Radha Menon,Beautician,"Facial, De-Tan, Cleanup, Waxing",0,0,0,4.5
-Rekha Pillai,Senior Beautician,"Gold Facial, Cleanup, Waxing, Threading",0,0,0,4.0
-Ritu Verma,Stylist,"Ladies Haircut, Blow Dry, Hair Spa, Head Massage",0,0,0,4.1
-Sangeeta Bhatt,Stylist,"Ladies Haircut, Highlights, Hair Spa",0,0,0,4.5
-Shilpa Kaur,Stylist,"Hair Coloring, Hair Spa, Blow Dry, Ladies Haircut",0,0,0,3.9
-Sneha Kulkarni,Beautician,"Facial, Waxing, Threading, Eyebrow Tint",0,0,0,4.4
-Sonal Mehta,Senior Nail Tech,"Nail Art, Gel Extensions, Acrylic Extensions, Pedicure",0,0,0,4.5
-Sumitha Suresh,Nail Technician,"Nail Art, Gel Extensions, Acrylic Nails, Pedicure",0,0,0,4.0
-Sunita Patel,Spa Therapist,"Swedish Massage, Aromatherapy, Body Scrub & Wrap",0,0,0,4.8
-Swati Desai,Makeup Artist,"Party Makeup, Bridal Makeup, HD Makeup",0,0,0,4.7
-Usha Srinivasan,Beautician,"Threading, Waxing, Facial, Cleanup",0,0,0,4.1
-Vasudha Singh,Junior Nail Tech,"Manicure, Pedicure, Basic Nail Art",0,0,0,4.7
-Yamini Nambiar,Junior Stylist,"Gents Haircut, Head Massage, Blow Dry",0,0,0,4.1
-staff1name,Beautician,"Coloring, Styling, Nails",0,0,2,N/A
+Ananya Chatterjee,Nail Technician,"Manicure, Pedicure, Nail Art, Gel Top Coat",0,0,1,4.5
+Anjali Singh,Beautician,"Facial, Waxing, Threading, Cleanup, De-Tan Pack",0,0,1,4.1
+Bindhu Pillai,Senior Beautician,"Gold Facial, Waxing, Threading, De-Tan Pack",0,0,2,4.3
+Deepika Joshi,Beautician,"Threading, Cleanup, De-Tan, Full Body Waxing",0,0,3,4.6
+Divya Iyer,Spa Therapist,"Aromatherapy, Swedish Massage, Head Massage",1,0,2,4.5
+Geeta Krishnan,Makeup Artist,"Bridal Makeup, Party Makeup, Airbrush Makeup",0,0,1,4.5
+Kavitha Reddy,Nail Technician,"Manicure, Pedicure, Gel Extensions, Nail Art",2,0,1,4.1
+Kiran Rao,Spa Therapist,"Body Scrub & Wrap, Swedish Massage, Hot Stone Therapy",0,0,2,4.6
+Lakshmi Rao,Senior Stylist,"Hair Coloring, Highlights, Keratin Treatment, Blow Dry",1,0,1,3.8
+Meera Nair,Senior Beautician,"Gold Facial, Diamond Facial, Waxing, Eyebrow Tint",2,0,0,4.7
+Nalini Murthy,Beautician,"Diamond Facial, Waxing, De-Tan, Eyebrow Shaping",0,0,0,4.7
+Nandita Bose,Junior Stylist,"Ladies Haircut, Head Massage, Blow Dry",0,0,0,4.4
+Neha Gupta,Makeup Artist,"Bridal Makeup, Party Makeup, Saree Draping",1,0,2,4.3
+Padmavathi Reddy,Senior Stylist,"Keratin Treatment, Hair Coloring, Blow Dry",0,0,1,4.8
+Pooja Agarwal,Junior Stylist,"Gents Haircut, Ladies Haircut, Blow Dry",0,0,1,4.7
+Preeti Mishra,Beautician,"Cleanup, Facial, De-Tan, Waxing",2,0,3,4.7
+Priya Sharma,Senior Stylist,"Ladies Haircut, Hair Coloring, Hair Spa, Blow Dry",4,0,2,4.2
+Radha Menon,Beautician,"Facial, De-Tan, Cleanup, Waxing",2,0,0,4.2
+Rekha Pillai,Senior Beautician,"Gold Facial, Cleanup, Waxing, Threading",1,0,0,4.6
+Ritu Verma,Stylist,"Ladies Haircut, Blow Dry, Hair Spa, Head Massage",0,0,1,4.0
+Sangeeta Bhatt,Stylist,"Ladies Haircut, Highlights, Hair Spa",1,0,2,3.8
+Shilpa Kaur,Stylist,"Hair Coloring, Hair Spa, Blow Dry, Ladies Haircut",0,0,0,4.3
+Sneha Kulkarni,Beautician,"Facial, Waxing, Threading, Eyebrow Tint",1,0,2,4.4
+Sonal Mehta,Senior Nail Tech,"Nail Art, Gel Extensions, Acrylic Extensions, Pedicure",0,0,2,4.8
+Sumitha Suresh,Nail Technician,"Nail Art, Gel Extensions, Acrylic Nails, Pedicure",0,0,1,4.5
+Sunita Patel,Spa Therapist,"Swedish Massage, Aromatherapy, Body Scrub & Wrap",0,0,2,4.3
+Swati Desai,Makeup Artist,"Party Makeup, Bridal Makeup, HD Makeup",1,0,2,4.8
+Usha Srinivasan,Beautician,"Threading, Waxing, Facial, Cleanup",0,0,3,4.2
+Vasudha Singh,Junior Nail Tech,"Manicure, Pedicure, Basic Nail Art",2,0,1,4.2
+Yamini Nambiar,Junior Stylist,"Gents Haircut, Head Massage, Blow Dry",0,0,1,3.8

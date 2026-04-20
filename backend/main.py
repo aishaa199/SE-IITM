@@ -16,10 +16,12 @@ from upload_initial_data import seed_initial_data
 scheduler = APScheduler()
 
 
-def create_app():
+def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     os.makedirs(app.instance_path, exist_ok=True)
     app.config.from_object(DevelopmentConfig)
+    if test_config:
+        app.config.update(test_config)
     CORS(app, resources={r"/*": {"origins": "*"}})
     db.init_app(app)
     mail = Mail(app)

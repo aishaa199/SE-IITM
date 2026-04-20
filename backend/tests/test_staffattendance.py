@@ -32,25 +32,19 @@ class TestStaffAttendance:
         assert rv.status_code in (302, 401)
 
     def test_mark_attendance_staff(self, client, staff_token):
-        """TC-ATTN-03: Staff can mark their attendance for today."""
-        # We try to mark it. If already marked (by TC-ATTN-01 or seed), we expect 400.
-        # Otherwise 201. Both are valid 'handled' responses.
+        """TC-ATTN-03: Staff marks attendance – 201 first time, 409 if already marked."""
         rv = client.post('/api/staff-attendance', headers=auth_headers(staff_token))
-        assert rv.status_code in (201, 400)
-        
+        assert rv.status_code in (201, 409)
+
         if rv.status_code == 201:
-            data = rv.get_json()
-            assert 'message' in data
-            assert 'Attendance marked successfully' in data['message']
+            assert 'message' in rv.get_json()
 
     def test_mark_attendance_duplicate(self, client, staff_token):
-        """TC-ATTN-04: Staff cannot mark attendance twice on the same day."""
-        # Ensure it's marked
+        """TC-ATTN-04: Staff cannot mark attendance twice on the same day – 409 Conflict."""
         client.post('/api/staff-attendance', headers=auth_headers(staff_token))
-        # Second attempt
         rv = client.post('/api/staff-attendance', headers=auth_headers(staff_token))
-        assert rv.status_code == 400
-        assert 'already marked' in rv.get_json()['message']
+        assert rv.status_code == 409
+        assert 'already' in rv.get_json()['message'].lower()
 
     def test_mark_attendance_manager_forbidden(self, client, manager_token):
         """TC-ATTN-05: Manager role cannot POST to staff attendance endpoint."""

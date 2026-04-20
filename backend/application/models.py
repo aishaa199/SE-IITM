@@ -233,9 +233,11 @@ class CustomerReward(db.Model):
     reward_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer_master.customer_id'), nullable=False)
     credit_points = db.Column(db.Integer, nullable=False)
-    expiry_date = db.Column(db.DateTime, nullable=False) # to be calculated after adding the time duration from the salon_config table
-    valid_flg = db.Column(db.Boolean, default=True) # to check if the reward points are still valid based on the expiry date
-    utilized_flg = db.Column(db.Boolean, default=False) # to check if the reward points are already utilized
+    expiry_date = db.Column(db.DateTime, nullable=False)
+    valid_flg = db.Column(db.Boolean, default=True)
+    utilized_flg = db.Column(db.Boolean, default=False)
+    reward_type = db.Column(db.String(20), nullable=True, default='regular')  # 'regular', 'birthday', 'first_visit'
+    reward_year = db.Column(db.Integer, nullable=True)  # year the reward was granted (for birthday dedup)
 
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('reward_profile', uselist=False))

@@ -12,6 +12,23 @@ from .models import Service, Staff, Customer, User, Product, Appointment, Invoic
 api = Api(prefix = '/api')
 
 ################################# HELPER FUNCTIONS ########################################
+
+def safe_text(text):
+    """Sanitize text for FPDF Helvetica (latin-1). Replaces common Unicode chars with ASCII."""
+    if not text:
+        return ''
+    text = str(text)
+    replacements = {
+        '\u2013': '-', '\u2014': '--',
+        '\u2018': "'", '\u2019': "'",
+        '\u201c': '"', '\u201d': '"',
+        '\u2026': '...', '\u20b9': 'Rs.',
+        '\u00e2\u0080\u0093': '-',
+    }
+    for ch, rep in replacements.items():
+        text = text.replace(ch, rep)
+    return text.encode('latin-1', errors='replace').decode('latin-1')
+
 ################################# To update low stock alerts based on quantity and minimum stock threshold. #########################
 def update_low_stock_alerts(product_id=None):
     """Helper procedure to update product_low_stock_alert based on quantity.
@@ -19,7 +36,7 @@ def update_low_stock_alerts(product_id=None):
     """
     try:
         if product_id:
-            product = Product.query.get(product_id)
+            product = db.session.get(Product, product_id)
             if product:
                 product.product_low_stock_alert = product.product_curr_qoh < product.product_min_qoh
         else:
@@ -77,7 +94,7 @@ def update_service_curr_flag(service_id=None):
     try:
         today = date.today()
         if service_id:
-            service = Service.query.get(service_id)
+            service = db.session.get(Service, service_id)
             if service:
                 if service.to_date and service.to_date < today:
                     service.active_flg = False
@@ -130,7 +147,7 @@ class Owner(Resource):
         
         existing_user = datastore.find_user(username=username)
         if existing_user:
-            return {"message": "User with this username already exists"}, 400
+            return {"message": "User with this username already exists"}, 409
         
         manager_role = Role.query.filter_by(name='manager').first()
         if not manager_role:
@@ -177,7 +194,7 @@ class ChangePassword(Resource):
         new_password = data.get("new_password", "").strip()
         confirm_password = data.get("confirm_password", "").strip()
 
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         
         if verify_password(current_password, user.password):
             if (new_password)== "" or (confirm_password) == "":
@@ -241,7 +258,7 @@ class ProductResource(Resource):
     @roles_required("manager")
     def put(self, product_id):
         data = request.get_json()
-        product = Product.query.get(product_id)
+        product = db.session.get(Product, product_id)
         if not product:
             return {"message": "Product not found"}, 404
         
@@ -267,7 +284,7 @@ class ProductResource(Resource):
     @auth_required("token")
     @roles_required("manager")
     def delete(self, product_id):
-        product = Product.query.get(product_id)
+        product = db.session.get(Product, product_id)
         if not product:
             return {"message": "Product not found"}, 404
         
@@ -291,7 +308,7 @@ class ProductResource(Resource):
         update_low_stock_alerts()
 
         if product_id:
-            product = Product.query.get(product_id)
+            product = db.session.get(Product, product_id)
             if not product:
                 return {"message": "Product not found"}, 404
             return marshal(product, product_fields)
@@ -328,7 +345,7 @@ class InventoryTransactionResource(Resource):
     @roles_accepted("manager", "staff")
     def get(self, txn_id=None):
         if txn_id:
-            txn = InventoryTransaction.query.get(txn_id)
+            txn = db.session.get(InventoryTransaction, txn_id)
             if not txn:
                 return {"message": "Transaction not found"}, 404
             return marshal(txn, inventory_transaction_fields)
@@ -374,13 +391,13 @@ class InventoryTransactionResource(Resource):
         if not product_id or not quantity or quantity <= 0:
             return {"message": "Invalid product_id or quantity"}, 400
             
-        product = Product.query.get(product_id)
+        product = db.session.get(Product, product_id)
         if not product:
             return {"message": "Product not found"}, 404
             
         # Optional: Validate service_id if provided
         if service_id:
-            service = Service.query.get(service_id)
+            service = db.session.get(Service, service_id)
             if not service:
                 return {"message": "Service not found"}, 404
             
@@ -458,7 +475,7 @@ class OrderResource(Resource):
         if not product_id or not order_quantity:
             return {"message": "Missing product_id or order_quantity"}, 400
 
-        product = Product.query.get(product_id)
+        product = db.session.get(Product, product_id)
         if not product:
             return {"message": "Product not found"}, 404
 
@@ -492,7 +509,7 @@ class OrderResource(Resource):
     @roles_required("manager")
     def get(self, order_id=None):
         if order_id:
-            order = Order.query.get(order_id)
+            order = db.session.get(Order, order_id)
             if not order:
                 return {"message": "Order not found"}, 404
             return marshal(order, order_fields), 200
@@ -507,7 +524,7 @@ class OrderResource(Resource):
         """
         Update order status (e.g., from Pending (0) to Processed (1), Cancelled (2)).
         """
-        order = Order.query.get(order_id)
+        order = db.session.get(Order, order_id)
         if not order:
             return {"message": "Order not found"}, 404
 
@@ -538,7 +555,7 @@ class OrderResource(Resource):
 
         if new_quantity is not None and new_status == 1:
             # replenishing the qoh in the inventory_master table if the order is processed (status = 1).
-            product = Product.query.get(order.product_id)
+            product = db.session.get(Product, order.product_id)
             if product:
                 product.product_curr_qoh += new_quantity
                 update_low_stock_alerts(order.product_id)
@@ -566,7 +583,7 @@ class OrderResource(Resource):
         Delete an order record by order_id.
         Only managers can delete order records.
         """
-        order = Order.query.get(order_id)
+        order = db.session.get(Order, order_id)
         if not order:
             return {"message": "Order not found"}, 404
 
@@ -601,7 +618,7 @@ class CustomerResource(Resource):
     @auth_required("token")
     def get(self, customer_id=None):
         if customer_id:
-            customer = Customer.query.get(customer_id)
+            customer = db.session.get(Customer, customer_id)
             if not customer:
                 return {"message": "Customer not found"}, 404
             return marshal(customer, customer_fields)
@@ -625,7 +642,7 @@ class CustomerResource(Resource):
             
         existing_user = datastore.find_user(username=username)
         if existing_user:
-            return {"message": "User with this email already exists"}, 400
+            return {"message": "User with this email already exists"}, 409
             
         customer_role = Role.query.filter_by(name='customer').first()
         if not customer_role:
@@ -666,7 +683,7 @@ class CustomerResource(Resource):
     @roles_required("manager")
     def put(self, customer_id):
         data = request.get_json()
-        customer = Customer.query.get(customer_id)
+        customer = db.session.get(Customer, customer_id)
         if not customer:
             return {"message": "Customer not found"}, 404
             
@@ -690,7 +707,7 @@ class CustomerResource(Resource):
     @auth_required("token")
     @roles_required("manager")
     def delete(self, customer_id):
-        customer = Customer.query.get(customer_id)
+        customer = db.session.get(Customer, customer_id)
         if not customer:
             return {"message": "Customer not found"}, 404
             
@@ -704,7 +721,7 @@ class CustomerResource(Resource):
             return {"message": "Cannot delete customer with existing invoices"}, 400
             
         try:
-            user = User.query.get(customer.customer_id)
+            user = db.session.get(User, customer.customer_id)
             db.session.delete(customer)
             if user:
                 db.session.delete(user)
@@ -736,7 +753,7 @@ class ManagerResource(Resource):
     @roles_accepted("owner", "manager")
     def get(self, manager_id=None):
         if manager_id:
-            manager = Manager.query.get(manager_id)
+            manager = db.session.get(Manager, manager_id)
             if not manager:
                 return {"message": "Manager not found"}, 404
             return marshal(manager, manager_fields)
@@ -754,7 +771,7 @@ class ManagerResource(Resource):
             return {"message": "Unauthorized to edit this manager profile"}, 403
 
         data = request.get_json()
-        manager = Manager.query.get(manager_id)
+        manager = db.session.get(Manager, manager_id)
         if not manager:
             return {"message": "Manager not found"}, 404
             
@@ -781,12 +798,12 @@ class ManagerResource(Resource):
     @auth_required("token")
     @roles_required("owner")
     def delete(self, manager_id):
-        manager = Manager.query.get(manager_id)
+        manager = db.session.get(Manager, manager_id)
         if not manager:
             return {"message": "Manager not found"}, 404
             
         try:
-            user = User.query.get(manager.manager_id)
+            user = db.session.get(User, manager.manager_id)
             db.session.delete(manager)
             if user:
                 db.session.delete(user)
@@ -823,7 +840,7 @@ class StaffResource(Resource):
         today = date.today()
         
         if staff_id:
-            staff = Staff.query.get(staff_id)
+            staff = db.session.get(Staff, staff_id)
             if not staff:
                 return {"message": "Staff member not found"}, 404
             
@@ -878,7 +895,7 @@ class StaffResource(Resource):
         
         existing_user = datastore.find_user(username=username)
         if existing_user:
-            return {"message": f"User with username '{username}' already exists"}, 400
+            return {"message": f"User with username '{username}' already exists"}, 409
             
         staff_role_obj = Role.query.filter_by(name='staff').first()
         if not staff_role_obj:
@@ -922,7 +939,7 @@ class StaffResource(Resource):
     @roles_required("manager")
     def put(self, staff_id):
         data = request.get_json()
-        staff = Staff.query.get(staff_id)
+        staff = db.session.get(Staff, staff_id)
         if not staff:
             return {"message": "Staff member not found"}, 404
             
@@ -952,7 +969,7 @@ class StaffResource(Resource):
     @auth_required("token")
     @roles_required("manager")
     def delete(self, staff_id):
-        staff = Staff.query.get(staff_id)
+        staff = db.session.get(Staff, staff_id)
         if not staff:
             return {"message": "Staff member not found"}, 404
             
@@ -970,7 +987,7 @@ class StaffResource(Resource):
             return {"message": "Cannot delete staff with existing inventory transactions"}, 400
 
         try:
-            user = User.query.get(staff.staff_id)
+            user = db.session.get(User, staff.staff_id)
             db.session.delete(staff)
             if user:
                 db.session.delete(user)
@@ -1013,7 +1030,7 @@ class ServiceResource(Resource):
         update_service_curr_flag()
 
         if service_id:
-            service = Service.query.get(service_id)
+            service = db.session.get(Service, service_id)
             if not service:
                 return {"message": "Service not found"}, 404
             return marshal(service, service_fields)
@@ -1059,7 +1076,7 @@ class ServiceResource(Resource):
     @roles_required("manager")
     def put(self, service_id):
         data = request.get_json()
-        service = Service.query.get(service_id)
+        service = db.session.get(Service, service_id)
         if not service:
             return {"message": "Service not found"}, 404
             
@@ -1096,7 +1113,7 @@ class ServiceResource(Resource):
     @auth_required("token")
     @roles_required("manager")
     def delete(self, service_id):
-        service = Service.query.get(service_id)
+        service = db.session.get(Service, service_id)
         if not service:
             return {"message": "Service not found"}, 404
             
@@ -1129,7 +1146,7 @@ class AppointmentResource(Resource):
         cleanup_appointment_history()
         if appointment_id:
             # Fetch single appointment
-            appointment = Appointment.query.get(appointment_id)
+            appointment = db.session.get(Appointment, appointment_id)
             if not appointment:
                 return {"message": "Appointment not found"}, 404
             
@@ -1198,7 +1215,7 @@ class AppointmentResource(Resource):
 
         # Validate staff if provided
         if staff_id:
-            staff = Staff.query.get(staff_id)
+            staff = db.session.get(Staff, staff_id)
             if not staff: return {"message": "Staff with provided ID not found"}, 404
 
         # Parse and validate services (must be active)
@@ -1231,7 +1248,7 @@ class AppointmentResource(Resource):
     @roles_required("manager")
 
     def put(self, appointment_id):
-        appointment = Appointment.query.get(appointment_id)
+        appointment = db.session.get(Appointment, appointment_id)
         if not appointment:
             return {"message": "Appointment not found"}, 404
 
@@ -1248,7 +1265,7 @@ class AppointmentResource(Resource):
             # Handle staff_id updates (including setting to null/None)
             if 'staff_id' in data:
                 if staff_id:
-                    staff = Staff.query.get(staff_id)
+                    staff = db.session.get(Staff, staff_id)
                     if not staff:
                         return {"message": "Staff with provided ID not found"}, 404
                 
@@ -1284,7 +1301,7 @@ class AppointmentResource(Resource):
     @auth_required("token")
     @roles_required("manager")
     def delete(self, appointment_id):
-        appointment = Appointment.query.get(appointment_id)
+        appointment = db.session.get(Appointment, appointment_id)
         if not appointment:
             return {"message": "Appointment not found"}, 404
             
@@ -1303,7 +1320,7 @@ class SalonConfigResource(Resource):
     @roles_required("manager")
     def get(self, setting_id=None):
         if setting_id:
-            config = SalonConfig.query.get(setting_id)
+            config = db.session.get(SalonConfig, setting_id)
             if not config:
                 return {"message": "Configuration not found"}, 404
             return marshal(config, salon_config_fields)
@@ -1315,7 +1332,7 @@ class SalonConfigResource(Resource):
     @auth_required("token")
     @roles_required("manager")
     def put(self, setting_id):
-        config = SalonConfig.query.get(setting_id)
+        config = db.session.get(SalonConfig, setting_id)
         if not config:
             return {"message": "Configuration not found"}, 404
             
@@ -1361,7 +1378,7 @@ class StaffAppointmentResource(Resource):
         # Always use the ID of the currently logged-in staff member
         target_staff_id = current_user.id
         
-        staff = Staff.query.get(target_staff_id)
+        staff = db.session.get(Staff, target_staff_id)
         if not staff:
             return {"message": "Staff member profile not found for current user"}, 404
         
@@ -1462,7 +1479,7 @@ class StaffAttendanceResource(Resource):
             ).first()
 
             if already_marked:
-                return {"message": "Attendance already marked for today"}, 400
+                return {"message": "Attendance already marked for today"}, 409
 
             new_attendance = StaffAttendance(
                 staff_id=current_user.id,
@@ -1635,7 +1652,7 @@ class StaffCustomerReview(Resource):
         # Fetch all customer reviews for the particular staff member who is logged in
         target_staff_id = current_user.id
         
-        staff = Staff.query.get(target_staff_id)
+        staff = db.session.get(Staff, target_staff_id)
         if not staff:
             return {"message": "Staff profile not found"}, 404
         
@@ -1670,7 +1687,7 @@ class CurrentStaffResource(Resource):
         """Fetch the current logged-in staff member's profile information"""
         staff_id = current_user.id
         
-        staff = Staff.query.get(staff_id)
+        staff = db.session.get(Staff, staff_id)
         if not staff:
             return {"message": "Staff profile not found"}, 404
         
@@ -1684,7 +1701,7 @@ class CurrentStaffResource(Resource):
         """Update the current logged-in staff member's own profile"""
         staff_id = current_user.id
         
-        staff = Staff.query.get(staff_id)
+        staff = db.session.get(Staff, staff_id)
         if not staff:
             return {"message": "Staff profile not found"}, 404
         
@@ -1713,7 +1730,7 @@ class CurrentCustomerResource(Resource):
         """Fetch the current logged-in customer's profile information"""
         customer_id = current_user.id
         
-        customer = Customer.query.get(customer_id)
+        customer = db.session.get(Customer, customer_id)
         if not customer:
             return {"message": "Customer profile not found"}, 404
         
@@ -1726,7 +1743,7 @@ class CurrentCustomerResource(Resource):
         """Update the current logged-in customer's own profile"""
         customer_id = current_user.id
         
-        customer = Customer.query.get(customer_id)
+        customer = db.session.get(Customer, customer_id)
         if not customer:
             return {"message": "Customer profile not found"}, 404
         
@@ -1907,7 +1924,7 @@ class CustomerUpcomingAppointmentsResource(Resource):
         # Always use the ID of the currently logged-in customer
         target_customer_id = current_user.id
         
-        customer = Customer.query.get(target_customer_id)
+        customer = db.session.get(Customer, target_customer_id)
         if not customer:
             return {"message": "Customer profile not found"}, 404
         
@@ -1955,13 +1972,13 @@ class CustomerUpcomingAppointmentsResource(Resource):
             return {"message": "Invalid datetime format. Use ISO format YYYY-MM-DDTHH:MM:SS"}, 400
 
         # Validate customer
-        customer = Customer.query.get(target_customer_id)
+        customer = db.session.get(Customer, target_customer_id)
         if not customer:
             return {"message": "Customer profile not found"}, 404
 
         # Validate staff if provided
         if staff_id:
-            staff = Staff.query.get(staff_id)
+            staff = db.session.get(Staff, staff_id)
             if not staff:
                 return {"message": "Staff with provided ID not found"}, 404
 
@@ -2002,7 +2019,7 @@ class CustomerHistoryAppointmentsResource(Resource):
         # Always use the ID of the currently logged-in customer
         target_customer_id = current_user.id
         
-        customer = Customer.query.get(target_customer_id)
+        customer = db.session.get(Customer, target_customer_id)
         if not customer:
             return {"message": "Customer profile not found"}, 404
         
@@ -2010,21 +2027,32 @@ class CustomerHistoryAppointmentsResource(Resource):
         history_appointments = Appointment.query.filter(Appointment.customer_id == target_customer_id, Appointment.status != 0).all()
 
         result = []
-        status_map = {
-            1: "Completed",
-            2: "No-show",
-            3: "Cancelled",
-            4: "Rescheduled",
-            5: "Invoiced"
-        }
+        status_map = {1: "Completed", 2: "No-show", 3: "Cancelled", 4: "Rescheduled", 5: "Invoiced"}
+
         for appt in history_appointments:
             staff_name = appt.staff.staff_name if appt.staff else "Not Assigned"
             appt_time = appt.appointment_datetime.isoformat()
-            
-            # Fetch rating from CustomerReview if an invoice exists
+
+            # Look up invoice: by appointment_id first, fallback to date+staff
+            invoice = Invoice.query.filter_by(appointment_id=appt.appointment_id).first()
+            if not invoice:
+                invoice = Invoice.query.filter_by(
+                    customer_id=target_customer_id,
+                    staff_id=appt.staff_id,
+                    invoice_date=appt.appointment_datetime.date()
+                ).first()
+
             rating = None
-            invoice = Invoice.query.filter_by(customer_id=target_customer_id, staff_id=appt.staff_id, invoice_date=appt.appointment_datetime.date()).first()
+            invoice_number = None
+            payable_amount = None
+            subtotal = None
+            has_invoice = False
+
             if invoice:
+                has_invoice = True
+                invoice_number = invoice.invoice_number
+                payable_amount = invoice.payable_invoice_amount
+                subtotal = invoice.invoice_amount
                 review = CustomerReview.query.filter_by(invoice_number=invoice.invoice_number).first()
                 if review:
                     rating = review.rating
@@ -2037,7 +2065,11 @@ class CustomerHistoryAppointmentsResource(Resource):
                     "datetime": appt_time,
                     "price": service.service_price,
                     "status": status_map.get(appt.status, f"Unknown ({appt.status})"),
-                    "rating": rating
+                    "rating": rating,
+                    "has_invoice": has_invoice,
+                    "invoice_number": invoice_number,
+                    "payable_amount": payable_amount,
+                    "subtotal": subtotal
                 })
 
         return result, 200
@@ -2051,7 +2083,7 @@ class CustomerSummaryResource(Resource):
         # Check and allot birthday bonus points if applicable
         birthday_bonus_rewards(target_customer_id)
         
-        customer = Customer.query.get(target_customer_id)
+        customer = db.session.get(Customer, target_customer_id)
         if not customer:
             return {"message": "Customer profile not found"}, 404
         
@@ -2131,7 +2163,7 @@ class CustomerReviewResource(Resource):
             return {"message": "Associated appointment not found"}, 404
 
         if appointment.feedback_given:
-            return {"message": "Feedback already given for this invoice"}, 400
+            return {"message": "Feedback already given for this invoice"}, 409
 
         if appointment.status not in [1, 5]:
             return {"message": "Can only review completed or invoiced appointments"}, 400
@@ -2226,12 +2258,12 @@ class CustomerReviewedAppointments(Resource):
         if not appointment_id or rating is None:
             return {"message": "Missing required fields: appointment_id, rating"}, 400
 
-        appointment = Appointment.query.get(appointment_id)
+        appointment = db.session.get(Appointment, appointment_id)
         if not appointment or appointment.customer_id != target_customer_id:
             return {"message": "Appointment not found or unauthorized"}, 404
 
         if appointment.feedback_given:
-            return {"message": "Feedback already provided for this appointment"}, 400
+            return {"message": "Feedback already provided for this appointment"}, 409
 
         try:
             # Find the MOST RECENT invoice for this customer and staff to link to the review
@@ -2276,7 +2308,7 @@ def update_staff_rating(staff_id, new_rating):
     Update staff_cumulative_rating and no_of_reviews in Staff master table.
     Formula: ((current_rating * current_reviews) + new_rating) / (current_reviews + 1)
     """
-    staff = Staff.query.get(staff_id)
+    staff = db.session.get(Staff, staff_id)
     if staff:
         current_rating = staff.staff_cumulative_rating or 0.0
         current_reviews = staff.no_of_reviews or 0
@@ -2293,7 +2325,7 @@ def update_service_rating(service_id, new_rating):
     Update service_rating and no_of_reviews in Service master table.
     Formula: ((current_rating * current_reviews) + new_rating) / (current_reviews + 1)
     """
-    service = Service.query.get(service_id)
+    service = db.session.get(Service, service_id)
     if service:
         current_rating = service.service_rating or 0.0
         current_reviews = service.no_of_reviews or 0
@@ -2309,7 +2341,7 @@ def check_vip_status(customer_id, valid_points_sum):
     """
     Update customer_type based on VIP_POINTS_FOR_REDUMPTION threshold.
     """
-    customer = Customer.query.get(customer_id)
+    customer = db.session.get(Customer, customer_id)
     if not customer:
         return
         
@@ -2346,7 +2378,7 @@ def invalidate_expired_points(customer_id):
         ).scalar() or 0
     
     # Update customer_available_rewards column in customer_master table
-    customer = Customer.query.get(customer_id)
+    customer = db.session.get(Customer, customer_id)
     if customer:
         customer.customer_available_rewards = int(valid_points_sum)
         
@@ -2398,7 +2430,7 @@ def update_customer_rewards(customer_id, reward_points_utilized=0):
             CustomerReward.utilized_flg == False
         ).scalar() or 0
     
-    customer = Customer.query.get(customer_id)
+    customer = db.session.get(Customer, customer_id)
     if customer:
         customer.customer_available_rewards = int(valid_points_sum)
         db.session.commit()
@@ -2479,7 +2511,7 @@ def first_time_rewards(customer_id):
     Checks salon_config for 'FIRST_VISIT_BONUS_POINTS'.
     Also creates an entry in the CustomerReward table with an expiry date.
     """
-    customer = Customer.query.get(customer_id)
+    customer = db.session.get(Customer, customer_id)
     if not customer:
         return 0
         
@@ -2508,74 +2540,62 @@ def first_time_rewards(customer_id):
 ########################### Birthday Bonus Rewards ############################################
 def birthday_bonus_rewards(customer_id):
     """
-    Calculate and allot birthday bonus points for a customer.
-    Checks salon_config for 'BIRTHDAY_BONUS_POINTS'.
-    Also creates an entry in the CustomerReward table with an expiry date.
+    Award birthday bonus points once per calendar year.
+    Uses reward_type='birthday' and reward_year for reliable deduplication.
     """
-    customer = Customer.query.get(customer_id)
-    if not customer:
+    customer = db.session.get(Customer, customer_id)
+    if not customer or not customer.customer_dob:
         return 0
-    
-    # Check if a birthday reward already exists for this year's birthday
-    # We look for a reward whose (expiry_date - expiry_days) is within the 15-day window before this year's birthday
-    
-    # Calculate this year's birthday
+
     now = datetime.now()
     try:
         this_year_birthday = datetime(now.year, customer.customer_dob.month, customer.customer_dob.day)
-    except ValueError: # Handle Feb 29 for non-leap years
+    except ValueError:  # Feb 29 on non-leap year
         this_year_birthday = datetime(now.year, 3, 1)
-    
-    # Target date is 15 days before birthday
+
     reward_trigger_date = this_year_birthday - timedelta(days=15)
-    
-    # If today is within the [trigger_date, birthday] window
-    if reward_trigger_date.date() <= now.date() <= this_year_birthday.date():
-        # Check if already awarded for this year's cycle
-        # Since we don't have a 'created_at', we check if any reward exists 
-        # where (expiry_date - expiry_days) falls in this year's window
-        
-        bonus_config = SalonConfig.query.filter_by(param_name='BIRTHDAY_BONUS_POINTS').first()
-        reward_expiry_days_cfg = SalonConfig.query.filter_by(param_name='REWARD_EXPIRY_DAYS').first()
-        expiry_days = int(reward_expiry_days_cfg.param_value) if reward_expiry_days_cfg else 30
-        
-        # Look for rewards created between trigger_date and today for this customer
-        # This is roughly: trigger_date <= (expiry_date - expiry_days) <= today
-        already_awarded = CustomerReward.query.filter(
-            CustomerReward.customer_id == customer_id,
-            db.func.date(CustomerReward.expiry_date) >= (reward_trigger_date + timedelta(days=expiry_days)).date(),
-            db.func.date(CustomerReward.expiry_date) <= (this_year_birthday + timedelta(days=expiry_days)).date(),
-            CustomerReward.credit_points == int(bonus_config.param_value) if bonus_config else 0
-        ).first()
 
-        if already_awarded:
-            return 0
-        
-        if bonus_config:
-            bonus_points = int(bonus_config.param_value)
-            if bonus_points > 0:
-                expiry_days = int(reward_expiry_days_cfg.param_value) if reward_expiry_days_cfg else 30
-                expiry_date = datetime.now() + timedelta(days=expiry_days)
-                
-                new_reward = CustomerReward(
-                    customer_id=customer_id,
-                    credit_points=bonus_points,
-                    expiry_date=expiry_date,
-                    valid_flg=True
-                )
-                db.session.add(new_reward)
-                
-                # Update available rewards on customer object
-                customer.customer_available_rewards += bonus_points
-                
-                # Check and update VIP status after birthday points are added
-                check_vip_status(customer_id, customer.customer_available_rewards)
-                
-                db.session.commit()
+    if not (reward_trigger_date.date() <= now.date() <= this_year_birthday.date()):
+        return 0
 
-                return bonus_points
-                
-    return 0
+    # Reliable dedup: one birthday reward per customer per year
+    already_awarded = CustomerReward.query.filter_by(
+        customer_id=customer_id,
+        reward_type='birthday',
+        reward_year=now.year
+    ).first()
+
+    if already_awarded:
+        return 0
+
+    bonus_config = SalonConfig.query.filter_by(param_name='BIRTHDAY_BONUS_POINTS').first()
+    reward_expiry_days_cfg = SalonConfig.query.filter_by(param_name='REWARD_EXPIRY_DAYS').first()
+
+    if not bonus_config:
+        return 0
+
+    bonus_points = int(bonus_config.param_value)
+    if bonus_points <= 0:
+        return 0
+
+    expiry_days = int(reward_expiry_days_cfg.param_value) if reward_expiry_days_cfg else 30
+    expiry_date = now + timedelta(days=expiry_days)
+
+    new_reward = CustomerReward(
+        customer_id=customer_id,
+        credit_points=bonus_points,
+        expiry_date=expiry_date,
+        valid_flg=True,
+        reward_type='birthday',
+        reward_year=now.year
+    )
+    db.session.add(new_reward)
+
+    customer.customer_available_rewards += bonus_points
+    check_vip_status(customer_id, customer.customer_available_rewards)
+    db.session.commit()
+
+    return bonus_points
 
 ################################## Finance API ############################################
 finance_fields = {
@@ -2626,7 +2646,7 @@ class FinanceResource(Resource):
             staff_salary_sum = db.session.query(db.func.sum(Staff.staff_salary)).scalar() or 0.0
             
             # Check if record exists
-            finance = Finance.query.get(reporting_month)
+            finance = db.session.get(Finance, reporting_month)
             if not finance:
                 finance = Finance(reporting_month=reporting_month)
             
@@ -2667,7 +2687,7 @@ class FinanceResource(Resource):
             target_date = datetime.strptime(date_str, '%Y-%m-%d').date().replace(day=1)
             reporting_month = datetime.combine(target_date, datetime.min.time())
             
-            finance = Finance.query.get(reporting_month)
+            finance = db.session.get(Finance, reporting_month)
             if not finance:
                 return {"message": "Finance record for this month not yet generated. Use POST first."}, 404
             
@@ -2696,7 +2716,7 @@ class FinanceResource(Resource):
             try:
                 target_date = datetime.strptime(last_date_str, '%Y-%m-%d').date().replace(day=1)
                 reporting_month = datetime.combine(target_date, datetime.min.time())
-                finance = Finance.query.get(reporting_month)
+                finance = db.session.get(Finance, reporting_month)
                 if not finance:
                     return {"message": "Finance record for this month not found"}, 404
                 return marshal(finance, finance_fields), 200
@@ -2733,7 +2753,7 @@ class InvoiceResource(Resource):
     def get(self, appointment_id=None):
         # If appointment_id is provided, check its status immediately
         if appointment_id:
-            appointment = Appointment.query.get(appointment_id)
+            appointment = db.session.get(Appointment, appointment_id)
             if not appointment:
                 return {"message": "Appointment not found"}, 404
             invalidate_expired_points(appointment.customer_id)
@@ -2743,7 +2763,7 @@ class InvoiceResource(Resource):
         """
         # Determine customer_id to update rewards if appointment_id is provided
         if appointment_id:
-            appointment = Appointment.query.get(appointment_id)
+            appointment = db.session.get(Appointment, appointment_id)
             if appointment:
                 invalidate_expired_points(appointment.customer_id)
             else:
@@ -2751,7 +2771,7 @@ class InvoiceResource(Resource):
         
         if appointment_id:
             # Re-fetch or continue with appointment object
-            appointment = Appointment.query.get(appointment_id)
+            appointment = db.session.get(Appointment, appointment_id)
             
             # Check if an invoice already exists for this appointment
             existing_invoice = Invoice.query.filter_by(appointment_id=appointment_id).first()
@@ -2836,7 +2856,7 @@ class InvoiceResource(Resource):
         if not (customer_id and staff_id and service_ids and invoice_amount):
             return {"message": "Missing required fields: customer_id, staff_id, service_ids, invoice_amount"}, 400
             
-        customer = Customer.query.get(customer_id)
+        customer = db.session.get(Customer, customer_id)
         if not customer:
             return {"message": "Customer not found"}, 404
         
@@ -2925,7 +2945,7 @@ class InvoiceResource(Resource):
             
             # Update appointment status if target_appointment_id is provided
             if target_appointment_id:
-                appointment = Appointment.query.get(target_appointment_id)
+                appointment = db.session.get(Appointment, target_appointment_id)
                 if appointment:
                     appointment.status = 5 # Mark as Invoiced
             
@@ -3035,6 +3055,8 @@ class GetAllInvoices(Resource):
                 "current_reward_points": inv.current_reward_points,
                 "invoice_amount": inv.invoice_amount,
                 "total_charges": inv.total_invoice_amount,
+                "payable_amount": inv.payable_invoice_amount,
+                "rewards_monetary_discount": round(inv.total_invoice_amount - inv.payable_invoice_amount, 2),
                 "status": inv.status,
                 "appointment_id": inv.appointment_id
             })
@@ -3047,7 +3069,7 @@ class GenerateCustomerInvoice(Resource):
         """
         Generate a PDF file for a specific invoice number.
         """
-        invoice = Invoice.query.get(invoice_number)
+        invoice = db.session.get(Invoice, invoice_number)
         if not invoice:
             return {"message": "Invoice not found"}, 404
 
@@ -3076,29 +3098,29 @@ class GenerateCustomerInvoice(Resource):
 
             # Invoice Details
             pdf.set_font("Helvetica", size=12)
-            pdf.cell(100, 10, txt=f"Invoice Number: {invoice.invoice_number}")
-            pdf.cell(100, 10, txt=f"Date: {invoice.invoice_date}", ln=True, align='R')
+            pdf.cell(100, 10, txt=safe_text(f"Invoice Number: {invoice.invoice_number}"))
+            pdf.cell(100, 10, txt=safe_text(f"Date: {invoice.invoice_date}"), ln=True, align='R')
             pdf.ln(5)
 
             # Customer Details
             pdf.set_font("Helvetica", style="B", size=12)
             pdf.cell(200, 10, txt="Customer Information:", ln=True)
             pdf.set_font("Helvetica", size=12)
-            pdf.cell(200, 10, txt=f"Name: {invoice.customer.customer_name if invoice.customer else 'Unknown'}", ln=True)
-            pdf.cell(200, 10, txt=f"Email: {invoice.customer.customer_email if invoice.customer else 'N/A'}", ln=True)
+            pdf.cell(200, 10, txt=safe_text(f"Name: {invoice.customer.customer_name if invoice.customer else 'Unknown'}"), ln=True)
+            pdf.cell(200, 10, txt=safe_text(f"Email: {invoice.customer.customer_email if invoice.customer else 'N/A'}"), ln=True)
             pdf.ln(5)
 
             # Staff Details
             pdf.set_font("Helvetica", style="B", size=12)
             pdf.cell(200, 10, txt="Served By:", ln=True)
             pdf.set_font("Helvetica", size=12)
-            pdf.cell(200, 10, txt=f"{invoice.staff.staff_name if invoice.staff else 'Unknown'}", ln=True)
+            pdf.cell(200, 10, txt=safe_text(f"{invoice.staff.staff_name if invoice.staff else 'Unknown'}"), ln=True)
             pdf.ln(10)
 
             # Services Table Header
             pdf.set_font("Helvetica", style="B", size=12)
             pdf.cell(140, 10, txt="Service Description", border=1)
-            pdf.cell(50, 10, txt="Price", border=1, ln=True, align='R')
+            pdf.cell(50, 10, txt="Price (Rs.)", border=1, ln=True, align='R')
 
             # Services Table Rows
             pdf.set_font("Helvetica", size=12)
@@ -3106,7 +3128,7 @@ class GenerateCustomerInvoice(Resource):
                 id_list = [int(sid.strip()) for sid in invoice.service_ids.split(",") if sid.strip()]
                 services = Service.query.filter(Service.service_id.in_(id_list)).all()
                 for s in services:
-                    pdf.cell(140, 10, txt=s.service_desc, border=1)
+                    pdf.cell(140, 10, txt=safe_text(s.service_desc), border=1)
                     pdf.cell(50, 10, txt=f"{s.service_price:.2f}", border=1, ln=True, align='R')
 
             pdf.ln(5)
@@ -3115,13 +3137,13 @@ class GenerateCustomerInvoice(Resource):
             pdf.set_font("Helvetica", style="B", size=12)
             pdf.cell(140, 10, txt="Subtotal:", align='R')
             pdf.cell(50, 10, txt=f"{invoice.invoice_amount:.2f}", ln=True, align='R')
-            
+
             pdf.cell(140, 10, txt="Other Charges:", align='R')
             pdf.cell(50, 10, txt=f"{invoice.other_charges or 0.0:.2f}", ln=True, align='R')
-            
-            pdf.cell(140, 10, txt="Discount Percentage:", align='R')
+
+            pdf.cell(140, 10, txt="Discount (%):", align='R')
             pdf.cell(50, 10, txt=f"{invoice.discount_percentage or 0.0:.2f}%", ln=True, align='R')
-            
+
             pdf.cell(140, 10, txt="Rewards Utilized:", align='R')
             pdf.cell(50, 10, txt=f"-{invoice.rewards_utilized or 0:.2f}", ln=True, align='R')
 
@@ -3331,7 +3353,7 @@ class SendEmail(Resource):
                     invoice_number_str = filename.replace("invoice_", "").replace(".pdf", "")
                     if invoice_number_str.isdigit():
                         invoice_number = int(invoice_number_str)
-                        invoice = Invoice.query.get(invoice_number)
+                        invoice = db.session.get(Invoice, invoice_number)
                         if invoice:
                             invoice.status = 2
                             db.session.commit()

@@ -1857,12 +1857,11 @@ const handleMarkTodayAttendance = async () => {
       setTimeout(() => {
         attendanceSuccess.value = "";
       }, 2000);
-    } else if (response.status === 400) {
-      // 400 - likely already marked or other validation error
-      // Check if it's the "already marked" error specifically
+    } else if (response.status === 400 || response.status === 409) {
+      // 400/409 - validation error or conflict (already marked)
       const message = data.message || "";
-      console.log("400 error message:", message);
-      
+      console.log("error message:", message);
+
       if (message.toLowerCase().includes("already marked")) {
         // Attendance already marked - show as informational message
         attendanceSuccess.value = "ℹ️ Attendance already marked for today!";

@@ -2,13 +2,14 @@
 conftest.py – shared pytest fixtures for Glow Suite backend tests.
 
 Uses an in-memory SQLite database so tests never touch the real DB.
+test_config is injected into create_app() BEFORE db.init_app() so the
+engine is bound to ':memory:' from the very first DB operation.
 """
 import pytest
 import sys
 import os
 from datetime import date
 
-# Make sure Python can find the backend package
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from main import create_app
@@ -24,16 +25,17 @@ from flask_security import hash_password
 
 @pytest.fixture(scope='session')
 def app():
-    """Create a test Flask application with an isolated in-memory database."""
-    test_app = create_app()
-    test_app.config.update({
+    """Flask app backed by an isolated in-memory SQLite DB."""
+    test_app = create_app(test_config={
         'TESTING': True,
         'SQLALCHEMY_DATABASE_URI': 'sqlite:///:memory:',
         'WTF_CSRF_ENABLED': False,
         'SECURITY_PASSWORD_SALT': 'test-salt',
         'SECRET_KEY': 'test-secret',
-        # Disable external AI calls in tests
         'ANTHROPIC_API_KEY': 'test-key',
+        # Disable scheduled jobs during tests
+        'SCHEDULER_API_ENABLED': False,
+        'JOBS': [],
     })
     with test_app.app_context():
         _db.create_all()
@@ -43,8 +45,9 @@ def app():
 
 @pytest.fixture(scope='session')
 def client(app):
-    """Flask test client (session-scoped — shared across all tests)."""
-    return app.test_client()
+    # use_cookies=False prevents session-cookie leakage between tests
+    # (staff POST cookies must not bleed into subsequent manager requests).
+    return app.test_client(use_cookies=False)
 
 
 @pytest.fixture(scope='session')
@@ -54,23 +57,22 @@ def db(app):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Seed helper – creates minimal roles + users for each role
+# Seed data
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _seed_test_data(app):
     with app.app_context():
-        # Roles
         for role_name in ['owner', 'manager', 'staff', 'customer']:
             if not Role.query.filter_by(name=role_name).first():
                 _db.session.add(Role(name=role_name))
         _db.session.commit()
 
-        # Owner user
+        # Owner
         _create_user('test_owner', 'owner@test.com', 'Test@1234', 'owner')
 
-        # Manager user + Manager profile
+        # Manager + profile
         mgr_user = _create_user('test_manager', 'mgr@test.com', 'Test@1234', 'manager')
-        if not Manager.query.get(mgr_user.id):
+        if not _db.session.get(Manager, mgr_user.id):
             _db.session.add(Manager(
                 manager_id=mgr_user.id,
                 manager_name='Test Manager',
@@ -84,9 +86,9 @@ def _seed_test_data(app):
             ))
         _db.session.commit()
 
-        # Staff user + Staff profile
+        # Staff + profile
         stf_user = _create_user('test_staff', 'staff@test.com', 'Test@1234', 'staff')
-        if not Staff.query.get(stf_user.id):
+        if not _db.session.get(Staff, stf_user.id):
             _db.session.add(Staff(
                 staff_id=stf_user.id,
                 staff_name='Test Stylist',
@@ -100,9 +102,25 @@ def _seed_test_data(app):
             ))
         _db.session.commit()
 
-        # Customer user + Customer profile
+        # Dedicated user for password-change tests (never shared with other flows)
+        pwd_user = _create_user('test_pwd_user', 'pwd@test.com', 'Test@1234', 'staff')
+        if not _db.session.get(Staff, pwd_user.id):
+            _db.session.add(Staff(
+                staff_id=pwd_user.id,
+                staff_name='Pwd Test Stylist',
+                staff_contact='+91-9000000010',
+                staff_email='pwd@test.com',
+                staff_skills='Haircut',
+                staff_role='Stylist',
+                staff_dob=date(1996, 1, 1),
+                staff_doj=date(2023, 6, 1),
+                staff_salary=25000,
+            ))
+        _db.session.commit()
+
+        # Customer + profile
         cust_user = _create_user('test_customer', 'cust@test.com', 'Test@1234', 'customer')
-        if not Customer.query.get(cust_user.id):
+        if not _db.session.get(Customer, cust_user.id):
             _db.session.add(Customer(
                 customer_id=cust_user.id,
                 customer_name='Test Customer',
@@ -118,7 +136,7 @@ def _seed_test_data(app):
             ))
         _db.session.commit()
 
-        # One active service
+        # Service
         if not Service.query.first():
             _db.session.add(Service(
                 service_desc='Ladies Haircut & Styling',
@@ -131,7 +149,7 @@ def _seed_test_data(app):
             ))
         _db.session.commit()
 
-        # One product
+        # Product
         if not Product.query.first():
             _db.session.add(Product(
                 product_desc='Wella Shampoo 1L',
@@ -162,14 +180,14 @@ def _create_user(username, email, password, role_name):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Token fixtures – call login and return Bearer token string
+# Token fixtures
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _login(client, endpoint, username, password):
     rv = client.post(endpoint,
                      json={'username': username, 'password': password},
                      content_type='application/json')
-    assert rv.status_code == 200, f"Login failed: {rv.get_json()}"
+    assert rv.status_code == 200, f"Login failed for {username!r}: {rv.get_json()}"
     return rv.get_json()['token']
 
 
@@ -193,12 +211,17 @@ def customer_token(client):
     return _login(client, '/customer-login', 'test_customer', 'Test@1234')
 
 
+@pytest.fixture(scope='session')
+def pwd_user_token(client):
+    """Dedicated token for password-change tests — not shared with other suites."""
+    return _login(client, '/staff-login', 'test_pwd_user', 'Test@1234')
+
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Convenience helpers
+# Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
 def auth_headers(token):
-    """Return headers dict with both auth header styles Flask-Security accepts."""
     return {
         'Authorization': f'Bearer {token}',
         'Authentication-Token': token,

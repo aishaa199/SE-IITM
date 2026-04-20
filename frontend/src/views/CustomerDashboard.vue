@@ -504,7 +504,7 @@
                     />
                   </div>
                   <div style="display: grid; gap: 16px">
-                    <div v-for="group in paginatedHistoryAppointments" :key="`${group.date}-${group.time}`" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--text-muted); cursor: pointer; transition: background-color 0.2s;" @click="viewAppointmentDetails(group.appointments[0].id)" @mouseenter="($event.currentTarget.style.backgroundColor = 'rgba(218,165,32,0.1)')" @mouseleave="($event.currentTarget.style.backgroundColor = 'var(--light-bg)')">
+                    <div v-for="group in paginatedHistoryAppointments" :key="`${group.date}-${group.time}`" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--text-muted); cursor: pointer; transition: background-color 0.2s;" @click="viewHistoryGroupDetails(group)" @mouseenter="($event.currentTarget.style.backgroundColor = 'rgba(218,165,32,0.1)')" @mouseleave="($event.currentTarget.style.backgroundColor = 'var(--light-bg)')">
                       <!-- Group header with date and time -->
                       <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
                         <div>
@@ -514,7 +514,17 @@
                           <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">with {{ group.appointments[0].staff }}</div>
                         </div>
                         <div style="display: flex; align-items: center; gap: 12px">
-                          <span class="badge badge-gold" style="padding: 4px 8px; font-size: 12px; font-weight: 600">₹{{ group.appointments.reduce((sum, appt) => sum + (appt.price || 0), 0) }}</span>
+                          <div style="text-align: right">
+                            <div v-if="group.appointments[0].has_invoice && group.appointments[0].subtotal != null && group.appointments[0].subtotal !== group.appointments[0].payable_amount" style="font-size: 11px; color: var(--text-muted); text-decoration: line-through; margin-bottom: 2px">
+                              ₹{{ Number(group.appointments[0].subtotal).toFixed(2) }}
+                            </div>
+                            <span class="badge badge-gold" style="padding: 4px 8px; font-size: 12px; font-weight: 600">
+                              ₹{{ group.appointments[0].payable_amount != null
+                                ? Number(group.appointments[0].payable_amount).toFixed(2)
+                                : group.appointments.reduce((sum, a) => sum + (a.price || 0), 0).toFixed(2) }}
+                            </span>
+                            <div v-if="group.appointments[0].has_invoice" style="font-size: 10px; color: #4caf50; margin-top: 2px">Paid</div>
+                          </div>
                           <div v-if="group.appointments[0].rating !== undefined" style="display: flex; align-items: center; gap: 6px">
                             <span style="letter-spacing: 1px">
                               <span v-for="i in 5" :key="i" :style="{ color: i <= (group.appointments[0].rating || 0) ? 'var(--gold)' : 'var(--border)', fontSize: '14px' }">⭐</span>
@@ -525,10 +535,23 @@
                       </div>
                       
                       <!-- Services list -->
-                      <div style="display: flex; flex-wrap: wrap; gap: 8px">
+                      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px">
                         <div v-for="appt in group.appointments" :key="appt.id" style="font-size: 13px; padding: 6px 10px; background: var(--surface); border-radius: 6px; font-weight: 500">
                           {{ appt.service }}
                         </div>
+                      </div>
+
+                      <!-- View Invoice button -->
+                      <div v-if="group.appointments[0].has_invoice" style="display: flex; justify-content: flex-end" @click.stop>
+                        <a
+                          :href="`http://localhost:5000/api/generate-invoice-pdf/${group.appointments[0].invoice_number}`"
+                          target="_blank"
+                          style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 12px; font-weight: 600; background: rgba(201,169,110,0.15); border: 1px solid rgba(201,169,110,0.4); border-radius: 6px; color: var(--gold); text-decoration: none; cursor: pointer; transition: background 0.2s"
+                          @mouseenter="$event.currentTarget.style.background='rgba(201,169,110,0.25)'"
+                          @mouseleave="$event.currentTarget.style.background='rgba(201,169,110,0.15)'"
+                        >
+                          📄 View Invoice
+                        </a>
                       </div>
                     </div>
                   </div>
@@ -1200,9 +1223,14 @@
           </div>
           <div v-else style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
             <!-- VIEW MODE -->
-            <div class="detail-item">
-              <label class="detail-label">Service</label>
-              <div class="detail-value">{{ selectedAppointment.service || selectedAppointment.service_name }}</div>
+            <div class="detail-item" style="grid-column: 1 / -1">
+              <label class="detail-label">Services</label>
+              <div v-if="selectedHistoryGroup" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;">
+                <span v-for="appt in selectedHistoryGroup.appointments" :key="appt.id" style="font-size: 13px; padding: 5px 10px; background: var(--surface); border-radius: 6px; font-weight: 500; border: 1px solid var(--border)">
+                  {{ appt.service }}
+                </span>
+              </div>
+              <div v-else class="detail-value">{{ selectedAppointment.service || selectedAppointment.service_name }}</div>
             </div>
             <div class="detail-item">
               <label class="detail-label">Staff Member</label>
@@ -1213,8 +1241,14 @@
               <div class="detail-value">{{ selectedAppointment.date }} {{ selectedAppointment.time || 'N/A' }}</div>
             </div>
             <div class="detail-item">
-              <label class="detail-label">Price</label>
-              <div class="detail-value">₹{{ selectedAppointment.price }}</div>
+              <label class="detail-label">Total Paid</label>
+              <div class="detail-value">
+                <span v-if="selectedAppointment.has_invoice && selectedAppointment.payable_amount != null">
+                  <span v-if="selectedAppointment.subtotal !== selectedAppointment.payable_amount" style="text-decoration: line-through; color: var(--text-muted); font-size: 12px; margin-right: 6px">₹{{ Number(selectedAppointment.subtotal).toFixed(2) }}</span>
+                  <span style="color: var(--gold); font-weight: 600">₹{{ Number(selectedAppointment.payable_amount).toFixed(2) }}</span>
+                </span>
+                <span v-else>₹{{ selectedAppointment.price }}</span>
+              </div>
             </div>
             <div class="detail-item">
               <label class="detail-label">Duration</label>
@@ -1267,6 +1301,7 @@ const showProfileMenu = ref(false);
 const showProfileEditModal = ref(false);
 const showAppointmentDetailsModal = ref(false);
 const selectedAppointment = ref(null);
+const selectedHistoryGroup = ref(null);
 const loadingAppointmentDetails = ref(false);
 const editingAppointmentId = ref(null);
 const editAppointmentForm = ref({
@@ -1960,6 +1995,20 @@ const goToPageReviews = (page) => {
   }
 };
 
+// View history group details (multi-service appointment)
+const viewHistoryGroupDetails = (group) => {
+  selectedHistoryGroup.value = group;
+  const first = group.appointments[0];
+  selectedAppointment.value = {
+    ...first,
+    service: first.service || first.service_name,
+    staff: first.staff || first.staff_name,
+    duration: 60
+  };
+  editingAppointmentId.value = null;
+  showAppointmentDetailsModal.value = true;
+};
+
 // Fetch appointment details from backend
 const viewAppointmentDetails = async (appointmentId) => {
   selectedAppointment.value = null;
@@ -2353,7 +2402,11 @@ const fetchHistoryAppointments = async () => {
       status: appt.status,
       rating: appt.rating || 0,
       date: appt.datetime ? appt.datetime.split('T')[0] : '',
-      time: appt.datetime ? appt.datetime.split('T')[1]?.substring(0, 5) : ''
+      time: appt.datetime ? appt.datetime.split('T')[1]?.substring(0, 5) : '',
+      has_invoice: appt.has_invoice || false,
+      invoice_number: appt.invoice_number || null,
+      payable_amount: appt.payable_amount ?? null,
+      subtotal: appt.subtotal ?? null
     }));
     console.log("Mapped history appointments:", historyAppointmentsData.value);
   } catch (error) {
@@ -2725,6 +2778,7 @@ const handleBookAppointment = async () => {
 const startEditAppointment = async (appt) => {
   editingAppointmentId.value = appt.id;
   selectedAppointment.value = appt;
+  selectedHistoryGroup.value = null;
   showAppointmentDetailsModal.value = true;
   
   // Wait for modal to render before auto-filling form

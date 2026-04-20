@@ -1,26 +1,29 @@
-# Environment files
+# ─── Environment ─────────────────────────────────────────────────────────────
 .env
 *.env
+*.local
+
+# ─── Python ──────────────────────────────────────────────────────────────────
 .venv/
 venv/
 env/
 ENV/
+myenv/
 .python-version
-
-# Python cache/compiled files
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 
-# Build/distribution artifacts
+# ─── Build / distribution ────────────────────────────────────────────────────
 build/
 dist/
+dist-ssr/
 .eggs/
 *.egg-info/
 pip-wheel-metadata/
 
-# Test/cache/coverage
+# ─── Test / coverage ─────────────────────────────────────────────────────────
 .pytest_cache/
 .coverage
 .coverage.*
@@ -32,30 +35,47 @@ htmlcov/
 .ruff_cache/
 .hypothesis/
 .dmypy.json
+coverage/
+__screenshots__/
 
-# Jupyter
-.ipynb_checkpoints/
-
-# Local app/runtime data
+# ─── Database ────────────────────────────────────────────────────────────────
 instance/
-database/*.db
+backend/instance/
 *.db
 *.sqlite
 *.sqlite3
 
-# Logs
-*.log
+# ─── Node / Frontend ─────────────────────────────────────────────────────────
+node_modules/
+*.tsbuildinfo
+.eslintcache
+*.timestamp-*.mjs
 
-# IDE/editor
+# ─── Logs ────────────────────────────────────────────────────────────────────
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ─── IDE / editor ────────────────────────────────────────────────────────────
 .vscode/
 .idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
 
-# OS files
+# ─── OS ──────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
 
-# Project specific
-backend/instance/
-myenv/
-backend/**/__pycache__/
-application/__pycache__/
+# ─── Jupyter ─────────────────────────────────────────────────────────────────
+.ipynb_checkpoints/
+
+# ─── Cypress / Vitest ────────────────────────────────────────────────────────
+/frontend/cypress/videos/
+/frontend/cypress/screenshots/

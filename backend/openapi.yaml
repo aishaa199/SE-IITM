@@ -2147,3 +2147,294 @@ paths:
                   message:       { type: string }
                   deleted_count: { type: integer }
         "400": { description: Retention policy not configured, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # INVOICES & PDF GENERATION
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/get-all-invoices:
+    get:
+      tags: [Invoices]
+      summary: List all invoices
+      description: Returns all invoices with service breakdown, discount, rewards, and payable amount. Accessible by manager and owner.
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: List of invoices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    invoice_number:        { type: integer }
+                    customer_name:         { type: string }
+                    staff_name:            { type: string }
+                    invoice_date:          { type: string, format: date }
+                    invoice_amount:        { type: number, description: Subtotal before discount }
+                    total_invoice_amount:  { type: number, description: After discount }
+                    payable_amount:        { type: number, description: After discount and rewards }
+                    discount_percentage:   { type: number }
+                    rewards_utilized:      { type: integer }
+                    rewards_monetary_discount: { type: number }
+                    services:              { type: array, items: { type: string } }
+        "401": { description: Unauthorised }
+
+  /api/get-appointments-for-invoice:
+    get:
+      tags: [Invoices]
+      summary: Get completed appointments eligible for invoicing
+      description: Returns appointments with status=1 (completed) that have not yet been invoiced.
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200":
+          description: List of invoiceable appointments
+        "401": { description: Unauthorised }
+
+  /api/generate-invoice-pdf/{invoice_number}:
+    get:
+      tags: [Invoices]
+      summary: Generate and email invoice PDF
+      description: Generates a PDF invoice, emails it to the customer, and streams the PDF in the response.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: invoice_number
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: PDF file stream
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "404": { description: Invoice not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+
+  /api/generate-wholesaler-order/{supplier_email}:
+    get:
+      tags: [Inventory]
+      summary: Generate a PDF purchase order for a supplier
+      description: Collects all pending orders for the given supplier email and generates a PDF order form.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: supplier_email
+          in: path
+          required: true
+          schema: { type: string, format: email }
+      responses:
+        "200":
+          description: PDF purchase order
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        "404": { description: No orders found for supplier }
+
+  /api/supplier-order-reports:
+    get:
+      tags: [Inventory]
+      summary: List all supplier order reports
+      description: Returns a summary of all generated wholesaler order reports.
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: List of order reports }
+
+  /api/csv-to-pdf:
+    post:
+      tags: [Reports]
+      summary: Convert a CSV report to PDF
+      description: Accepts a CSV file and converts it to a formatted PDF report.
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                csv_data: { type: string, description: CSV content as string }
+      responses:
+        "200":
+          description: PDF file
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # NOTIFICATIONS
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/send-notification:
+    get:
+      tags: [Notifications]
+      summary: Fetch notifications for the current user
+      description: Returns all notifications for the logged-in user. Supports `include_read=false` to filter unread only.
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: include_read
+          in: query
+          schema: { type: boolean, default: true }
+      responses:
+        "200":
+          description: List of notifications
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:           { type: integer }
+                    subject:      { type: string }
+                    message:      { type: string }
+                    is_read:      { type: boolean }
+                    created_at:   { type: string, format: date-time }
+    post:
+      tags: [Notifications]
+      summary: Mark a notification as read
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [notification_id]
+              properties:
+                notification_id: { type: integer }
+      responses:
+        "200": { description: Notification marked as read }
+        "404": { description: Notification not found }
+
+  /api/send-email:
+    post:
+      tags: [Notifications]
+      summary: Send a custom email to a user
+      description: Sends a transactional email via Flask-Mail. Manager/owner only.
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [to, subject, body]
+              properties:
+                to:      { type: string, format: email }
+                subject: { type: string }
+                body:    { type: string }
+      responses:
+        "200": { description: Email sent }
+        "500": { description: Email delivery failed }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # STAFF PORTAL
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/staff-dashboard:
+    get:
+      tags: [Staff]
+      summary: Staff dashboard summary
+      description: Returns today's schedule, attendance status, and performance metrics for the logged-in staff member.
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Staff dashboard data }
+        "404": { description: Staff profile not found }
+
+  /api/staff-info:
+    get:
+      tags: [Staff]
+      summary: Logged-in staff profile
+      description: Returns the profile details of the currently authenticated staff member.
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Staff profile }
+        "404": { description: Staff profile not found }
+
+  /api/staff-customer-reviews:
+    get:
+      tags: [Staff]
+      summary: Reviews received by the logged-in staff member
+      description: Returns all customer reviews for services performed by the authenticated staff member.
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: List of reviews }
+
+  /api/mark-staff-absent:
+    post:
+      tags: [Staff]
+      summary: Manually mark a staff member as absent
+      description: Manager can manually mark a staff member absent for today if they failed to check in.
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [staff_id]
+              properties:
+                staff_id: { type: integer }
+      responses:
+        "200": { description: Staff marked absent }
+        "404": { description: Staff not found }
+        "409": { description: Attendance already marked for today }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # CUSTOMER PORTAL
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /api/customer-info:
+    get:
+      tags: [Customers]
+      summary: Logged-in customer profile
+      description: Returns the profile of the currently authenticated customer including rewards balance and membership tier.
+      security: [{ BearerAuth: [] }]
+      responses:
+        "200": { description: Customer profile }
+        "404": { description: Customer profile not found }
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # AI — MANAGER CHAT
+  # ═══════════════════════════════════════════════════════════════════════════
+
+  /ai/manager-chat:
+    post:
+      tags: [AI]
+      summary: AI manager assistant with live DB context
+      description: |
+        Accepts a free-text question from the manager and returns a Claude-powered answer
+        grounded in real-time salon data: today's appointments, monthly revenue, top staff,
+        top services, inventory alerts, and customer stats.
+        Supports multi-turn conversation via the `history` array.
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [message]
+              properties:
+                message:
+                  type: string
+                  example: "Which staff member has the most bookings this month?"
+                history:
+                  type: array
+                  description: Prior conversation turns (last 10 used)
+                  items:
+                    type: object
+                    properties:
+                      type: { type: string, enum: [user, assistant] }
+                      text: { type: string }
+      responses:
+        "200":
+          description: AI-generated plain-text answer
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  response: { type: string }
+        "400": { description: Empty message }
+        "401": { description: Unauthorised }

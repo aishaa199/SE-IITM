@@ -29,10 +29,11 @@ A full-stack salon management platform with role-based dashboards for Owners, Ma
 - **Inventory & procurement** — stock tracking, low-stock alerts, wholesaler order PDFs
 - **Staff attendance** — automated threshold-based absence marking via scheduler
 - **Customer rewards** — points accrual, redemption, and VIP tier tracking
-- **Analytics & reports** — sales, staff performance, and appointment CSV exports
+- **Analytics & reports** — sales, staff performance, and appointment CSV/PDF exports via AI chat
 - **Notifications** — in-app notifications for managers, staff, and customers
+- **Birthday rewards** — automatic reward points, advance reminders (15-day and 2-day), and on-day birthday notification
 - **Forgot password** — email-based password reset for all roles
-- **AI assistant** — Claude-powered insights on the manager dashboard
+- **AI assistant** — Claude-powered manager chat with live DB context: answers questions about revenue, staff, services, and generates reports on request
 
 ---
 
@@ -74,6 +75,7 @@ SE-IITM/
 │   ├── upload_salon_config.py   # Salon config seeder
 │   ├── seed_dummy_data.py       # Dummy data for development
 │   ├── openapi.yaml             # OpenAPI specification
+│   ├── pytest.ini               # Pytest configuration
 │   └── requirements.txt
 ├── frontend/
 │   ├── src/
@@ -98,8 +100,8 @@ SE-IITM/
 │   ├── public/
 │   ├── index.html
 │   └── vite.config.js
-├── reports/                         # Generated CSV reports
-��── Testing_guide.md
+├── reports/                         # Generated CSV/PDF reports
+├── Testing_guide.md
 ├── LICENSE
 └── README.md
 ```
@@ -111,7 +113,7 @@ SE-IITM/
 ### Prerequisites
 
 - Python 3.12+
-- Node.js 18+ and npm
+- Node.js 18+ and npm (required to run Vue/Vite frontend)
 
 ### Backend Setup
 
@@ -125,8 +127,8 @@ source .venv/bin/activate        # Windows: .venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Copy and configure environment variables
-cp .env.example .env             # then edit .env with your values
+# Create and configure environment variables (see Environment Variables section below)
+cp /dev/null .env                # create empty .env, then add your values
 
 # Start the server
 python main.py
@@ -135,6 +137,11 @@ python main.py
 The backend will be available at `http://127.0.0.1:5000`.
 
 > The database is created automatically on first run. Default salon configuration and seed data are loaded if the database does not exist.
+
+To seed the dummy data into db run :
+```
+python seed_dummy_data.py
+```
 
 ### Frontend Setup
 
@@ -203,11 +210,15 @@ All REST endpoints are prefixed with `/api/`. Auth endpoints are at the root.
 | POST | `/forgot-password` | Request password reset email |
 | POST | `/reset-password` | Reset password with token |
 | POST | `/logout` | Invalidate auth token |
-| GET | `/api/get-all-invoices` | Fetch all invoices |
+| GET | `/api/get-all-invoices` | Fetch all invoices (manager) |
 | GET | `/api/generate-invoice-pdf/<id>` | Generate and email invoice PDF |
-| GET | `/api/appointments` | List appointments |
+| GET | `/api/appointment` | List appointments |
 | GET | `/api/staff` | List staff members |
-| GET | `/api/customers` | List customers |
+| GET | `/api/customer` | List customers |
+| GET | `/api/service` | List services |
+| POST | `/ai/manager-chat` | AI assistant with live DB context |
+| POST | `/ai/daily-briefing` | AI daily briefing for manager |
+| POST | `/ai/report-intent` | Classify and generate a report |
 
 ---
 

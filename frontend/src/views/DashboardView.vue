@@ -1943,6 +1943,19 @@
                   </div>
                 </div>
 
+                <!-- Birthday Alert -->
+                <div v-if="invoiceBirthdayAlert" style="margin-top: 16px; padding: 14px 16px; border-radius: 8px; background: rgba(255,200,50,0.12); border: 1px solid rgba(255,200,50,0.4); display: flex; align-items: flex-start; gap: 12px">
+                  <span style="font-size: 22px; line-height: 1">{{ invoiceBirthdayAlert.days === 0 ? '🎂' : '🎁' }}</span>
+                  <div>
+                    <div style="font-weight: 600; font-size: 13px; color: #f0c040; margin-bottom: 4px">
+                      {{ invoiceBirthdayAlert.days === 0 ? "Today is " + invoiceBirthdayAlert.name + "'s Birthday!" : invoiceBirthdayAlert.name + "'s birthday is in " + invoiceBirthdayAlert.days + " day" + (invoiceBirthdayAlert.days > 1 ? 's' : '') + "!" }}
+                    </div>
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6)">
+                      Consider giving a special birthday discount.
+                    </div>
+                  </div>
+                </div>
+
                 <div v-if="invoiceError" class="error-message">{{ invoiceError }}</div>
                 <div v-if="invoiceSuccess" class="success-message">{{ invoiceSuccess }}</div>
 
@@ -3149,17 +3162,29 @@
         </div>
 
         <div style="border-top: 2px solid var(--border-color); padding-top: 16px; margin-bottom: 20px">
-          <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; margin-bottom: 8px">
+          <div style="display: grid; grid-template-columns: 160px 1fr; gap: 8px; margin-bottom: 6px">
             <span style="color: var(--text-muted)">Subtotal:</span>
-            <span style="text-align: right; font-weight: 500">₹{{ selectedInvoice.invoice_amount || getServicePrice(selectedInvoice.serviceId) }}</span>
+            <span style="text-align: right; font-weight: 500">₹{{ (selectedInvoice.invoice_amount || 0).toFixed(2) }}</span>
           </div>
-          <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; margin-bottom: 8px" v-if="selectedInvoice.other_charges">
+          <div v-if="selectedInvoice.other_charges" style="display: grid; grid-template-columns: 160px 1fr; gap: 8px; margin-bottom: 6px">
             <span style="color: var(--text-muted)">Other Charges:</span>
-            <span style="text-align: right; font-weight: 500">₹{{ selectedInvoice.other_charges }}</span>
+            <span style="text-align: right; font-weight: 500">₹{{ (selectedInvoice.other_charges || 0).toFixed(2) }}</span>
           </div>
-          <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; font-size: 14px; margin-bottom: 8px">
-            <span style="color: var(--text-muted)">Total Amount:</span>
-            <span style="text-align: right; font-weight: 600; color: var(--gold); font-size: 16px">₹{{ selectedInvoice.total_charges || selectedInvoice.invoice_amount || getServicePrice(selectedInvoice.serviceId) }}</span>
+          <div v-if="selectedInvoice.discount_percentage" style="display: grid; grid-template-columns: 160px 1fr; gap: 8px; margin-bottom: 6px">
+            <span style="color: var(--text-muted)">Discount ({{ (selectedInvoice.discount_percentage || 0).toFixed(2) }}%):</span>
+            <span style="text-align: right; font-weight: 500; color: #4caf50">
+              -₹{{ ((selectedInvoice.invoice_amount || 0) * (selectedInvoice.discount_percentage || 0) / 100).toFixed(2) }}
+            </span>
+          </div>
+          <div v-if="selectedInvoice.rewards_utilized" style="display: grid; grid-template-columns: 160px 1fr; gap: 8px; margin-bottom: 6px">
+            <span style="color: var(--text-muted)">Rewards ({{ selectedInvoice.rewards_utilized }} pts):</span>
+            <span style="text-align: right; font-weight: 500; color: #4caf50">
+              -₹{{ (selectedInvoice.rewards_monetary_discount || 0).toFixed(2) }}
+            </span>
+          </div>
+          <div style="display: grid; grid-template-columns: 160px 1fr; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border-color)">
+            <span style="color: var(--text-muted); font-weight: 600">Total Payable:</span>
+            <span style="text-align: right; font-weight: 700; color: var(--gold); font-size: 16px">₹{{ Number(selectedInvoice.payable_amount || selectedInvoice.total_charges || 0).toFixed(2) }}</span>
           </div>
         </div>
 
@@ -3562,6 +3587,7 @@ const aiMessages = ref([
   { type: 'assistant', text: 'Hi! I\'m your AI Assistant. I\'m here to help you manage appointments, customers, services, staff, packages, and resolve any issues. Try asking me to "Create a task checklist for today"!' }
 ]);
 const aiUserInput = ref('');
+const lastReportIntent = ref(null); // remembers last report type/period for format follow-ups
 
 // Manager Task Checklist state
 const managerTasks = ref([]);
@@ -3723,6 +3749,19 @@ const invoiceForm = ref({
   customerName: "",
   staffName: "",
   serviceNames: ""
+});
+
+const invoiceBirthdayAlert = computed(() => {
+  if (!invoiceForm.value.customerId) return null;
+  const customer = data.value.customers?.find(c => c.id === invoiceForm.value.customerId);
+  if (!customer?.dob) return null;
+  const today = new Date();
+  const dob = new Date(customer.dob);
+  const thisYearBday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+  const diffMs = thisYearBday - new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays >= 0 && diffDays <= 7) return { days: diffDays, name: customer.name };
+  return null;
 });
 const invoiceError = ref("");
 const invoiceSuccess = ref("");
@@ -5425,7 +5464,10 @@ const fetchInvoices = async () => {
         service_names: inv.service_names || "",
         invoice_amount: inv.invoice_amount || 0,
         other_charges: inv.other_charges || 0,
+        discount_percentage: inv.discount_percentage || 0,
         total_charges: inv.total_charges || inv.invoice_amount || 0,
+        payable_amount: inv.payable_amount ?? inv.total_charges ?? inv.invoice_amount ?? 0,
+        rewards_monetary_discount: inv.rewards_monetary_discount || 0,
         invoice_date: inv.invoice_date || new Date().toISOString().split('T')[0],
         status: inv.status || 0,
         rewards_earned: inv.rewards_earned || 0,
@@ -7878,34 +7920,39 @@ const quickGenerateReport = async () => {
 };
 
 // ── Chatbot report trigger (from the floating assistant) ───────────────────
-const _triggerReportFromChat = async (userMessage) => {
+const _triggerReportFromChat = async (userMessage, overrideIntent = null) => {
   const token = localStorage.getItem("authToken");
+  const format = userMessage.includes('pdf') ? 'pdf' : 'csv';
   try {
-    const intentRes = await fetch(`${API_BASE_URL}/ai/report-intent`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Authentication-Token": token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message: userMessage }),
-    });
-    const intent = await intentRes.json();
-
-    if (!intentRes.ok || !intent.report_type) {
-      return intent.message ||
-        'Please specify the report type: sales, staff, appointments, inventory, or feedback.';
+    let intent = overrideIntent;
+    if (!intent) {
+      const intentRes = await fetch(`${API_BASE_URL}/ai/report-intent`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: userMessage }),
+      });
+      intent = await intentRes.json();
+      if (!intentRes.ok || !intent.report_type) {
+        return intent.message ||
+          'Please specify the report type: sales, staff, appointments, inventory, or feedback.';
+      }
     }
+
+    lastReportIntent.value = intent;
 
     await _callGenerateReport(
       intent.report_type,
       intent.time_period,
-      'csv',
+      format,
       intent.custom_start,
       intent.custom_end,
     );
 
-    return `Done! Your ${intent.time_period} ${intent.report_type} report (CSV) is downloading now. You can also find it in the Download Reports section.`;
+    return `Done! Your ${intent.time_period} ${intent.report_type} report (${format.toUpperCase()}) is downloading now. You can also find it in the Download Reports section.`;
   } catch (err) {
     return `Report generation failed: ${err.message || 'Please try again.'}`;
   }
@@ -8340,6 +8387,21 @@ const sendAIMessage = () => {
     }, 0);
   };
 
+  // Format follow-up: user says "in pdf" / "as pdf" / "pdf format" after a prior report
+  const isFormatFollowUp = lastReportIntent.value && (
+    userMessage.includes('pdf') || userMessage.includes('csv')
+  ) && !userMessage.includes('report');
+  if (isFormatFollowUp) {
+    const fmt = userMessage.includes('pdf') ? 'pdf' : 'csv';
+    aiMessages.value.push({ type: 'assistant', text: `Regenerating the ${lastReportIntent.value.report_type} report as ${fmt.toUpperCase()}…` });
+    scrollChat();
+    _triggerReportFromChat(userMessage, lastReportIntent.value).then(reply => {
+      aiMessages.value.push({ type: 'assistant', text: reply });
+      scrollChat();
+    });
+    return;
+  }
+
   // Report generation — async path (checked before task checklist)
   const reportKeywords = [
     'report', 'generate report', 'download report', 'sales report',
@@ -8380,40 +8442,30 @@ const sendAIMessage = () => {
     return;
   }
 
-  // Static keyword responses
-  let assistantResponse = '';
-  if (userMessage.includes('appointment') || userMessage.includes('booking')) {
-    assistantResponse = 'I see you\'re asking about appointments. You can manage appointments in the "Appointments" section. You can create new appointments, edit existing ones, or view them by date. What would you like to do?';
-  } else if (userMessage.includes('customer')) {
-    assistantResponse = 'The Customers section shows all your clients, their contact information, preferences, visit history, and spending. You can add new customers, edit their details, or track customer loyalty there.';
-  } else if (userMessage.includes('service')) {
-    assistantResponse = 'You can create and manage services in the "Services" section. Add new services, set pricing, duration, products required, and manage all your service offerings there.';
-  } else if (userMessage.includes('staff') || userMessage.includes('stylist')) {
-    assistantResponse = 'You can view and manage your staff in the Staff Management section. Add new staff members, view their skills, attendance, appointments, and performance ratings.';
-  } else if (userMessage.includes('package')) {
-    assistantResponse = 'Service Packages allow you to bundle multiple services together in the "Service Packages" section. Create customized packages for special promotions or occasions.';
-  } else if (userMessage.includes('inventory') || userMessage.includes('product') || userMessage.includes('stock')) {
-    assistantResponse = 'The Inventory Management section lets you track products, stock levels, suppliers, and costs. You can see low stock alerts and manage orders from the Orders section.';
-  } else if (userMessage.includes('invoice') || userMessage.includes('billing') || userMessage.includes('payment')) {
-    assistantResponse = 'You can create and manage invoices in the Invoices section. Create invoices from completed appointments, track payment status, and send invoices to customers via email.';
-  } else if (userMessage.includes('finance') || userMessage.includes('profit') || userMessage.includes('revenue')) {
-    assistantResponse = 'The Finance section (password protected) shows your total revenue, product costs, staff salaries, overhead, and net profit. Access it from the sidebar for a complete financial overview. You can also ask me to "Generate a monthly financial report" to download a PDF or CSV!';
-  } else if (userMessage.includes('issue') || userMessage.includes('problem') || userMessage.includes('error')) {
-    assistantResponse = 'I\'m sorry you\'re experiencing an issue. Please describe the problem in detail, and I\'ll help you troubleshoot. Is it related to appointments, customers, services, staff, inventory, or invoices?';
-  } else if (userMessage.includes('help')) {
-    assistantResponse = 'I\'m here to help! I can assist you with:\n• Managing appointments & bookings\n• Customer information & preferences\n• Creating & managing services\n• Staff management & scheduling\n• Inventory & product management\n• Invoices & billing\n• Finance & reports\n• Generating a daily task checklist (just ask!)\n\nWhat would you like help with?';
-  } else if (userMessage.includes('hello') || userMessage.includes('hi')) {
-    assistantResponse = 'Hello! I\'m your AI Assistant for the Manager Dashboard. How can I help you today? Feel free to ask about appointments, customers, services, staff, inventory, or say "Create a task checklist for today"!';
-  } else if (userMessage.includes('overview') || userMessage.includes('stats') || userMessage.includes('dashboard')) {
-    assistantResponse = 'The Dashboard Overview shows you key metrics: Today\'s appointments, available staff, low stock items, and pending orders. This gives you a quick snapshot of your business for the day.';
-  } else {
-    assistantResponse = 'That\'s a great question! I can help with appointment management, customer details, service creation, staff management, inventory, invoices, and financial reports. You can also ask me to "Create a task checklist for today"!';
-  }
-
-  setTimeout(() => {
-    aiMessages.value.push({ type: 'assistant', text: assistantResponse });
-    scrollChat();
-  }, 500);
+  // All other questions → real AI with DB context
+  const token = localStorage.getItem('authToken');
+  const historyForApi = aiMessages.value.slice(0, -1).slice(-20); // exclude the just-added user msg
+  fetch(`${API_BASE_URL}/ai/manager-chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'Authentication-Token': token
+    },
+    body: JSON.stringify({
+      message: userMessage,
+      history: historyForApi
+    })
+  })
+    .then(r => r.json())
+    .then(data => {
+      aiMessages.value.push({ type: 'assistant', text: data.response || 'Sorry, I could not get a response.' });
+      scrollChat();
+    })
+    .catch(() => {
+      aiMessages.value.push({ type: 'assistant', text: 'Connection error. Please try again.' });
+      scrollChat();
+    });
 };
 
 // Product/Inventory handlers

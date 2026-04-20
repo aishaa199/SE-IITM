@@ -1,4 +1,6 @@
 Invoice #,Date,Customer,Services,Staff,Invoice Amount (₹),Rewards Used,Payable Amount (₹)
-36,01 Apr 2026,Pallavi Krishnan,Eyebrow Threading,Radha Menon,60.00,1,159.00
-55,19 Apr 2026,Aditi Sharma,"Ladies Haircut & Styling, Hair Highlights",Priya Sharma,3350.00,0,3350.00
-56,19 Apr 2026,Bhavna Patel,Bridal Makeup Package,Anjali Singh,12000.00,0,10800.00
+4,01 Apr 2026,Lavanya Bose,"Full Face Threading, Eyebrow Shaping & Tint, Bridal Makeup Package",Lakshmi Rao,12460.00,3,12657.00
+49,01 Apr 2026,Bhavna Patel,Ladies Haircut & Styling,Preeti Mishra,550.00,11,739.00
+53,20 Apr 2026,geeta,"Ladies Haircut & Styling, Hair Coloring – Global, Hair Highlights",Priya Sharma,5150.00,50,4632.50
+54,20 Apr 2026,geeta,Kerasmooth / Keratin Treat.,Priya Sharma,4500.00,483,4025.85
+55,20 Apr 2026,geeta,Blow Dry & Setting,Priya Sharma,400.00,402,359.90
