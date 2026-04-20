@@ -3269,6 +3269,11 @@ class GenerateWholesalerOrder(Resource):
             # Save PDF (overwrites if exists)
             pdf.output(filepath)
 
+            # Advance all cart orders to Pending Delivery
+            for o in orders:
+                o.status = 0
+            db.session.commit()
+
             # --- Automatically Send Email to Manager and Wholesaler ---
             email_recipients = []
             

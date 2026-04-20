@@ -5873,42 +5873,7 @@ const handlePlaceOrderToWholesale = async (supplierGroup) => {
       console.warn("Failed to create pending delivery notification:", notifError);
     }
 
-    // Step 1: Update each order status from 2 to 0 via PUT (like handleMarkOrderDelivered does)
-    console.log(`Updating ${supplierGroup.items.length} orders to status=0 (Pending Delivery)...`);
-    let successCount = 0;
-    
-    for (const order of supplierGroup.items) {
-      try {
-        const orderPayload = {
-          status: 0, // Change to Pending Delivery
-          order_quantity: order.order_quantity
-        };
-
-        const orderResponse = await fetch(`${API_BASE_URL}/api/order/${order.order_id}`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            "Authentication-Token": token
-          },
-          body: JSON.stringify(orderPayload)
-        });
-
-        if (orderResponse.ok) {
-          successCount++;
-          console.log(`✓ Order ${order.order_id} status updated to 0`);
-        } else {
-          const errorResult = await orderResponse.json();
-          console.error(`✗ Failed to update order ${order.order_id}:`, errorResult);
-        }
-      } catch (err) {
-        console.error(`Error updating order ${order.order_id}:`, err);
-      }
-    }
-
-    console.log(`Successfully updated ${successCount}/${supplierGroup.items.length} orders`);
-
-    // Step 2: Call API to generate and send wholesale order PDF
+    // Call API to generate PDF, send email, and advance orders to Pending Delivery (status=0)
     console.log(`Calling API to generate wholesale order PDF for ${supplierEmail}...`);
     
     const generateResponse = await fetch(`${API_BASE_URL}/api/generate-wholesaler-order/${encodeURIComponent(supplierEmail)}`, {
@@ -5939,18 +5904,14 @@ const handlePlaceOrderToWholesale = async (supplierGroup) => {
       console.error("Error generating PDF:", generateResponse, errorText);
     }
 
-    // Step 3: Refresh the lists to show the updated status (status changed from 2 to 0)
-    console.log("Refreshing order lists...");
+    // Refresh lists to reflect the updated order statuses
     await fetchManagerOrders();
-    console.log("Manager orders refreshed:", managerOrders.value);
-    
     await fetchAllManagerReplenishments();
-    console.log("All manager replenishments refreshed:", allManagerReplenishmentTransactions.value);
-    
-    const summary = `Orders Confirmed for Wholesale!\n================================\nSupplier: ${supplierGroup.supplier}\nTotal Items Updated: ${successCount}/${supplierGroup.items.length}\n\nWholesale Order PDF has been generated and sent to: ${supplierEmail}\n\nOrders are now visible in "Wholesale Orders Placed"`;
+
+    const summary = `Orders Confirmed for Wholesale!\n================================\nSupplier: ${supplierGroup.supplier}\nTotal Items: ${supplierGroup.items.length}\n\nWholesale Order PDF has been generated and sent to: ${supplierEmail}\n\nOrders are now visible in "Wholesale Orders Placed"`;
     alert(summary);
-    
-    console.log(`${successCount} orders confirmed for wholesale with ${supplierGroup.supplier}`);
+
+    console.log(`${supplierGroup.items.length} orders confirmed for wholesale with ${supplierGroup.supplier}`);
   } catch (error) {
     alert("Error: " + error.message);
     console.error("Critical error:", error);
