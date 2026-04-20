@@ -44,7 +44,7 @@ A full-stack salon management platform with role-based dashboards for Owners, Ma
 | Frontend | Vue 3, Vite, Pinia, Vue Router |
 | Backend | Flask, Flask-RESTful, Flask-Security-Too |
 | Database | SQLite (via Flask-SQLAlchemy) |
-| Auth | Flask-Security token-based auth (bcrypt) |
+| Auth | Flask-Security-Too opaque token auth (`Authentication-Token` header, bcrypt passwords) |
 | Email | Flask-Mail (Gmail SMTP) |
 | Scheduling | Flask-APScheduler |
 | AI | Anthropic Claude API |
