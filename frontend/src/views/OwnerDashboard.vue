@@ -51,11 +51,14 @@
       <div class="content-wrap">
         <!-- OVERVIEW VIEW -->
         <div v-if="currentView === 'overview'" class="fade-in">
+          <div v-if="overviewLoading" style="text-align:center; padding: 60px; color: var(--text-muted)">Loading overview data...</div>
+          <template v-else>
+          <!-- Stats Cards -->
           <div class="stats-grid">
             <div class="stat-card">
               <div class="stat-icon">📊</div>
               <div class="stat-label">Total Revenue</div>
-              <div class="stat-value">₹{{ totalRevenue }}</div>
+              <div class="stat-value">₹{{ totalRevenue.toLocaleString() }}</div>
             </div>
             <div class="stat-card">
               <div class="stat-icon">📅</div>
@@ -74,10 +77,12 @@
             <div class="stat-card">
               <div class="stat-icon">💰</div>
               <div class="stat-label">Avg Revenue/Booking</div>
-              <div class="stat-value">₹{{ avgRevenuePerBooking }}</div>
+              <div class="stat-value">₹{{ avgRevenuePerBooking.toLocaleString() }}</div>
+            </div>
+            <div class="stat-card">
               <div class="stat-icon">⭐</div>
-              <div class="stat-label">Overall Performance</div>
-              <div class="stat-value">{{ overallPerformance }}%</div>
+              <div class="stat-label">Customer Satisfaction</div>
+              <div class="stat-value">{{ overviewStats?.avg_satisfaction ?? '—' }}/5.0</div>
             </div>
             <div class="stat-card">
               <div class="stat-icon">🎯</div>
@@ -86,192 +91,97 @@
             </div>
           </div>
 
-          <!-- PIE CHART - Customer Distribution -->
+          <!-- Revenue by Day of Week (last 30 days) -->
           <div class="card" style="margin-top: 24px;">
             <div class="card-header">
-              <h3 class="card-title">🥧 Customer Distribution (Pie Chart)</h3>
-            </div>
-            <div class="card-body" style="padding: 40px; text-align: center;">
-              <div style="display: flex; justify-content: center; align-items: center; gap: 60px; flex-wrap: wrap">
-                <!-- Pie Chart Visual -->
-                <div style="position: relative; width: 250px; height: 250px">
-                  <svg width="250" height="250" style="transform: rotate(-90deg)">
-                    <!-- Active Customers - 60% (Gold) -->
-                    <circle cx="125" cy="125" r="80" fill="none" stroke="#d4af37" stroke-width="50" stroke-dasharray="301.6 503.4"/>
-                    <!-- Returning - 30% (Orange) -->
-                    <circle cx="125" cy="125" r="80" fill="none" stroke="#f59e0b" stroke-width="50" stroke-dasharray="150.8 503.4" stroke-dashoffset="-301.6"/>
-                    <!-- New - 10% (Purple) -->
-                    <circle cx="125" cy="125" r="80" fill="none" stroke="#8b5cf6" stroke-width="50" stroke-dasharray="50.3 503.4" stroke-dashoffset="-452.4"/>
-                  </svg>
-                  <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center">
-                    <div style="font-size: 36px; font-weight: bold; color: var(--gold)">{{ totalCustomers }}</div>
-                    <div style="font-size: 12px; color: var(--text-muted)">Total</div>
-                  </div>
-                </div>
-                
-                <!-- Legend -->
-                <div style="text-align: left">
-                  <div style="margin-bottom: 20px; padding: 12px; border-radius: 6px; background: rgba(212, 175, 55, 0.1); border-left: 5px solid #d4af37">
-                    <div style="display: flex; align-items: center; gap: 10px">
-                      <div style="width: 20px; height: 20px; background: #d4af37; border-radius: 3px"></div>
-                      <span style="font-weight: 600">Active Customers</span>
-                      <span style="color: var(--gold); font-weight: 700">{{ Math.ceil(totalCustomers * 0.6) }} (60%)</span>
-                    </div>
-                  </div>
-                  <div style="margin-bottom: 20px; padding: 12px; border-radius: 6px; background: rgba(245, 158, 11, 0.1); border-left: 5px solid #f59e0b">
-                    <div style="display: flex; align-items: center; gap: 10px">
-                      <div style="width: 20px; height: 20px; background: #f59e0b; border-radius: 3px"></div>
-                      <span style="font-weight: 600">Returning</span>
-                      <span style="color: #f59e0b; font-weight: 700">{{ Math.ceil(totalCustomers * 0.3) }} (30%)</span>
-                    </div>
-                  </div>
-                  <div style="padding: 12px; border-radius: 6px; background: rgba(139, 92, 246, 0.1); border-left: 5px solid #8b5cf6">
-                    <div style="display: flex; align-items: center; gap: 10px">
-                      <div style="width: 20px; height: 20px; background: #8b5cf6; border-radius: 3px"></div>
-                      <span style="font-weight: 600">New Visitors</span>
-                      <span style="color: #8b5cf6; font-weight: 700">{{ Math.ceil(totalCustomers * 0.1) }} (10%)</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- BAR CHART - Revenue by Day -->
-          <div class="card" style="margin-top: 24px;">
-            <div class="card-header">
-              <h3 class="card-title">📊 Revenue by Day (Bar Chart)</h3>
+              <h3 class="card-title">📊 Revenue by Day of Week (Last 30 Days)</h3>
             </div>
             <div class="card-body" style="padding: 40px">
-              <div style="display: flex; align-items: flex-end; gap: 20px; height: 300px; justify-content: center; padding-bottom: 20px">
-                <!-- Monday -->
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
-                  <div style="width: 60px; height: 150px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
-                    @mouseenter="hoveredBar = 'mon'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'mon'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹500</div>
+              <div v-if="overviewStats?.revenue_by_day?.length" style="display: flex; align-items: flex-end; gap: 20px; height: 280px; justify-content: center; padding-bottom: 20px">
+                <div v-for="(item, idx) in overviewStats.revenue_by_day" :key="item.day"
+                  style="display: flex; flex-direction: column; align-items: center; gap: 12px; flex: 1">
+                  <div
+                    :style="{ height: Math.max((item.revenue / Math.max(...overviewStats.revenue_by_day.map(d => d.revenue))) * 240, 8) + 'px' }"
+                    style="width: 60px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative; transition: height 0.4s ease"
+                    @mouseenter="hoveredBar = idx" @mouseleave="hoveredBar = null">
+                    <div v-if="hoveredBar === idx" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹{{ item.revenue.toLocaleString() }}</div>
                   </div>
-                  <div style="font-weight: 700">Mon</div>
-                  <div style="font-size: 12px; color: var(--text-muted)">₹500</div>
-                </div>
-
-                <!-- Tuesday -->
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
-                  <div style="width: 60px; height: 200px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
-                    @mouseenter="hoveredBar = 'tue'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'tue'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹750</div>
-                  </div>
-                  <div style="font-weight: 700">Tue</div>
-                  <div style="font-size: 12px; color: var(--text-muted)">₹750</div>
-                </div>
-
-                <!-- Wednesday -->
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
-                  <div style="width: 60px; height: 180px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
-                    @mouseenter="hoveredBar = 'wed'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'wed'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹600</div>
-                  </div>
-                  <div style="font-weight: 700">Wed</div>
-                  <div style="font-size: 12px; color: var(--text-muted)">₹600</div>
-                </div>
-
-                <!-- Thursday -->
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
-                  <div style="width: 60px; height: 240px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
-                    @mouseenter="hoveredBar = 'thu'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'thu'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹800</div>
-                  </div>
-                  <div style="font-weight: 700">Thu</div>
-                  <div style="font-size: 12px; color: var(--text-muted)">₹800</div>
-                </div>
-
-                <!-- Friday -->
-                <div style="display: flex; flex-direction: column; align-items: center; gap: 12px">
-                  <div style="width: 60px; height: 190px; background: linear-gradient(180deg, #d4af37 0%, #b89e2c 100%); border-radius: 6px 6px 0 0; box-shadow: 0 8px 16px rgba(212, 175, 55, 0.3); position: relative"
-                    @mouseenter="hoveredBar = 'fri'" @mouseleave="hoveredBar = null">
-                    <div v-if="hoveredBar === 'fri'" style="position: absolute; top: -35px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 8px 16px; border-radius: 4px; font-weight: 700; white-space: nowrap; font-size: 14px">₹650</div>
-                  </div>
-                  <div style="font-weight: 700">Fri</div>
-                  <div style="font-size: 12px; color: var(--text-muted)">₹650</div>
+                  <div style="font-weight: 700">{{ item.day }}</div>
+                  <div style="font-size: 12px; color: var(--text-muted)">₹{{ item.revenue.toLocaleString() }}</div>
                 </div>
               </div>
+              <div v-else style="text-align:center; color: var(--text-muted); padding: 40px">No invoice data for last 30 days.</div>
             </div>
           </div>
 
-          <!-- LARGE Revenue Trend Chart -->
+          <!-- Revenue Trend (last 30 days by date) -->
           <div class="card" style="margin-top: 24px; width: 100%;">
             <div class="card-header">
-              <h3 class="card-title">📊 Revenue Trend Chart - Weekly Performance</h3>
+              <h3 class="card-title">📊 Revenue Trend — Last 30 Days</h3>
             </div>
             <div class="card-body" style="padding: 32px">
-              <div style="display: flex; align-items: flex-end; gap: 16px; height: 280px; justify-content: space-around">
-                <div v-for="(booking, idx) in ownerData.bookings" :key="idx" style="flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px">
-                  <div 
-                    :style="{ height: (booking.amount / 800) * 240 + 'px' }"
-                    style="width: 100%; background: linear-gradient(180deg, var(--gold) 0%, rgba(212, 175, 55, 0.6) 100%); border-radius: 8px 8px 0 0; transition: all 0.3s ease; cursor: pointer; min-height: 30px; box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3); position: relative"
-                    @mouseenter="hoveredBar = idx"
-                    @mouseleave="hoveredBar = null"
-                  >
-                    <div v-if="hoveredBar === idx" style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 6px 12px; border-radius: 4px; font-weight: 600; white-space: nowrap; font-size: 14px">₹{{ booking.amount }}</div>
+              <div v-if="overviewStats?.revenue_trend?.length" style="display: flex; align-items: flex-end; gap: 6px; height: 280px; justify-content: space-around">
+                <div v-for="(item, idx) in overviewStats.revenue_trend" :key="item.date"
+                  style="flex: 1; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 8px">
+                  <div
+                    :style="{ height: Math.max((item.revenue / Math.max(...overviewStats.revenue_trend.map(d => d.revenue))) * 240, 8) + 'px' }"
+                    style="width: 100%; background: linear-gradient(180deg, var(--gold) 0%, rgba(212, 175, 55, 0.6) 100%); border-radius: 4px 4px 0 0; transition: all 0.3s ease; cursor: pointer; min-height: 8px; box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3); position: relative"
+                    @mouseenter="hoveredBar = 't' + idx"
+                    @mouseleave="hoveredBar = null">
+                    <div v-if="hoveredBar === 't' + idx" style="position: absolute; top: -36px; left: 50%; transform: translateX(-50%); background: var(--gold); color: var(--text); padding: 6px 10px; border-radius: 4px; font-weight: 600; white-space: nowrap; font-size: 12px">{{ item.date }}<br>₹{{ item.revenue.toLocaleString() }}</div>
                   </div>
-                  <div style="font-weight: 600">Day {{ idx + 1 }}</div>
-                  <div class="text-muted" style="font-size: 12px">₹{{ booking.amount }}</div>
+                  <div v-if="overviewStats.revenue_trend.length <= 14" style="font-size: 10px; color: var(--text-muted); writing-mode: vertical-rl">{{ item.date.slice(5) }}</div>
                 </div>
               </div>
-              <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; text-align: center">
+              <div v-else style="text-align:center; color: var(--text-muted); padding: 40px">No revenue trend data available.</div>
+              <div v-if="overviewStats?.revenue_trend?.length" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid var(--border); display: flex; justify-content: space-around; text-align: center">
                 <div>
-                  <div class="text-muted" style="font-size: 12px">Highest Revenue</div>
-                  <div style="font-weight: 600; color: var(--gold); font-size: 18px">₹{{ Math.max(...ownerData.bookings.map(b => b.amount)) }}</div>
+                  <div class="text-muted" style="font-size: 12px">Highest Day</div>
+                  <div style="font-weight: 600; color: var(--gold); font-size: 18px">₹{{ Math.max(...overviewStats.revenue_trend.map(d => d.revenue)).toLocaleString() }}</div>
                 </div>
                 <div>
-                  <div class="text-muted" style="font-size: 12px">Lowest Revenue</div>
-                  <div style="font-weight: 600; color: #3b82f6; font-size: 18px">₹{{ Math.min(...ownerData.bookings.map(b => b.amount)) }}</div>
+                  <div class="text-muted" style="font-size: 12px">Lowest Day</div>
+                  <div style="font-weight: 600; color: #3b82f6; font-size: 18px">₹{{ Math.min(...overviewStats.revenue_trend.map(d => d.revenue)).toLocaleString() }}</div>
                 </div>
                 <div>
-                  <div class="text-muted" style="font-size: 12px">Average Revenue</div>
-                  <div style="font-weight: 600; color: #22c55e; font-size: 18px">₹{{ Math.round(ownerData.bookings.reduce((sum, b) => sum + b.amount, 0) / ownerData.bookings.length) }}</div>
+                  <div class="text-muted" style="font-size: 12px">Daily Average</div>
+                  <div style="font-weight: 600; color: #22c55e; font-size: 18px">₹{{ Math.round(overviewStats.revenue_trend.reduce((s,d) => s + d.revenue, 0) / overviewStats.revenue_trend.length).toLocaleString() }}</div>
                 </div>
               </div>
             </div>
           </div>
-
 
           <!-- Performance Analysis Row -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px">
-            <!-- LARGE Customer Distribution Pie Chart -->
+            <!-- Customer Type Breakdown -->
             <div class="card">
               <div class="card-header">
                 <h3 class="card-title">🥧 Customer Segment Analysis</h3>
               </div>
               <div class="card-body" style="padding: 32px; text-align: center">
-                <div style="display: flex; justify-content: center; align-items: center; gap: 32px">
-                  <div style="width: 180px; height: 180px; border-radius: 50%; background: conic-gradient(from 0deg, #d4af37 0deg 216deg, #f59e0b 216deg 324deg, #8b5cf6 324deg 360deg); display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 32px; box-shadow: 0 8px 24px rgba(0,0,0,0.3)">
+                <div v-if="overviewStats?.customer_type_breakdown?.length" style="display: flex; justify-content: center; align-items: center; gap: 32px">
+                  <div style="width: 180px; height: 180px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 32px; box-shadow: 0 8px 24px rgba(0,0,0,0.3)"
+                    :style="{ background: 'conic-gradient(' + overviewStats.customer_type_breakdown.map((t, i) => { const colors = ['#d4af37','#f59e0b','#8b5cf6','#3b82f6','#22c55e']; const pct = t.count / totalCustomers * 360; return colors[i % colors.length]; }).join(',') + ')' }">
                     {{ totalCustomers }}
                   </div>
                   <div style="text-align: left; flex: 1">
-                    <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 8px; border-left: 5px solid #d4af37">
+                    <div v-for="(t, i) in overviewStats.customer_type_breakdown" :key="t.type"
+                      style="margin-bottom: 12px; padding: 10px 12px; background: var(--light-bg); border-radius: 8px"
+                      :style="{ borderLeft: '5px solid ' + ['#d4af37','#f59e0b','#8b5cf6','#3b82f6','#22c55e'][i % 5] }">
                       <div style="display: flex; justify-content: space-between; align-items: center">
-                        <div><span style="display: inline-block; width: 14px; height: 14px; background: #d4af37; border-radius: 3px; margin-right: 10px"></span> <span style="font-weight: 600">Active</span></div>
-                        <div style="font-weight: 600; color: #d4af37">{{ Math.ceil(totalCustomers * 0.6) }} (60%)</div>
-                      </div>
-                    </div>
-                    <div style="margin-bottom: 16px; padding: 12px; background: var(--light-bg); border-radius: 8px; border-left: 5px solid #f59e0b">
-                      <div style="display: flex; justify-content: space-between; align-items: center">
-                        <div><span style="display: inline-block; width: 14px; height: 14px; background: #f59e0b; border-radius: 3px; margin-right: 10px"></span> <span style="font-weight: 600">Returning</span></div>
-                        <div style="font-weight: 600; color: #f59e0b">{{ Math.ceil(totalCustomers * 0.3) }} (30%)</div>
-                      </div>
-                    </div>
-                    <div style="padding: 12px; background: var(--light-bg); border-radius: 8px; border-left: 5px solid #8b5cf6">
-                      <div style="display: flex; justify-content: space-between; align-items: center">
-                        <div><span style="display: inline-block; width: 14px; height: 14px; background: #8b5cf6; border-radius: 3px; margin-right: 10px"></span> <span style="font-weight: 600">New Visitors</span></div>
-                        <div style="font-weight: 600; color: #8b5cf6">{{ Math.ceil(totalCustomers * 0.1) }} (10%)</div>
+                        <span style="font-weight: 600">{{ t.type }}</span>
+                        <span style="font-weight: 700" :style="{ color: ['#d4af37','#f59e0b','#8b5cf6','#3b82f6','#22c55e'][i % 5] }">
+                          {{ t.count }} ({{ Math.round(t.count / totalCustomers * 100) }}%)
+                        </span>
                       </div>
                     </div>
                   </div>
                 </div>
+                <div v-else style="color: var(--text-muted)">No customer data.</div>
               </div>
             </div>
 
-            <!-- Growth Metrics -->
+            <!-- Business Performance Metrics -->
             <div class="card">
               <div class="card-header">
                 <h3 class="card-title">📈 Business Performance Metrics</h3>
@@ -280,41 +190,34 @@
                 <div style="display: flex; flex-direction: column; gap: 20px">
                   <div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center">
-                      <span style="font-weight: 600">Monthly Growth Rate</span>
-                      <span style="color: #22c55e; font-weight: 700; font-size: 18px">↑ 12.5%</span>
-                    </div>
-                    <div style="height: 12px; background: #444; border-radius: 6px; overflow: hidden">
-                      <div style="height: 100%; width: 65%; background: linear-gradient(90deg, #22c55e, #16a34a); border-radius: 6px; box-shadow: 0 0 12px rgba(34, 197, 94, 0.4)"></div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center">
                       <span style="font-weight: 600">Customer Satisfaction</span>
-                      <span style="color: #3b82f6; font-weight: 700; font-size: 18px">⭐ 4.8/5.0</span>
+                      <span style="color: #3b82f6; font-weight: 700; font-size: 18px">⭐ {{ overviewStats?.avg_satisfaction ?? '—' }}/5.0</span>
                     </div>
                     <div style="height: 12px; background: #444; border-radius: 6px; overflow: hidden">
-                      <div style="height: 100%; width: 96%; background: linear-gradient(90deg, #3b82f6, #1d4ed8); border-radius: 6px; box-shadow: 0 0 12px rgba(59, 130, 246, 0.4)"></div>
+                      <div :style="{ width: ((overviewStats?.avg_satisfaction ?? 0) / 5 * 100) + '%' }"
+                        style="height: 100%; background: linear-gradient(90deg, #3b82f6, #1d4ed8); border-radius: 6px; box-shadow: 0 0 12px rgba(59, 130, 246, 0.4); transition: width 0.5s ease"></div>
                     </div>
                   </div>
 
                   <div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center">
-                      <span style="font-weight: 600">Staff Performance</span>
-                      <span style="color: #f59e0b; font-weight: 700; font-size: 18px">⚡ Excellent</span>
+                      <span style="font-weight: 600">Staff Avg Rating</span>
+                      <span style="color: #f59e0b; font-weight: 700; font-size: 18px">⚡ {{ overviewStats?.avg_staff_rating ?? '—' }}/5.0</span>
                     </div>
                     <div style="height: 12px; background: #444; border-radius: 6px; overflow: hidden">
-                      <div style="height: 100%; width: 88%; background: linear-gradient(90deg, #f59e0b, #d97706); border-radius: 6px; box-shadow: 0 0 12px rgba(245, 158, 11, 0.4)"></div>
+                      <div :style="{ width: ((overviewStats?.avg_staff_rating ?? 0) / 5 * 100) + '%' }"
+                        style="height: 100%; background: linear-gradient(90deg, #f59e0b, #d97706); border-radius: 6px; box-shadow: 0 0 12px rgba(245, 158, 11, 0.4); transition: width 0.5s ease"></div>
                     </div>
                   </div>
 
                   <div>
                     <div style="display: flex; justify-content: space-between; margin-bottom: 12px; align-items: center">
-                      <span style="font-weight: 600">Booking Pipeline</span>
-                      <span style="color: #ec4899; font-weight: 700; font-size: 18px">📅 42</span>
+                      <span style="font-weight: 600">Upcoming Bookings</span>
+                      <span style="color: #ec4899; font-weight: 700; font-size: 18px">📅 {{ overviewStats?.upcoming_bookings ?? '—' }}</span>
                     </div>
                     <div style="height: 12px; background: #444; border-radius: 6px; overflow: hidden">
-                      <div style="height: 100%; width: 78%; background: linear-gradient(90deg, #ec4899, #be185d); border-radius: 6px; box-shadow: 0 0 12px rgba(236, 72, 153, 0.4)"></div>
+                      <div :style="{ width: Math.min((overviewStats?.upcoming_bookings ?? 0) / Math.max(totalBookings, 1) * 100, 100) + '%' }"
+                        style="height: 100%; background: linear-gradient(90deg, #ec4899, #be185d); border-radius: 6px; box-shadow: 0 0 12px rgba(236, 72, 153, 0.4); transition: width 0.5s ease"></div>
                     </div>
                   </div>
                 </div>
@@ -322,60 +225,32 @@
             </div>
           </div>
 
-          <!-- LARGE Analytics Row -->
+          <!-- Appointment Status + Executive Summary -->
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 24px">
-            <!-- LARGE Revenue by Day Chart -->
+            <!-- Appointment Status Breakdown -->
             <div class="card">
               <div class="card-header">
-                <h3 class="card-title">🏆 Daily Revenue Distribution - Weekly Breakdown</h3>
+                <h3 class="card-title">🏆 Appointment Status (Last 30 Days)</h3>
               </div>
               <div class="card-body" style="padding: 32px">
-                <div style="display: flex; align-items: flex-end; gap: 12px; height: 220px; justify-content: space-around">
-                  <div style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px">
-                    <div style="height: 120px; width: 90%; background: linear-gradient(180deg, var(--gold), rgba(212, 175, 55, 0.4)); border-radius: 6px 6px 0 0; box-shadow: 0 4px 8px rgba(212, 175, 55, 0.2)"
-                      @mouseenter="hoveredBar = 0" @mouseleave="hoveredBar = null">
-                      <div v-if="hoveredBar === 0" style="text-align: center; padding-top: 8px; font-weight: 600; color: var(--gold)">₹800</div>
+                <div v-if="overviewStats?.appointment_status?.length" style="display: flex; align-items: flex-end; gap: 12px; height: 200px; justify-content: space-around">
+                  <div v-for="(s, idx) in overviewStats.appointment_status" :key="s.status"
+                    style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 10px">
+                    <div
+                      :style="{ height: Math.max((s.count / Math.max(...overviewStats.appointment_status.map(x => x.count))) * 160, 8) + 'px', background: ['#d4af37','#22c55e','#ef4444','#f59e0b','#3b82f6','#8b5cf6'][idx % 6] }"
+                      style="width: 90%; border-radius: 6px 6px 0 0; box-shadow: 0 4px 8px rgba(0,0,0,0.2); position: relative; transition: height 0.4s ease"
+                      @mouseenter="hoveredBar = 's'+idx" @mouseleave="hoveredBar = null">
+                      <div v-if="hoveredBar === 's'+idx" style="position: absolute; top: -30px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 4px 10px; border-radius: 4px; font-weight: 600; white-space: nowrap; font-size: 12px">{{ s.count }}</div>
                     </div>
-                    <div style="font-weight: 700; font-size: 14px">Monday</div>
-                    <div class="text-muted">₹800</div>
-                  </div>
-                  <div style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px">
-                    <div style="height: 160px; width: 90%; background: linear-gradient(180deg, var(--gold), rgba(212, 175, 55, 0.4)); border-radius: 6px 6px 0 0; box-shadow: 0 4px 8px rgba(212, 175, 55, 0.2)"
-                      @mouseenter="hoveredBar = 1" @mouseleave="hoveredBar = null">
-                      <div v-if="hoveredBar === 1" style="text-align: center; padding-top: 8px; font-weight: 600; color: var(--gold)">₹1200</div>
-                    </div>
-                    <div style="font-weight: 700; font-size: 14px">Tuesday</div>
-                    <div class="text-muted">₹1200</div>
-                  </div>
-                  <div style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px">
-                    <div style="height: 130px; width: 90%; background: linear-gradient(180deg, var(--gold), rgba(212, 175, 55, 0.4)); border-radius: 6px 6px 0 0; box-shadow: 0 4px 8px rgba(212, 175, 55, 0.2)"
-                      @mouseenter="hoveredBar = 2" @mouseleave="hoveredBar = null">
-                      <div v-if="hoveredBar === 2" style="text-align: center; padding-top: 8px; font-weight: 600; color: var(--gold)">₹900</div>
-                    </div>
-                    <div style="font-weight: 700; font-size: 14px">Wednesday</div>
-                    <div class="text-muted">₹900</div>
-                  </div>
-                  <div style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px">
-                    <div style="height: 180px; width: 90%; background: linear-gradient(180deg, var(--gold), rgba(212, 175, 55, 0.4)); border-radius: 6px 6px 0 0; box-shadow: 0 4px 8px rgba(212, 175, 55, 0.2)"
-                      @mouseenter="hoveredBar = 3" @mouseleave="hoveredBar = null">
-                      <div v-if="hoveredBar === 3" style="text-align: center; padding-top: 8px; font-weight: 600; color: var(--gold)">₹1400</div>
-                    </div>
-                    <div style="font-weight: 700; font-size: 14px">Thursday</div>
-                    <div class="text-muted">₹1400</div>
-                  </div>
-                  <div style="text-align: center; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 12px">
-                    <div style="height: 150px; width: 90%; background: linear-gradient(180deg, var(--gold), rgba(212, 175, 55, 0.4)); border-radius: 6px 6px 0 0; box-shadow: 0 4px 8px rgba(212, 175, 55, 0.2)"
-                      @mouseenter="hoveredBar = 4" @mouseleave="hoveredBar = null">
-                      <div v-if="hoveredBar === 4" style="text-align: center; padding-top: 8px; font-weight: 600; color: var(--gold)">₹1100</div>
-                    </div>
-                    <div style="font-weight: 700; font-size: 14px">Friday</div>
-                    <div class="text-muted">₹1100</div>
+                    <div style="font-weight: 600; font-size: 12px">{{ s.status }}</div>
+                    <div class="text-muted" style="font-size: 11px">{{ s.count }}</div>
                   </div>
                 </div>
+                <div v-else style="text-align:center; color: var(--text-muted); padding: 40px">No appointment data for last 30 days.</div>
               </div>
             </div>
 
-            <!-- Key Metrics Summary -->
+            <!-- Executive Summary KPIs -->
             <div class="card">
               <div class="card-header">
                 <h3 class="card-title">✨ Executive Summary & KPIs</h3>
@@ -385,29 +260,32 @@
                   <div style="padding: 16px; background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(34, 197, 94, 0.05)); border-radius: 8px; border-left: 5px solid #22c55e">
                     <div style="display: flex; justify-content: space-between; align-items: center">
                       <span>Avg Per-Booking Value</span>
-                      <span style="font-weight: 700; font-size: 18px; color: #22c55e">₹{{ avgRevenuePerBooking }}</span>
+                      <span style="font-weight: 700; font-size: 18px; color: #22c55e">₹{{ avgRevenuePerBooking.toLocaleString() }}</span>
                     </div>
-                    <div class="text-muted" style="font-size: 12px; margin-top: 4px">↑ 8% from last week</div>
                   </div>
-
-                  <div style="padding: 16px; background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05)); border-radius: 8px; border-left: 5px solid #f59e0b">
+                  <div style="padding: 16px; background: linear-gradient(135deg, rgba(212, 175, 55, 0.1), rgba(212, 175, 55, 0.05)); border-radius: 8px; border-left: 5px solid #d4af37">
                     <div style="display: flex; justify-content: space-between; align-items: center">
-                      <span>Conversion Rate</span>
-                      <span style="font-weight: 700; font-size: 18px; color: #f59e0b">78%</span>
+                      <span>Total Revenue</span>
+                      <span style="font-weight: 700; font-size: 18px; color: #d4af37">₹{{ totalRevenue.toLocaleString() }}</span>
                     </div>
-                    <div class="text-muted" style="font-size: 12px; margin-top: 4px">Above industry average</div>
+                  </div>
+                  <div style="padding: 16px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(59, 130, 246, 0.05)); border-radius: 8px; border-left: 5px solid #3b82f6">
+                    <div style="display: flex; justify-content: space-between; align-items: center">
+                      <span>Upcoming Appointments</span>
+                      <span style="font-weight: 700; font-size: 18px; color: #3b82f6">{{ overviewStats?.upcoming_bookings ?? '—' }}</span>
+                    </div>
                   </div>
                   <div style="padding: 16px; background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(139, 92, 246, 0.05)); border-radius: 8px; border-left: 5px solid #8b5cf6">
                     <div style="display: flex; justify-content: space-between; align-items: center">
-                      <span>Customer Retention</span>
-                      <span style="font-weight: 700; font-size: 18px; color: #8b5cf6">82%</span>
+                      <span>Staff Avg Rating</span>
+                      <span style="font-weight: 700; font-size: 18px; color: #8b5cf6">{{ overviewStats?.avg_staff_rating ?? '—' }}/5.0</span>
                     </div>
-                    <div class="text-muted" style="font-size: 12px; margin-top: 4px">Excellent loyalty</div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+          </template>
         </div>
 
         <!-- REPORTS VIEW -->
@@ -946,19 +824,6 @@ export default {
 
     const ownerData = ref({
       ownerName: appStore.user?.username || "Glow Suite Owner",
-      bookings: [
-        { id: 1, customerId: 1, amount: 500, date: "2026-03-05" },
-        { id: 2, customerId: 2, amount: 750, date: "2026-03-06" },
-        { id: 3, customerId: 3, amount: 600, date: "2026-03-07" },
-        { id: 4, customerId: 1, amount: 450, date: "2026-03-08" },
-        { id: 5, customerId: 4, amount: 800, date: "2026-03-09" }
-      ],
-      customers: [
-        { id: 1, name: "Alice Johnson" },
-        { id: 2, name: "Bob Williams" },
-        { id: 3, name: "Carol Smith" },
-        { id: 4, name: "Diana Prince" }
-      ]
     });
 
     const ownerProfile = ref({
@@ -970,30 +835,37 @@ export default {
       status: "Active"
     });
 
-    const totalRevenue = computed(() => {
-      return ownerData.value.bookings.reduce((sum, booking) => sum + booking.amount, 0);
-    });
+    const overviewStats = ref(null);
+    const overviewLoading = ref(false);
 
-    const totalBookings = computed(() => {
-      return ownerData.value.bookings.length;
-    });
+    const fetchOverviewData = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) return;
+      overviewLoading.value = true;
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/owner/overview`, {
+          headers: { Authorization: `Bearer ${token}`, 'Authentication-Token': token },
+        });
+        if (res.ok) overviewStats.value = await res.json();
+      } catch (e) {
+        console.error('Overview fetch failed', e);
+      } finally {
+        overviewLoading.value = false;
+      }
+    };
 
-    const totalCustomers = computed(() => {
-      return ownerData.value.customers.length;
-    });
+    const totalRevenue = computed(() => overviewStats.value?.total_revenue ?? 0);
+    const totalBookings = computed(() => overviewStats.value?.total_bookings ?? 0);
+    const totalCustomers = computed(() => overviewStats.value?.total_customers ?? 0);
+    const avgRevenuePerBooking = computed(() => overviewStats.value?.avg_revenue_per_booking ?? 0);
 
     const hoveredBar = ref(null);
 
-    const avgRevenuePerBooking = computed(() => {
-      if (totalBookings.value === 0) return 0;
-      return Math.round(totalRevenue.value / totalBookings.value);
-    });
-
     const overallPerformance = computed(() => {
-      // Calculate performance based on bookings and revenue
-      const bookingScore = Math.min((totalBookings.value / 10) * 100, 100);
-      const revenueScore = Math.min((totalRevenue.value / 5000) * 100, 100);
-      return Math.round((bookingScore + revenueScore) / 2);
+      if (!overviewStats.value) return 0;
+      const sat = overviewStats.value.avg_satisfaction || 0;
+      const staffRating = overviewStats.value.avg_staff_rating || 0;
+      return Math.round(((sat / 5) * 50) + ((staffRating / 5) * 50));
     });
 
     const businessHealth = computed(() => {
@@ -1209,6 +1081,7 @@ export default {
     onUnmounted(_ownerDestroyCharts);
 
     onMounted(() => {
+      fetchOverviewData();
       fetchOwnerReports();
       fetchManagers();
     });
@@ -1495,6 +1368,9 @@ export default {
       currentView,
       ownerData,
       ownerProfile,
+      overviewStats,
+      overviewLoading,
+      fetchOverviewData,
       today,
       totalRevenue,
       totalBookings,

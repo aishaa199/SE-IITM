@@ -21,7 +21,7 @@
       </div>
 
       <!-- LOGIN MODE -->
-      <template v-if="tab !== 'register'">
+      <template v-if="tab !== 'register' && tab !== 'forgot' && tab !== 'forgot-sent'">
         <div class="login-tabs">
           <button
             v-for="t in ['owner', 'manager', 'staff', 'customer']"
@@ -86,6 +86,18 @@
           <span v-else>Sign In</span>
         </button>
 
+        <div style="text-align: center; margin-top: 12px">
+          <button
+            v-if="tab !== 'owner'"
+            type="button"
+            @click="switchTab('forgot')"
+            style="background: none; border: none; cursor: pointer; color: rgba(201,169,110,0.6); font-size: 11px; letter-spacing: 0.08em; text-decoration: underline; padding: 0"
+          >
+            Forgot Password?
+          </button>
+          <span v-else style="font-size: 10px; color: rgba(255,255,255,0.3)">To reset owner password, contact the system administrator.</span>
+        </div>
+
         <template v-if="tab === 'customer'">
           <div class="login-divider">or</div>
           <button
@@ -97,6 +109,51 @@
           </button>
         </template>
 
+      </template>
+
+      <!-- FORGOT PASSWORD MODE -->
+      <template v-else-if="tab === 'forgot'">
+        <button class="login-back" @click="switchTab(lastLoginTab)">← Back to Sign In</button>
+        <div v-if="error" class="login-error">{{ error }}</div>
+        <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin-bottom: 16px; line-height: 1.6">
+          Enter your registered email address and we'll send you a link to reset your password.
+        </p>
+        <div class="form-group">
+          <label class="form-label">Email Address</label>
+          <input
+            v-model="forgotEmail"
+            type="email"
+            class="form-input"
+            placeholder="your@email.com"
+            @keydown.enter="sendForgotEmail"
+          />
+        </div>
+        <button
+          class="btn w-full"
+          style="background: linear-gradient(135deg, var(--gold-deep), var(--gold), var(--gold-bright)); color: var(--obsidian); border: none; padding: 14px; font-size: 11px; letter-spacing: 0.18em; font-weight: 700; margin-top: 4px; border-radius: var(--r-sm)"
+          @click="sendForgotEmail"
+          :disabled="isLoading"
+        >
+          {{ isLoading ? 'Sending…' : 'Send Reset Link' }}
+        </button>
+      </template>
+
+      <!-- FORGOT PASSWORD SENT MODE -->
+      <template v-else-if="tab === 'forgot-sent'">
+        <div style="text-align: center; padding: 20px 0">
+          <div style="font-size: 40px; margin-bottom: 16px">✉️</div>
+          <p style="color: rgba(201,169,110,0.9); font-size: 13px; font-weight: 600; margin-bottom: 8px">Check your inbox</p>
+          <p style="color: rgba(255,255,255,0.5); font-size: 12px; line-height: 1.6; margin-bottom: 20px">
+            If that email is registered, a password reset link has been sent. The link expires in 1 hour.
+          </p>
+          <button
+            class="btn btn-outline w-full"
+            style="border-color: rgba(201,169,110,0.25); color: rgba(255,255,255,0.5); font-size: 11px; letter-spacing: 0.12em"
+            @click="switchTab(lastLoginTab)"
+          >
+            Back to Sign In
+          </button>
+        </div>
       </template>
 
       <!-- REGISTER MODE -->
@@ -200,13 +257,48 @@ const regSuccess = ref(false)
 const isLoading  = ref(false)
 const showLoginPassword = ref(false)
 const showRegPassword = ref(false)
+const forgotEmail = ref('')
+const lastLoginTab = ref('manager')
 
 const preferenceOptions = ['Facial', 'Hair Care', 'Massage', 'Manicure', 'Pedicure', 'Threading', 'Waxing']
 
 const switchTab = (newTab) => {
+  if (['owner', 'manager', 'staff', 'customer'].includes(newTab)) {
+    lastLoginTab.value = newTab
+  }
   tab.value   = newTab
   error.value = ''
-  if (newTab !== 'register') router.replace(`/login/${newTab}`)
+  if (['owner', 'manager', 'staff', 'customer'].includes(newTab)) {
+    router.replace(`/login/${newTab}`)
+  }
+}
+
+const sendForgotEmail = async () => {
+  if (!forgotEmail.value.trim()) {
+    error.value = 'Please enter your email address.'
+    return
+  }
+  isLoading.value = true
+  error.value = ''
+  try {
+    const res  = await fetch(`${API_BASE_URL}/forgot-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: forgotEmail.value.trim() })
+    })
+    const data = await res.json()
+    if (data.dev_reset_link) {
+      // Email couldn't send — navigate directly to reset page
+      const url = new URL(data.dev_reset_link)
+      router.push(`/reset-password?token=${url.searchParams.get('token')}`)
+    } else {
+      tab.value = 'forgot-sent'
+    }
+  } catch {
+    error.value = 'Connection error. Please try again.'
+  } finally {
+    isLoading.value = false
+  }
 }
 
 watch(() => route.path, (path) => {

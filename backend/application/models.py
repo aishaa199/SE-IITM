@@ -246,8 +246,17 @@ class SalonConfig(db.Model):
     setting_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     param_name = db.Column(db.String(100), unique=True, nullable=False)
     param_value = db.Column(db.String(255), nullable=False)
-    from_date = db.Column(db.DateTime, nullable=False)
-    to_date = db.Column(db.DateTime, nullable=True)
+
+
+class PasswordResetToken(db.Model):
+    __tablename__ = 'password_reset_tokens'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    token = db.Column(db.String(100), unique=True, nullable=False)
+    expiry = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False)
+
+    user = db.relationship('User', backref=db.backref('reset_tokens', lazy=True))
 
 class ReportRecord(db.Model):
     __tablename__ = 'reports'

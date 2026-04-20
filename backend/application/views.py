@@ -1,14 +1,16 @@
 import anthropic
 import json
+import secrets
 from collections import Counter
 
 from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_restful import Api, Resource
-from flask_security import auth_required, roles_accepted, current_user, verify_password, hash_password, logout_user
+from flask_security import auth_required, roles_accepted, roles_required, current_user, verify_password, hash_password, logout_user
+from flask_mail import Message
 from sqlalchemy import func
 from datetime import datetime, date, timedelta
 from werkzeug.security import check_password_hash
-from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, CustomerReview, db, Role, Manager, ManagerTask, StaffAttendance, ReportRecord, InventoryTransaction, Finance
+from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, CustomerReview, db, Role, Manager, ManagerTask, StaffAttendance, ReportRecord, InventoryTransaction, Finance, PasswordResetToken
 from .sec import datastore
 
 main = Blueprint('main', __name__)
@@ -127,6 +129,122 @@ def customer_login():
 def logout():
     logout_user()
     return jsonify({"message": "Successfully logged out"}), 200
+
+#######################################################################################
+################################## Forgot Password API ##############################
+@main.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    try:
+        data = request.get_json(silent=True) or {}
+        email = (data.get('email') or '').strip().lower()
+        if not email:
+            return jsonify({"message": "Email is required"}), 400
+
+        # Find user_id by searching role-specific tables
+        user_id = None
+        customer = Customer.query.filter(func.lower(Customer.customer_email) == email).first()
+        if customer:
+            user_id = customer.customer_id
+        else:
+            staff = Staff.query.filter(func.lower(Staff.staff_email) == email).first()
+            if staff:
+                user_id = staff.staff_id
+            else:
+                manager = Manager.query.filter(func.lower(Manager.manager_email) == email).first()
+                if manager:
+                    user_id = manager.manager_id
+
+        if not user_id:
+            return jsonify({"message": "If that email is registered, a reset link has been sent."}), 200
+
+        user = db.session.get(User, user_id)
+        if not user or not user.active:
+            return jsonify({"message": "If that email is registered, a reset link has been sent."}), 200
+
+        # Invalidate any existing unused tokens for this user
+        for old in PasswordResetToken.query.filter_by(user_id=user_id, used=False).all():
+            old.used = True
+        db.session.commit()
+
+        token = secrets.token_urlsafe(32)
+        expiry = datetime.utcnow() + timedelta(hours=1)
+        reset_token = PasswordResetToken(user_id=user_id, token=token, expiry=expiry)
+        db.session.add(reset_token)
+        db.session.commit()
+
+        frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost:5173')
+        reset_link = f"{frontend_url}/reset-password?token={token}"
+
+        email_sent = False
+        try:
+            msg = Message(
+                subject="Reset Your Glow Suite Password",
+                recipients=[email],
+                body=(
+                    f"Hello,\n\n"
+                    f"You requested a password reset for your Glow Suite account.\n\n"
+                    f"Click the link below to set a new password (valid for 1 hour):\n\n"
+                    f"{reset_link}\n\n"
+                    f"If you did not request this, please ignore this email.\n\n"
+                    f"— Glow Suite Team"
+                )
+            )
+            current_app.mail.send(msg)
+            email_sent = True
+        except Exception as mail_err:
+            print(f"Password reset email failed: {str(mail_err)}")
+            print(f"[DEV] Password reset link for {email}: {reset_link}")
+
+        return jsonify({
+            "message": "If that email is registered, a reset link has been sent.",
+            "dev_reset_link": reset_link if not email_sent else None
+        }), 200
+
+    except Exception as e:
+        print(f"[ERROR] forgot_password: {str(e)}")
+        db.session.rollback()
+        return jsonify({"message": f"Server error: {str(e)}"}), 500
+
+
+#######################################################################################
+################################## Reset Password API ##############################
+@main.route('/reset-password', methods=['POST'])
+def reset_password():
+    try:
+        data = request.get_json(silent=True) or {}
+        token = (data.get('token') or '').strip()
+        new_password = data.get('new_password') or ''
+
+        if not token or not new_password:
+            return jsonify({"message": "Token and new password are required"}), 400
+
+        if len(new_password) < 6:
+            return jsonify({"message": "Password must be at least 6 characters"}), 400
+
+        reset_token = PasswordResetToken.query.filter_by(token=token, used=False).first()
+        if not reset_token:
+            return jsonify({"message": "Invalid or expired reset link"}), 400
+
+        if datetime.utcnow() > reset_token.expiry:
+            reset_token.used = True
+            db.session.commit()
+            return jsonify({"message": "Reset link has expired. Please request a new one."}), 400
+
+        user = db.session.get(User, reset_token.user_id)
+        if not user:
+            return jsonify({"message": "User not found"}), 404
+
+        user.password = hash_password(new_password)
+        reset_token.used = True
+        db.session.commit()
+
+        return jsonify({"message": "Password reset successfully. You can now log in."}), 200
+
+    except Exception as e:
+        print(f"[ERROR] reset_password: {str(e)}")
+        db.session.rollback()
+        return jsonify({"message": f"Server error: {str(e)}"}), 500
+
 
 #######################################################################################
 ################################## Customer Registration API ##############################
@@ -1177,3 +1295,83 @@ def report_analytics():
         })
 
     return jsonify({"message": f"Unknown report type: {report_type}"}), 400
+
+
+@main.route('/api/owner/overview', methods=['GET'])
+@auth_required()
+@roles_required('owner')
+def owner_overview():
+    from collections import Counter as _Counter
+    from datetime import datetime, timedelta
+
+    now = datetime.utcnow()
+    thirty_days_ago = now - timedelta(days=30)
+
+    # Total customers
+    total_customers = Customer.query.count()
+
+    # Customer type breakdown
+    customers = Customer.query.with_entities(Customer.customer_type).all()
+    type_counter = _Counter(c.customer_type for c in customers)
+    customer_type_breakdown = [{'type': k, 'count': v} for k, v in type_counter.items()]
+
+    # Total bookings (all time)
+    total_bookings = Appointment.query.count()
+
+    # Upcoming bookings (status=0, future)
+    upcoming_bookings = Appointment.query.filter(
+        Appointment.status == 0,
+        Appointment.appointment_datetime >= now
+    ).count()
+
+    # Appointment status breakdown (last 30 days)
+    STATUS_MAP = {0: 'Booked', 1: 'Completed', 2: 'No-show', 3: 'Cancelled', 4: 'Rescheduled', 5: 'Invoiced'}
+    recent_appts = Appointment.query.filter(Appointment.appointment_datetime >= thirty_days_ago).all()
+    status_counter = _Counter(STATUS_MAP.get(a.status, 'Unknown') for a in recent_appts)
+    appointment_status = [{'status': k, 'count': v} for k, v in status_counter.items()]
+
+    # Revenue stats (all invoices)
+    invoices = Invoice.query.all()
+    total_revenue = round(sum(float(i.payable_invoice_amount) for i in invoices), 2)
+    avg_revenue_per_booking = round(total_revenue / total_bookings, 2) if total_bookings else 0
+
+    # Revenue by day of week (last 30 days)
+    recent_invoices = Invoice.query.filter(Invoice.invoice_date >= thirty_days_ago.date()).all()
+    day_revenue = {}
+    for inv in recent_invoices:
+        day = inv.invoice_date.strftime('%a')
+        day_revenue[day] = round(day_revenue.get(day, 0) + float(inv.payable_invoice_amount), 2)
+    day_order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    revenue_by_day = [{'day': d, 'revenue': day_revenue.get(d, 0)} for d in day_order if d in day_revenue or day_revenue.get(d, 0) > 0]
+    if not revenue_by_day:
+        revenue_by_day = [{'day': d, 'revenue': 0} for d in day_order]
+
+    # Revenue trend: last 30 days grouped by date
+    date_revenue = {}
+    for inv in recent_invoices:
+        d = inv.invoice_date.strftime('%Y-%m-%d')
+        date_revenue[d] = round(date_revenue.get(d, 0) + float(inv.payable_invoice_amount), 2)
+    revenue_trend = [{'date': d, 'revenue': v} for d, v in sorted(date_revenue.items())]
+
+    # Customer satisfaction (avg rating)
+    reviews = CustomerReview.query.all()
+    avg_satisfaction = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else 0
+
+    # Staff avg rating
+    staff_list = Staff.query.all()
+    rated_staff = [s for s in staff_list if s.staff_cumulative_rating and s.staff_cumulative_rating > 0]
+    avg_staff_rating = round(sum(s.staff_cumulative_rating for s in rated_staff) / len(rated_staff), 1) if rated_staff else 0
+
+    return jsonify({
+        'total_customers': total_customers,
+        'total_bookings': total_bookings,
+        'total_revenue': total_revenue,
+        'avg_revenue_per_booking': avg_revenue_per_booking,
+        'upcoming_bookings': upcoming_bookings,
+        'customer_type_breakdown': customer_type_breakdown,
+        'appointment_status': appointment_status,
+        'revenue_by_day': revenue_by_day,
+        'revenue_trend': revenue_trend,
+        'avg_satisfaction': avg_satisfaction,
+        'avg_staff_rating': avg_staff_rating,
+    })

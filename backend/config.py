@@ -20,9 +20,13 @@ class Config(object):
     SECURITY_REGISTERABLE = True
     SECURITY_CONFIRMABLE = False
     SECURITY_RECOVERABLE = False
+    SECURITY_JOIN_USER_ROLES = False
+    SECURITY_PASSWORD_SINGLE_HASH = False
+    SECURITY_PASSWORD_HASH = 'bcrypt'
     # SECURITY_USER_IDENTITY_ATTRIBUTES = ('username', )
     SECURITY_USERNAME_ENABLE = True
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
     # Mail configuration (using a placeholder/local server by default)
     MAIL_SERVER = os.getenv("MAIL_SERVER", "localhost")

@@ -32,8 +32,21 @@ def create_app():
         scheduler.app = app
         scheduler.start()
 
+    # Initialize Security
+    app.security = Security(app, datastore)
+    
     # Update attendance job time from Database dynamically
     with app.app_context():
+        # create_all is idempotent — creates only tables that don't exist yet
+        db_path = os.path.join(app.instance_path, 'sm_devdb.db')
+        db_exists = os.path.exists(db_path)
+        db.create_all()
+        if not db_exists:
+            seed_initial_data()
+            from upload_salon_config import upload_salon_config
+            upload_salon_config()
+
+
         from application.models import SalonConfig
         threshold = SalonConfig.query.filter_by(param_name='ATTENDANCE_THRESHOLD_TIME').first()
         if threshold and ":" in threshold.param_value:
@@ -59,22 +72,12 @@ def create_app():
             except Exception as e:
                 print(f"Scheduler: Failed to dynamically update job: {str(e)}")
     
-    # Initialize Security
-    app.security = Security(app, datastore)
-    
     with app.app_context():
         import application.views as views
         from application.resources import api as restful_api
         app.register_blueprint(views.main)
         restful_api.init_app(app)
 
-        # create_all is idempotent — creates only tables that don't exist yet
-        db_path = os.path.join(app.instance_path, 'sm_devdb.db')
-        db_exists = os.path.exists(db_path)
-        db.create_all()
-        if not db_exists:
-            seed_initial_data()
-        
     return app
 
 app = create_app()

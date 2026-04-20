@@ -7193,28 +7193,37 @@ const handleSendInvoice = async (invoice) => {
     const response = await fetch(`${API_BASE_URL}/api/generate-invoice-pdf/${encodeURIComponent(invoice.invoice_number)}`, {
       method: "GET",
       headers: {
-        "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
         "Authentication-Token": token
       }
     });
 
-    const result = await response.json();
-
     if (response.ok) {
-      // Update invoice status to Invoiced (1)
-      invoice.status = 1;
-      
-      // Show success message
+      const contentType = response.headers.get("Content-Type") || "";
+      if (contentType.includes("application/pdf")) {
+        // Trigger PDF download in browser
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `invoice_${invoice.invoice_number}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      }
+
       alert(`✓ Invoice #${invoice.invoice_number} PDF generated and sent successfully to ${customerEmail}!`);
-      
-      console.log(`Invoice ${invoice.invoice_number} PDF sent to ${customerEmail}`, result);
-      
+
       // Refresh invoices list
       await fetchInvoices();
     } else {
-      alert(`Error sending invoice: ${result.message || "Failed to generate PDF"}`);
-      console.error("Error sending invoice:", result);
+      let errorMsg = "Failed to generate PDF";
+      try {
+        const result = await response.json();
+        errorMsg = result.message || errorMsg;
+      } catch (_) {}
+      alert(`Error sending invoice: ${errorMsg}`);
     }
   } catch (error) {
     alert("Unable to connect to server. Please try again.");

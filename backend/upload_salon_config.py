@@ -1,4 +1,3 @@
-from datetime import datetime
 import sys
 import os
 
@@ -11,70 +10,21 @@ from application.models import SalonConfig
 def upload_salon_config():
     with app.app_context():
         print("Starting salon configuration upload...")
-        
+
         # Example Configurations
         configs = [
-            {
-                "param_name": "SALON_OPEN_TIME", 
-                "param_value": "09:00", 
-                "from_date": datetime(2026, 1, 1)
-            },
-            {
-                "param_name": "SALON_CLOSE_TIME", 
-                "param_value": "21:00", 
-                "from_date": datetime(2026, 1, 1)
-            },
-            {
-                "param_name": "REWARD_EXPIRY_DAYS", 
-                "param_value": "180", 
-                "from_date": datetime(2026, 1, 1)
-            },
-            {
-                "param_name": "POINTS_PER_CURRENCY", 
-                "param_value": "0.1", 
-                "from_date": datetime(2026, 1, 1)
-            },
-            {
-                "param_name": "VIP_POINTS_FOR_REDUMPTION", 
-                "param_value": "500", 
-                "from_date": datetime(2026, 1, 1)
-            },
-            {
-                "param_name": "REDUMPTION_VALUE_PER_POINT", 
-                "param_value": "0.05", 
-                "from_date": datetime(2026, 1, 1)
-            },
-            {
-                "param_name": "FIRST_VISIT_BONUS_POINTS", 
-                "param_value": "20", 
-                "from_date": datetime(2026, 1, 1)
-            },
-            {
-                "param_name": "BIRTHDAY_BONUS_POINTS", 
-                "param_value": "50", 
-                "from_date": datetime(2026, 1, 1)
-            },
-            {
-                "param_name": "VIP_DISCOUNT_PERCENTAGE", 
-                "param_value": "15", 
-                "from_date": datetime(2026, 1, 1)
-            },
-            {
-                "param_name": "APPT_ID_FOR_ABSENCE", 
-                "param_value": "99999999", 
-                "from_date": datetime(2026, 1, 1)
-            },
-            {
-                "param_name": "ATTENDANCE_THRESHOLD_TIME", 
-                "param_value": "10:30", 
-                "from_date": datetime(2026, 1, 1)
-            },
-            {
-                "param_name": "APPT_HISTORY_RETENTION_DAYS", 
-                "param_value": "120", 
-                "from_date": datetime(2026, 1, 1)
-            }
-            
+            {"param_name": "SALON_OPEN_TIME",            "param_value": "09:00"},
+            {"param_name": "SALON_CLOSE_TIME",           "param_value": "21:00"},
+            {"param_name": "REWARD_EXPIRY_DAYS",         "param_value": "180"},
+            {"param_name": "POINTS_PER_CURRENCY",        "param_value": "0.1"},
+            {"param_name": "VIP_POINTS_FOR_REDUMPTION",  "param_value": "500"},
+            {"param_name": "REDUMPTION_VALUE_PER_POINT", "param_value": "0.05"},
+            {"param_name": "FIRST_VISIT_BONUS_POINTS",   "param_value": "20"},
+            {"param_name": "BIRTHDAY_BONUS_POINTS",      "param_value": "50"},
+            {"param_name": "VIP_DISCOUNT_PERCENTAGE",    "param_value": "15"},
+            {"param_name": "APPT_ID_FOR_ABSENCE",        "param_value": "99999999"},
+            {"param_name": "ATTENDANCE_THRESHOLD_TIME",  "param_value": "10:30"},
+            {"param_name": "APPT_HISTORY_RETENTION_DAYS","param_value": "120"},
         ]
         
         try:
