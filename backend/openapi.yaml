@@ -244,7 +244,7 @@ components:
         customer_email:       { type: string, format: email }
         staff_id:             { type: integer, nullable: true }
         service_ids:          { type: array, items: { type: integer }, example: [1, 3] }
-        appointment_datetime: { type: string, format: date-time, example: "2026-04-10T11:00:00" }
+        appointment_datetime: { type: string, format: date-time, example: "2026-04-10T11:00:00+05:30" }
 
     # ── Invoice ───────────────────────────────────────────────────────────
     Invoice:
@@ -329,7 +329,7 @@ components:
     Finance:
       type: object
       properties:
-        reporting_month: { type: string, format: date-time, example: "2026-03-01T00:00:00" }
+        reporting_month: { type: string, format: date-time, example: "2026-03-01T00:00:00+05:30" }
         product_cost:    { type: number, example: 24500 }
         total_revenue:   { type: number, example: 148000 }
         staff_salary:    { type: number, example: 28500 }
@@ -1287,7 +1287,7 @@ paths:
               properties:
                 staff_id:             { type: integer, nullable: true }
                 service_ids:          { type: array, items: { type: integer }, example: [1, 3] }
-                appointment_datetime: { type: string, format: date-time, example: "2026-04-15T10:30:00" }
+                appointment_datetime: { type: string, format: date-time, example: "2026-04-15T10:30:00+05:30" }
       responses:
         "201":
           description: Appointment booked

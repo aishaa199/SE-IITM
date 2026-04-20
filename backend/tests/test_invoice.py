@@ -23,7 +23,7 @@ def _get_staff_id(client, token):
 def _create_appointment(client, manager_token, customer_email='cust@test.com'):
     svc_id = _get_service_id(client, manager_token)
     staff_id = _get_staff_id(client, manager_token)
-    dt = (datetime.now() + timedelta(days=1)).replace(second=0, microsecond=0).isoformat()
+    dt = (datetime.now() + timedelta(days=2)).replace(second=0, microsecond=0).isoformat()
     rv = client.post('/api/appointment',
                      headers=auth_headers(manager_token),
                      json={

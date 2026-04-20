@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 from tests.conftest import auth_headers, _login
 
 
-def _future(days=3):
+def _future(days=2):
     dt = datetime.now() + timedelta(days=days)
     return dt.replace(second=0, microsecond=0).isoformat()
 
@@ -49,7 +49,7 @@ class TestAppointmentLifecycle:
                                     'customer_email': 'cust@test.com',
                                     'staff_id': staff_id,
                                     'service_ids': [svc_id],
-                                    'appointment_datetime': _future(10),
+                                    'appointment_datetime': _future(2),
                                 })
         assert create_rv.status_code == 201
         appt_id = create_rv.get_json()['appointment_id']
@@ -89,7 +89,7 @@ class TestInvoiceLifecycle:
                                   'customer_email': 'cust@test.com',
                                   'staff_id': staff_id,
                                   'service_ids': [svc_id],
-                                  'appointment_datetime': _future(11),
+                                  'appointment_datetime': _future(2),
                               })
         assert appt_rv.status_code == 201
         appt_id = appt_rv.get_json()['appointment_id']
@@ -155,7 +155,7 @@ class TestCustomerSelfServiceFlow:
                               headers=auth_headers(customer_token),
                               json={
                                   'service_ids': [svc_id],
-                                  'appointment_datetime': _future(12),
+                                  'appointment_datetime': _future(2),
                               })
         assert book_rv.status_code == 201
         appt_id = book_rv.get_json()['appointment_id']

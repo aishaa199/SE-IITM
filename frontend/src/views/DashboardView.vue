@@ -4285,48 +4285,55 @@ const systemAlerts = computed(() => {
   return alerts;
 });
 
-// Helper function to check if bridal package is selected
+// Helper function to check if bridal service is selected
 const hasBridalPackageSelected = () => {
   return bookingForm.value.serviceIds.some(serviceId => {
     const service = data.value.services.find(s => s.id === parseInt(serviceId));
-    return service && service.name === "Bridal Package";
+    return service && (service.name?.toLowerCase().includes('bridal') || service.category?.toLowerCase().includes('bridal'));
   });
 };
 
-// Check if bridal package is selected in edit form
+// Check if bridal service is selected in edit form
 const hasBridalPackageSelectedInEdit = () => {
   return editAppointmentForm.value.serviceIds.some(serviceId => {
     const service = data.value.services.find(s => s.id === parseInt(serviceId));
-    return service && service.name === "Bridal Package";
+    return service && (service.name?.toLowerCase().includes('bridal') || service.category?.toLowerCase().includes('bridal'));
   });
 };
 
-// Compute minimum booking date based on service type
+// Check if the customer selected in booking form is VIP
+const selectedCustomerIsVIP = () => {
+  const customer = data.value.customers?.find(c => String(c.id) === String(bookingForm.value.customerId));
+  return customer?.customerType === 'VIP';
+};
+
+// Check if the customer in edit form is VIP
+const editCustomerIsVIP = () => {
+  const customer = data.value.customers?.find(c => String(c.id) === String(editAppointmentForm.value.customerId));
+  return customer?.customerType === 'VIP';
+};
+
+// Compute minimum booking date
+// Bridal+VIP: 1 month | Bridal+Regular: 2 months | Regular: today
 const minBookingDate = computed(() => {
   const today = new Date();
   const minDate = new Date(today);
-  
   if (hasBridalPackageSelected()) {
-    minDate.setMonth(minDate.getMonth() + 1); // 1 month for bridal package
-  } else {
-    // Allow booking today for managers
-    minDate.setDate(minDate.getDate()); // Today for normal services
+    minDate.setMonth(minDate.getMonth() + (selectedCustomerIsVIP() ? 1 : 2));
   }
-  
   return minDate.toISOString().split('T')[0];
 });
 
-// Compute minimum booking date (6 months for bridal, 3 days for others - today through 2 days out)
+// Compute maximum booking date
+// Bridal: 6 months | Regular: 3 days
 const maxBookingDate = computed(() => {
   const today = new Date();
   const maxDate = new Date(today);
-  
   if (hasBridalPackageSelected()) {
-    maxDate.setMonth(maxDate.getMonth() + 6); // 6 months for bridal package
+    maxDate.setMonth(maxDate.getMonth() + 6);
   } else {
-    maxDate.setDate(maxDate.getDate() + 2); // 2 days from today for other services
+    maxDate.setDate(maxDate.getDate() + 3);
   }
-  
   return maxDate.toISOString().split('T')[0];
 });
 
@@ -4334,28 +4341,21 @@ const maxBookingDate = computed(() => {
 const minEditBookingDate = computed(() => {
   const today = new Date();
   const minDate = new Date(today);
-  
   if (hasBridalPackageSelectedInEdit()) {
-    minDate.setMonth(minDate.getMonth() + 1); // 1 month for bridal package
-  } else {
-    // Allow booking today for managers
-    minDate.setDate(minDate.getDate()); // Today for normal services
+    minDate.setMonth(minDate.getMonth() + (editCustomerIsVIP() ? 1 : 2));
   }
-  
   return minDate.toISOString().split('T')[0];
 });
 
-// Compute maximum edit booking date (6 months for bridal, 2 days for others)
+// Compute maximum edit booking date
 const maxEditBookingDate = computed(() => {
   const today = new Date();
   const maxDate = new Date(today);
-  
   if (hasBridalPackageSelectedInEdit()) {
-    maxDate.setMonth(maxDate.getMonth() + 6); // 6 months for bridal package
+    maxDate.setMonth(maxDate.getMonth() + 6);
   } else {
-    maxDate.setDate(maxDate.getDate() + 2); // 2 days for other services
+    maxDate.setDate(maxDate.getDate() + 3);
   }
-  
   return maxDate.toISOString().split('T')[0];
 });
 
@@ -4364,11 +4364,11 @@ const bookingDateInfo = computed(() => {
   if (bookingForm.value.serviceIds.length === 0) {
     return "Select a service to see available booking dates";
   }
-  
   if (hasBridalPackageSelected()) {
-    return `Bridal Package: Book 1 to 6 months in advance`;
+    const months = selectedCustomerIsVIP() ? 1 : 2;
+    return `Bridal service: VIP customers book ${months === 1 ? '1 month' : '2 months'} in advance (max 6 months)`;
   } else {
-    return `Other services: Book today or within next 2 days`;
+    return `Regular service: book within the next 3 days`;
   }
 });
 
@@ -4377,11 +4377,11 @@ const editBookingDateInfo = computed(() => {
   if (editAppointmentForm.value.serviceIds.length === 0) {
     return "Select a service to see available booking dates";
   }
-  
   if (hasBridalPackageSelectedInEdit()) {
-    return `Bridal Package: Book 1 to 6 months in advance`;
+    const months = editCustomerIsVIP() ? 1 : 2;
+    return `Bridal service: book ${months === 1 ? '1 month' : '2 months'} in advance (max 6 months)`;
   } else {
-    return `Other services: Book today or within next 2 days`;
+    return `Regular service: book within the next 3 days`;
   }
 });
 
@@ -5973,9 +5973,10 @@ const handleCreateBooking = async () => {
 
   if (selectedDate < minDate || selectedDate > maxDate) {
     if (hasBridalPackageSelected()) {
-      bookingError.value = `Bridal Package must be booked 1 to 6 months in advance`;
+      const months = selectedCustomerIsVIP() ? 1 : 2;
+      bookingError.value = `Bridal service must be booked at least ${months === 1 ? '1 month' : '2 months'} in advance (max 6 months)`;
     } else {
-      bookingError.value = `Please select today or within the next 2 days`;
+      bookingError.value = `Regular services can only be booked within the next 3 days`;
     }
     return;
   }
@@ -8968,9 +8969,10 @@ const handleSubmitEditAppointment = async () => {
 
   if (selectedDate < minDate || selectedDate > maxDate) {
     if (hasBridalPackageSelectedInEdit()) {
-      editAppointmentError.value = `Bridal Package must be booked 1 to 6 months in advance`;
+      const months = editCustomerIsVIP() ? 1 : 2;
+      editAppointmentError.value = `Bridal service must be booked at least ${months === 1 ? '1 month' : '2 months'} in advance (max 6 months)`;
     } else {
-      editAppointmentError.value = `Appointment must be scheduled today or within the next 2 days`;
+      editAppointmentError.value = `Regular services can only be booked within the next 3 days`;
     }
     return;
   }

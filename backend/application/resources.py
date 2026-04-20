@@ -1223,9 +1223,24 @@ class AppointmentResource(Resource):
             return {"message": "service_ids must be a list of integers"}, 400
             
         services = Service.query.filter(Service.service_id.in_(service_ids), Service.active_flg == True).all()
-        
+
         if len(services) != len(set(service_ids)):
             return {"message": "Some services were either not found, are inactive, or duplicates were provided"}, 400
+
+        # Booking window validation
+        is_bridal = any('bridal' in (s.service_desc or '').lower() or 'bridal' in (s.service_category or '').lower() for s in services)
+        now = datetime.now()
+        if is_bridal:
+            is_vip = customer.customer_type == 'VIP'
+            min_days = 30 if is_vip else 60
+            label = "1 month" if is_vip else "2 months"
+            if appt_datetime < now + timedelta(days=min_days):
+                return {"message": f"Bridal services must be booked at least {label} in advance"}, 400
+            if appt_datetime > now + timedelta(days=180):
+                return {"message": "Bridal services can be booked at most 6 months in advance"}, 400
+        else:
+            if appt_datetime > now + timedelta(days=3):
+                return {"message": "Regular services can only be booked up to 3 days in advance"}, 400
 
         try:
             new_appt = Appointment(
@@ -1987,9 +2002,24 @@ class CustomerUpcomingAppointmentsResource(Resource):
             return {"message": "service_ids must be a list of integers"}, 400
             
         services = Service.query.filter(Service.service_id.in_(service_ids), Service.active_flg == True).all()
-        
+
         if len(services) != len(set(service_ids)):
             return {"message": "Some services were either not found, are inactive, or duplicates were provided"}, 400
+
+        # Booking window validation
+        is_bridal = any('bridal' in (s.service_desc or '').lower() or 'bridal' in (s.service_category or '').lower() for s in services)
+        now = datetime.now()
+        if is_bridal:
+            is_vip = customer.customer_type == 'VIP'
+            min_days = 30 if is_vip else 60
+            label = "1 month" if is_vip else "2 months"
+            if appt_datetime < now + timedelta(days=min_days):
+                return {"message": f"Bridal services must be booked at least {label} in advance"}, 400
+            if appt_datetime > now + timedelta(days=180):
+                return {"message": "Bridal services can be booked at most 6 months in advance"}, 400
+        else:
+            if appt_datetime > now + timedelta(days=3):
+                return {"message": "Regular services can only be booked up to 3 days in advance"}, 400
 
         try:
             new_appt = Appointment(

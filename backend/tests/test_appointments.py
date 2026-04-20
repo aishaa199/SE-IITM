@@ -17,7 +17,7 @@ from datetime import datetime, timedelta
 from tests.conftest import auth_headers
 
 
-def _future_dt(days=5):
+def _future_dt(days=2):
     dt = datetime.now() + timedelta(days=days)
     return dt.replace(second=0, microsecond=0).isoformat()
 
@@ -62,7 +62,7 @@ class TestManagerAppointments:
                              'customer_email': 'cust@test.com',
                              'staff_id': staff_id,
                              'service_ids': [svc_id],
-                             'appointment_datetime': _future_dt(3),
+                             'appointment_datetime': _future_dt(2),
                          })
         data = rv.get_json()
         assert rv.status_code == 201
@@ -76,7 +76,7 @@ class TestManagerAppointments:
                          json={
                              'customer_email': 'nobody@nowhere.com',
                              'service_ids': [svc_id],
-                             'appointment_datetime': _future_dt(3),
+                             'appointment_datetime': _future_dt(2),
                          })
         assert rv.status_code == 404
 
@@ -86,7 +86,7 @@ class TestManagerAppointments:
                          headers=auth_headers(manager_token),
                          json={
                              'customer_email': 'cust@test.com',
-                             'appointment_datetime': _future_dt(3),
+                             'appointment_datetime': _future_dt(2),
                          })
         assert rv.status_code == 400
 
@@ -99,7 +99,7 @@ class TestManagerAppointments:
                                 json={
                                     'customer_email': 'cust@test.com',
                                     'service_ids': [svc_id],
-                                    'appointment_datetime': _future_dt(4),
+                                    'appointment_datetime': _future_dt(2),
                                 })
         appt_id = create_rv.get_json()['appointment_id']
 
@@ -117,7 +117,7 @@ class TestManagerAppointments:
                                 json={
                                     'customer_email': 'cust@test.com',
                                     'service_ids': [svc_id],
-                                    'appointment_datetime': _future_dt(6),
+                                    'appointment_datetime': _future_dt(2),
                                 })
         appt_id = create_rv.get_json()['appointment_id']
 
@@ -164,7 +164,7 @@ class TestCustomerSelfBooking:
                          headers=auth_headers(customer_token),
                          json={
                              'service_ids': [svc_id],
-                             'appointment_datetime': _future_dt(7),
+                             'appointment_datetime': _future_dt(2),
                          })
         data = rv.get_json()
         assert rv.status_code == 201
@@ -175,7 +175,7 @@ class TestCustomerSelfBooking:
         rv = client.post('/api/customer-upcoming-appointments',
                          headers=auth_headers(customer_token),
                          json={
-                             'appointment_datetime': _future_dt(7),
+                             'appointment_datetime': _future_dt(2),
                          })
         assert rv.status_code == 400
 

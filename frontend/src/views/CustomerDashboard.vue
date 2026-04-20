@@ -1699,33 +1699,26 @@ const hasbridalPackageSelected = () => {
   });
 };
 
-// Compute minimum booking date based on service type and customer type
-// Compute minimum booking date based on service type
+// Compute minimum booking date
+// Bridal+VIP: 1 month | Bridal+Regular: 2 months | Regular: today
 const minBookingDate = computed(() => {
   const today = new Date();
   const minDate = new Date(today);
-  
   if (hasbridalPackageSelected()) {
-    minDate.setMonth(minDate.getMonth() + 1); // 1 month for bridal package
-  } else {
-    minDate.setDate(minDate.getDate()); // Allow booking today for normal services
+    minDate.setMonth(minDate.getMonth() + (isVIPCustomer.value ? 1 : 2));
   }
-  
   return minDate.toISOString().split('T')[0];
 });
 
-// Compute maximum booking date (6 months for bridal, Regular=2days/VIP=5days for others)
+// Compute maximum booking date: bridal = 6 months | regular = 3 days
 const maxBookingDate = computed(() => {
   const today = new Date();
   const maxDate = new Date(today);
-  
   if (hasbridalPackageSelected()) {
-    maxDate.setMonth(maxDate.getMonth() + 6); // 6 months for bridal package
+    maxDate.setMonth(maxDate.getMonth() + 6);
   } else {
-    const daysToAdd = isVIPCustomer.value ? 5 : 2; // VIP=5 days, Regular=2 days for other services
-    maxDate.setDate(maxDate.getDate() + daysToAdd);
+    maxDate.setDate(maxDate.getDate() + 3);
   }
-  
   return maxDate.toISOString().split('T')[0];
 });
 
@@ -1734,12 +1727,11 @@ const bookingDateInfo = computed(() => {
   if (bookingForm.value.serviceIds.length === 0) {
     return "Select a service to see available booking dates";
   }
-  
   if (hasbridalPackageSelected()) {
-    return `Bridal Package: Book 1 to 6 months in advance`;
+    const months = isVIPCustomer.value ? 1 : 2;
+    return `Bridal service: book at least ${months === 1 ? '1 month' : '2 months'} in advance (max 6 months)`;
   } else {
-    const daysWindow = isVIPCustomer.value ? 5 : 2;
-    return `Other services: Book from today for up to ${daysWindow} days in advance`;
+    return `Regular service: book within the next 3 days`;
   }
 });
 
@@ -1751,32 +1743,25 @@ const hasEditBridalPackageSelected = () => {
   });
 };
 
-// Min date for reschedule (allow editing today's date onwards)
+// Min date for reschedule: Bridal+VIP=1month | Bridal+Regular=2months | Regular=today
 const minEditDate = computed(() => {
   const today = new Date();
   const minDate = new Date(today);
-  
   if (hasEditBridalPackageSelected()) {
-    minDate.setMonth(minDate.getMonth() + 1);
-  } else {
-    minDate.setDate(minDate.getDate()); // Allow today
+    minDate.setMonth(minDate.getMonth() + (isVIPCustomer.value ? 1 : 2));
   }
-  
   return minDate.toISOString().split('T')[0];
 });
 
-// Max date for reschedule (respects VIP status)
+// Max date for reschedule: bridal=6months | regular=3days
 const maxEditDate = computed(() => {
   const today = new Date();
   const maxDate = new Date(today);
-  
   if (hasEditBridalPackageSelected()) {
     maxDate.setMonth(maxDate.getMonth() + 6);
   } else {
-    const daysToAdd = isVIPCustomer.value ? 5 : 2;
-    maxDate.setDate(maxDate.getDate() + daysToAdd);
+    maxDate.setDate(maxDate.getDate() + 3);
   }
-  
   return maxDate.toISOString().split('T')[0];
 });
 

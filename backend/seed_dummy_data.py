@@ -299,7 +299,7 @@ def seed_customers(users):
             customer_email=email,
             customer_address=random.choice(ADDRESSES),
             number_of_visits=visits,
-            customer_type=random.choice(["Regular", "Regular", "Premium", "Walk-in"]),
+            customer_type=random.choice(["Regular", "Premium"]),
             customer_preferences=random.choice(CUSTOMER_PREFS),
             customer_available_rewards=random.randint(0, 800),
             total_spend=total_spend,
