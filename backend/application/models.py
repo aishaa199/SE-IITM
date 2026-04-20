@@ -152,7 +152,7 @@ class InventoryTransaction(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('inventory_master.product_id'), nullable=False)
     staff_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False) # Changed back to user.id to support both staff and manager IDs
     service_id = db.Column(db.Integer, db.ForeignKey('service_master.service_id'), nullable=True) # Optional link to service
-    txn_type = db.Column(db.Integer, nullable=False) #0 for ordering, 1 for replenishment, will bw populated based on the role - staff (ordering) or mana7ger (replenishment)
+    txn_type = db.Column(db.Integer, nullable=False) #0 for ordering, 1 for replenishment, will be populated based on the role - staff (ordering) or mana7ger (replenishment)
     quantity = db.Column(db.Integer, nullable=False)
     date_of_txn = db.Column(db.DateTime, nullable=False)
 
@@ -286,7 +286,7 @@ class Order(db.Model):
     reason_for_order = db.Column(db.String(255), nullable=True)
     supplier_name = db.Column(db.Text, nullable=False)
     supplier_email = db.Column(db.String(120), nullable=False)
-    status = db.Column(db.Integer, default=0) # 0 for Pending, 1 for Processed, 2 for Cancelled
+    status = db.Column(db.Integer, default=2) # 2 for in cart, 0 for Pending, 1 for Processed
     order_path = db.Column(db.String(512), nullable=True)
 
     # Relationship

@@ -1,75 +1,91 @@
-# Backend Documentation - Salon Management System
+# Glow Suite Backend
 
-This repository contains the backend for the Salon Management System, built with **Flask**, **Flask-RESTful**, and **Flask-Security-Too**.
+The backend of Glow Suite is a Flask-based RESTful API designed to manage luxury beauty salon operations, including staff scheduling, inventory, appointment booking, and reporting.
 
-## 🛠 Tech Stack
-- **Framework**: Flask / Flask-RESTful
-- **Authentication**: Flask-Security-Too (Token-based)
-- **Database**: SQLite (via Flask-SQLAlchemy)
-- **Environment**: Python 3.x
-- **Cross-Origin Resource Sharing (CORS)**: Enabled via `flask-cors`
+## Project Structure
 
-## 📂 Project Structure
 ```text
 backend/
-├── application/
-│   ├── models.py      # SQLAlchemy DB models (User, Staff, Customer, etc.)
-│   ├── resources.py    # Flask-RESTful resources and common routes
-│   ├── sec.py         # Flask-Security setup (UserDatastore)
-│   └── views.py       # Standard Flask routes and blueprints
-├── config.py          # Configuration settings (Dev/Prod)
-├── main.py            # Application entry point and app factory
-├── requirements.txt    # Python dependencies
-└── upload_initial_data.py # Script to seed the database
+├── application/             # Core application logic
+│   ├── models.py            # SQLAlchemy database models
+│   ├── resources.py         # Flask-RESTful API resources (endpoints)
+│   ├── routes.py            # Standard Flask views and routes
+│   ├── tasks.py             # Periodic and background tasks (APScheduler)
+│   ├── sec.py               # Flask-Security setup (authentication/authorization)
+│   └── report_generators.py # Logic for generating PDF and CSV reports
+├── tests/                   # Pytest-based test suite
+│   ├── conftest.py          # Test configuration and fixtures
+│   └── test_*.py            # Comprehensive unit and integration tests
+├── instance/                # Local database and instance-specific files
+├── reports/                 # Generated business reports (CSV/PDF)
+├── customer_invoices/       # Generated PDF invoices for customers
+├── wholesaler_orders/       # Generated PDF replenishment orders for suppliers
+├── config.py                # Environment-specific configuration
+├── main.py                  # Application entry point and factory
+├── requirements.txt         # Project dependencies
+└── seed_dummy_data.py       # Script to populate the database with initial data
 ```
 
-## 🚀 Getting Started
+## Technologies Used
 
-### 1. Set Up Environment
-It is recommended to use a virtual environment:
-```bash
-python3 -m venv venv
-source venv/bin/activate
-```
+- **Flask**: Main web framework.
+- **Flask-RESTful**: Extension for building REST APIs.
+- **SQLAlchemy**: ORM for database management.
+- **Flask-Security-Too**: Comprehensive security for authentication and role-based access control.
+- **APScheduler**: For managing recurring tasks like cleaning up history and sending reminders.
+- **FPDF2**: For generating PDF invoices and reports.
+- **Pytest**: For robust automated testing.
 
-### 2. Install Dependencies
-```bash
-pip install -r requirements.txt
-```
+## Getting Started
 
-### 3. Run the Application
-The application runs on `http://localhost:5000` by default.
+### Prerequisites
+
+- Python 3.8+
+- Virtual environment (recommended)
+
+### Installation
+
+1. Create and activate a virtual environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Linux/Mac
+   # or
+   venv\Scripts\activate     # Windows
+   ```
+
+2. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. Run initial configuration and data upload scripts:
+   ```bash
+   python upload_salon_config.py
+   python upload_initial_data.py
+   ```
+
+4. Initialize the database and seed data:
+   The application will automatically create the database and seed initial data on its first run via the `create_app` factory in `main.py`.
+
+### Running the Application
+
+To start the development server:
 ```bash
 python main.py
 ```
-If you are running this application for the first time, please run the one time data  setup script and configuration table insert script.
+The API will be available at `http://localhost:5000/api`.
+
+## Testing
+
+Run the full test suite using `pytest`:
 ```bash
-python upload_initial_data.py
-python upload_salon_config.py
+pytest
 ```
 
-## 🔐 API Reference
+## Key API Features
 
-### User Authentication
-All secured routes require an `Authentication-Token` header.
-
-### Common Routes
-- `PUT /api/change-password`: A unified route for all users (Owners, Managers, Staff, Customers) to update their passwords.
-    - **Header**: `Authentication-Token: <token>`
-    - **Body**:
-      ```json
-      {
-        "current_password": "oldpassword",
-        "new_password": "newpassword123",
-        "confirm_password": "newpassword123"
-      }
-      ```
-
-### Owner Routes
-- `POST /api/create-manager`: Allows owners to register new managers.
-
-
-## 📝 Configuration
-- **Database**: The database file is located in the `instance/` folder.
-- **Port**: Configured in `main.py` (Default: 5000).
-- **Debug Mode**: Enabled by default in the `DevelopmentConfig`.
+- **RBAC**: Role-based access control (Owner, Manager, Staff, Customer).
+- **Inventory Management**: Track product stock levels and automate replenishment orders.
+- **Appointment System**: Manage services, schedules, and customer history.
+- **Invoicing**: Generate PDF invoices for completed appointments.
+- **Reporting**: Automated generation of monthly/weekly sales and staff performance reports.
