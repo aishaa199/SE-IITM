@@ -131,10 +131,12 @@ class Invoice(db.Model):
     rewards_utilized = db.Column(db.Integer, nullable=False, default=0)
     current_reward_points = db.Column(db.Integer, nullable=False, default=0)
     invoice_amount = db.Column(db.Float, nullable=False)
+    discount_percentage = db.Column(db.Float, nullable=True, default=0.0)
     total_invoice_amount = db.Column(db.Float, nullable=False)
     payable_invoice_amount = db.Column(db.Float, nullable=False)
     status = db.Column(db.Integer, nullable=False, default=0) # 0: Pending, 1: Invoiced, 2: Sent
     appointment_id = db.Column(db.Integer, db.ForeignKey('appointments.appointment_id'), nullable=True)
+    invoice_path = db.Column(db.String(512), nullable=True)
 
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('invoices', lazy=True))
@@ -166,6 +168,8 @@ class StaffAttendance(db.Model):
     register_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     staff_id = db.Column(db.Integer, db.ForeignKey('staff_master.staff_id'), nullable=False)
     register_datetime = db.Column(db.DateTime, nullable=False) #Current Date and time for marking attendance
+    present_flag = db.Column(db.Boolean, default=False)
+    
 
     # Relationship
     staff_member = db.relationship('Staff', backref=db.backref('attendance_records', lazy=True))
@@ -229,9 +233,11 @@ class CustomerReward(db.Model):
     reward_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     customer_id = db.Column(db.Integer, db.ForeignKey('customer_master.customer_id'), nullable=False)
     credit_points = db.Column(db.Integer, nullable=False)
-    expiry_date = db.Column(db.DateTime, nullable=False) # to be calculated after adding the time duration from the salon_config table
-    valid_flg = db.Column(db.Boolean, default=True) # to check if the reward points are still valid based on the expiry date
-    utilized_flg = db.Column(db.Boolean, default=False) # to check if the reward points are already utilized
+    expiry_date = db.Column(db.DateTime, nullable=False)
+    valid_flg = db.Column(db.Boolean, default=True)
+    utilized_flg = db.Column(db.Boolean, default=False)
+    reward_type = db.Column(db.String(20), nullable=True, default='regular')  # 'regular', 'birthday', 'first_visit'
+    reward_year = db.Column(db.Integer, nullable=True)  # year the reward was granted (for birthday dedup)
 
     # Relationships
     customer = db.relationship('Customer', backref=db.backref('reward_profile', uselist=False))
@@ -242,8 +248,17 @@ class SalonConfig(db.Model):
     setting_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     param_name = db.Column(db.String(100), unique=True, nullable=False)
     param_value = db.Column(db.String(255), nullable=False)
-    from_date = db.Column(db.DateTime, nullable=False)
-    to_date = db.Column(db.DateTime, nullable=True)
+
+
+class PasswordResetToken(db.Model):
+    __tablename__ = 'password_reset_tokens'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    token = db.Column(db.String(100), unique=True, nullable=False)
+    expiry = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False)
+
+    user = db.relationship('User', backref=db.backref('reset_tokens', lazy=True))
 
 class ReportRecord(db.Model):
     __tablename__ = 'reports'
@@ -282,7 +297,21 @@ class Order(db.Model):
     reason_for_order = db.Column(db.String(255), nullable=True)
     supplier_name = db.Column(db.Text, nullable=False)
     supplier_email = db.Column(db.String(120), nullable=False)
-    status = db.Column(db.Integer, default=0) # 0 for Pending, 1 for Processed, 2 for Cancelled
+    status = db.Column(db.Integer, default=2) # 0 for Pending, 1 for Processed, 2 for Cancelled
+    order_path = db.Column(db.String(512), nullable=True)
 
     # Relationship
     product = db.relationship('Product', backref=db.backref('orders', lazy=True))
+
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    message = db.Column(db.Text, nullable=False)
+    phone_number = db.Column(db.String(20), nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=db.func.current_timestamp())
+
+    user = db.relationship('User', backref=db.backref('app_notifications', lazy=True))

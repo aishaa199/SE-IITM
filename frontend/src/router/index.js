@@ -6,6 +6,7 @@ import DashboardView from '@/views/DashboardView.vue'
 import StaffDashboard from '@/views/StaffDashboard.vue'
 import CustomerDashboard from '@/views/CustomerDashboard.vue'
 import OwnerDashboard from '@/views/OwnerDashboard.vue'
+import ResetPasswordView from '@/views/ResetPasswordView.vue'
 
 
 const routes = [
@@ -72,31 +73,11 @@ const routes = [
     component: OwnerDashboard,
     meta: { requiresAuth: true }
   },
-  // Dev/Test routes for bypassing auth
   {
-    path: '/test/staff',
-    name: 'test-staff',
-    component: StaffDashboard,
-    meta: { testMode: true, testRole: 'staff' }
-  },
-  {
-    path: '/test/customer',
-    name: 'test-customer',
-    component: CustomerDashboard,
-    meta: { testMode: true, testRole: 'customer' }
-  },
-  {
-    path: '/test/manager',
-    name: 'test-manager',
-    component: DashboardView,
-    meta: { testMode: true, testRole: 'manager' }
-  },
-  {
-    path: '/test/owner',
-    name: 'test-owner',
-    component: OwnerDashboard,
-    meta: { testMode: true, testRole: 'owner' }
-  },
+    path: '/reset-password',
+    name: 'reset-password',
+    component: ResetPasswordView
+  }
 ]
 
 const router = createRouter({
@@ -104,36 +85,23 @@ const router = createRouter({
   routes
 })
 
-router.beforeEach((to, from, next) => {
+router.beforeEach((to) => {
   const appStore = useAppStore()
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-  const testMode = to.matched.some(record => record.meta.testMode)
   const isLoginPage = to.path === '/' || to.path.startsWith('/login')
-  
-  
-  // If trying to access protected route without auth
+
   if (requiresAuth && !appStore.isAuthenticated) {
-    return next('/')
+    return '/'
   }
-  
-  // If logged in and trying to access login page, redirect to appropriate dashboard
+
   if (isLoginPage && appStore.isAuthenticated) {
     const userRole = appStore.user?.role?.toLowerCase()
-    if (userRole === 'owner') {
-      return next('/owner-dashboard')
-    } else if (userRole === 'manager') {
-      return next('/manager-dashboard')
-    } else if (userRole === 'staff') {
-      return next('/staff-dashboard')
-    } else if (userRole === 'customer') {
-      return next('/customer-dashboard')
-    } else {
-      return next('/dashboard')
-    }
+    if (userRole === 'owner')    return '/owner-dashboard'
+    if (userRole === 'manager')  return '/manager-dashboard'
+    if (userRole === 'staff')    return '/staff-dashboard'
+    if (userRole === 'customer') return '/customer-dashboard'
+    return '/dashboard'
   }
-  
-  // Otherwise, allow navigation
-  return next()
 })
 
 export default router

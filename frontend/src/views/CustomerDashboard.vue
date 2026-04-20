@@ -1,7 +1,7 @@
 <template>
   <div class="content-layout">
     <!-- Mobile Menu Toggle -->
-    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: white; border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
+    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="3" y1="6" x2="21" y2="6"></line>
         <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -25,35 +25,35 @@
           @click.stop="currentView = 'dashboard'; sidebarOpen = false"
           style="cursor: pointer; user-select: none"
         >
-          <span class="nav-icon">📊</span> Dashboard
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
         </div>
         <div
           :class="['nav-item', { active: currentView === 'book-appointment' }]"
           @click.stop="currentView = 'book-appointment'; sidebarOpen = false"
           style="cursor: pointer; user-select: none"
         >
-          <span class="nav-icon">📅</span> Book Appointment
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/><line x1="10" y1="16" x2="14" y2="16"/></svg></span> Book Appointment
         </div>
         <div
           :class="['nav-item', { active: currentView === 'appointments' }]"
           @click.stop="currentView = 'appointments'; sidebarOpen = false"
           style="cursor: pointer; user-select: none"
         >
-          <span class="nav-icon">📋</span> My Appointments
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></span> My Appointments
         </div>
         <div
           :class="['nav-item', { active: currentView === 'feedback' }]"
           @click.stop="currentView = 'feedback'; sidebarOpen = false"
           style="cursor: pointer; user-select: none"
         >
-          <span class="nav-icon">💬</span> Feedback & Reviews
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span> Feedback & Reviews
         </div>
         <div
           :class="['nav-item', { active: currentView === 'services' }]"
           @click="currentView = 'services'; sidebarOpen = false"
           style="cursor: pointer; user-select: none; z-index: 10"
         >
-          <span class="nav-icon">💇</span> Browse Services
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span> Browse Services
         </div>
       </nav>
       <div class="sidebar-footer">
@@ -66,16 +66,10 @@
           <div style="font-size: 18px">▼</div>
           
           <!-- Profile Dropdown Menu -->
-          <div v-if="showProfileMenu" class="profile-dropdown" @click.stop style="position: absolute; bottom: 100%; left: 0; width: 220px; background: white; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 -2px 8px rgba(0,0,0,0.1); margin-bottom: 8px; z-index: 1000">
-            <button class="profile-menu-item" @click="currentView = 'profile'; showProfileMenu = false" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--charcoal); transition: background-color 0.2s; border-bottom: 1px solid var(--border)">
-              👤 Profile
-            </button>
-            <button class="profile-menu-item" @click="showChangePasswordModal = true; showProfileMenu = false" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--charcoal); transition: background-color 0.2s; border-bottom: 1px solid var(--border)">
-              🔑 Change Password
-            </button>
-            <button class="profile-menu-item" @click="handleLogout" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: #e74c3c; transition: background-color 0.2s">
-              🚪 Logout
-            </button>
+          <div v-if="showProfileMenu" class="profile-dropdown" @click.stop>
+            <button class="profile-menu-item" @click="currentView = 'profile'; showProfileMenu = false">👤 Profile</button>
+            <button class="profile-menu-item" @click="showChangePasswordModal = true; showProfileMenu = false">🔑 Change Password</button>
+            <button class="profile-menu-item profile-menu-danger" @click="handleLogout">🚪 Logout</button>
           </div>
         </div>
       </div>
@@ -87,7 +81,62 @@
       <div class="topbar">
         <div class="topbar-title">{{ pageTitle }}</div>
         <div class="topbar-right">
-          <button class="notif-btn">🔔</button>
+          <div style="position: relative">
+            <button 
+              class="notif-btn" 
+              @click="showNotificationDropdown = !showNotificationDropdown"
+              style="position: relative; cursor: pointer"
+            >
+              🔔
+            </button>
+            
+            <!-- Notification Dropdown -->
+            <div v-if="showNotificationDropdown" style="
+              position: absolute;
+              top: 100%;
+              right: 0;
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+              width: 380px;
+              max-height: 450px;
+              overflow-y: auto;
+              z-index: 1000;
+              margin-top: 8px;
+            " @click.stop>
+              <div style="padding: 16px; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 14px; color: var(--charcoal); background: var(--light-bg)">
+                📅 Today's Appointments
+              </div>
+              
+              <div v-if="loadingTodayAppointments" style="padding: 20px; text-align: center; color: var(--charcoal); font-size: 13px; background: var(--surface)">
+                Loading appointments...
+              </div>
+              
+              <div v-else-if="todayAppointmentsNotifications.length === 0" style="padding: 20px; text-align: center; color: var(--charcoal); font-size: 13px; background: var(--surface)">
+                No appointments scheduled for today
+              </div>
+              
+              <div v-else style="background: var(--surface)">
+                <div v-for="(appt, idx) in todayAppointmentsNotifications" :key="appt.id" style="
+                  padding: 14px 16px;
+                  border-bottom: 1px solid var(--border);
+                  background: idx % 2 === 0 ? 'var(--surface)' : 'var(--light-bg)';
+                ">
+                  <div style="display: flex; align-items: flex-start; gap: 12px">
+                    <div style="font-size: 20px">✨</div>
+                    <div style="flex: 1">
+                      <div style="font-weight: 600; font-size: 13px; color: var(--charcoal)">{{ appt.service_name }}</div>
+                      <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px">with {{ appt.staff_name }}</div>
+                      <div style="font-size: 12px; color: white; margin-top: 5px; font-weight: 500; display: flex; gap: 12px">
+                        <span>₹{{ appt.price }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -95,6 +144,34 @@
       <div class="page-content">
         <!-- DASHBOARD VIEW -->
         <div v-if="currentView === 'dashboard'" class="fade-in">
+          <!-- Customer Profile Widget -->
+          <div class="card" style="margin-bottom: 24px">
+            <div class="card-header">
+              <h3 class="card-title">My Profile</h3>
+            </div>
+            <div class="card-body">
+              <div style="display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: bold">
+                  {{ customerData.name?.charAt(0) || "C" }}
+                </div>
+                <div>
+                  <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px">{{ customerData.name }}</div>
+                  <div style="color: var(--text-muted); font-size: 14px; margin-bottom: 12px">{{ customerData.membershipStatus }}</div>
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; font-size: 13px">
+                    <div>
+                      <span class="text-muted">Email:</span>
+                      <div style="font-weight: 500">{{ customerData.email }}</div>
+                    </div>
+                    <div>
+                      <span class="text-muted">Phone:</span>
+                      <div style="font-weight: 500">{{ customerData.phone }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Quick Stats -->
           <div class="stat-grid">
             <div class="stat-card">
@@ -149,10 +226,10 @@
                     {{ appt.date }} at {{ appt.time }}
                   </div>
                   <div style="display: flex; gap: 8px">
-                    <button class="btn btn-sm btn-outline" style="flex: 1">
+                    <button class="btn btn-sm btn-outline" style="flex: 1" @click="startEditAppointment(appt)">
                       Reschedule
                     </button>
-                    <button class="btn btn-sm btn-danger" style="flex: 1">
+                    <button class="btn btn-sm btn-danger" style="flex: 1" @click="handleCancelAppointment(appt.id)">
                       Cancel
                     </button>
                   </div>
@@ -166,7 +243,7 @@
               <div class="card-header" style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 18px;">🤖</span>
                 <h3 class="card-title" style="margin: 0;">AI Beauty Assistant</h3>
-                <span style="font-size: 11px; background: #e6f4ea; color: #276749; padding: 2px 8px; border-radius: 10px; font-weight: 600; margin-left: 4px;">AI Powered</span>
+                <span style="font-size: 11px; background: rgba(45,138,78,0.15); color: #5cba7d; padding: 2px 8px; border-radius: 10px; font-weight: 600; margin-left: 4px; border: 1px solid rgba(45,138,78,0.28);">AI Powered</span>
               </div>
               <!-- Quick prompt chips -->
               <div style="padding: 8px 16px; display: flex; flex-wrap: wrap; gap: 6px; border-bottom: 1px solid var(--border);">
@@ -219,7 +296,7 @@
                 <div class="form-group">
                   <label>Select Services * (You can choose multiple)</label>
                   <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 300px; overflow-y: auto">
-                    <div v-for="service in customerData.availableServices" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+                    <div v-for="service in availableServicesData" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
                       <input 
                         :id="'service-' + service.id"
                         type="checkbox" 
@@ -278,7 +355,7 @@
                       required
                     >
                       <option value="">Choose a time</option>
-                      <option v-for="time in availableTimes" :key="time">
+                      <option v-for="time in availableBookingTimes" :key="time">
                         {{ time }}
                       </option>
                     </select>
@@ -342,7 +419,7 @@
                     transition: 'all 0.2s'
                   }"
                 >
-                  ✅ History ({{ historyAppointmentsData.length }})
+                  ✅ History ({{ groupedHistoryAppointments.length }})
                 </button>
               </div>
 
@@ -361,38 +438,43 @@
                   <button class="btn btn-primary" @click="currentView = 'book-appointment'">Book an Appointment</button>
                 </div>
                 <div v-else>
-                  <div style="display: grid; gap: 12px">
-                    <div v-for="appt in upcomingAppointmentsData" :key="appt.id" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold)">
-                      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
-                        <div>
-                          <div style="font-weight: 600; font-size: 16px">{{ appt.service_name }}</div>
-                          <div class="text-muted" style="font-size: 13px; margin-top: 4px">with {{ appt.staff_name }}</div>
-                        </div>
-                        <span class="badge badge-gold" style="padding: 6px 12px">{{ appt.status }}</span>
+                  <div style="display: grid; gap: 16px">
+                    <div v-for="group in paginatedUpcomingAppointments" :key="`${group.date}-${group.time}`" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold)">
+                      <!-- Group header with date and time -->
+                      <div style="font-weight: 600; font-size: 14px; color: var(--text-muted); margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border)">
+                        📅 {{ group.date }} at {{ group.time }}
                       </div>
-                      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px">
-                        <div>
-                          <div class="text-muted" style="font-size: 12px">Date</div>
-                          <div style="font-weight: 600">{{ appt.date }}</div>
+                      
+                      <!-- Appointments in this group -->
+                      <div style="display: grid; gap: 10px">
+                        <div v-for="appt in group.appointments" :key="appt.id" style="padding: 12px; background: var(--surface); border-radius: 8px">
+                          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px">
+                            <div>
+                              <div style="font-weight: 600; font-size: 14px">{{ appt.service_name }}</div>
+                              <div class="text-muted" style="font-size: 12px; margin-top: 2px">with {{ appt.staff_name }}</div>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 8px">
+                              <span class="badge badge-gold" style="padding: 4px 8px; font-size: 10px">₹{{ appt.price }}</span>
+                              <span :class="['badge', getStatusBadgeClass(appt.status)]" :title="getStatusLabel(appt.status)" :style="{ color: getStatusColor(appt.status), fontWeight: '600', padding: '4px 8px', fontSize: '10px' }">{{ appt.status }}</span>
+                            </div>
+                          </div>
+                          <div style="display: flex; gap: 8px">
+                            <button class="btn btn-sm btn-outline" style="flex: 1; font-size: 11px; padding: 4px 8px" @click="startEditAppointment(appt)">
+                              ✏️ Edit
+                            </button>
+                            <button class="btn btn-sm btn-danger" style="flex: 1; font-size: 11px; padding: 4px 8px" @click="handleCancelAppointment(appt.id)">
+                              ❌ Cancel
+                            </button>
+                          </div>
                         </div>
-                        <div>
-                          <div class="text-muted" style="font-size: 12px">Time</div>
-                          <div style="font-weight: 600">{{ appt.time }}</div>
-                        </div>
-                        <div>
-                          <div class="text-muted" style="font-size: 12px">Price</div>
-                          <div style="font-weight: 600; color: var(--gold)">₹{{ appt.price }}</div>
-                        </div>
-                      </div>
-                      <div style="display: flex; gap: 8px">
-                        <button class="btn btn-sm btn-outline" style="flex: 1; font-size: 12px" @click="startEditAppointment(appt)">
-                          ✏️ Edit
-                        </button>
-                        <button class="btn btn-sm btn-danger" style="flex: 1; font-size: 12px" @click="handleCancelAppointment(appt.id)">
-                          ❌ Cancel
-                        </button>
                       </div>
                     </div>
+                  </div>
+                  <!-- Pagination Controls -->
+                  <div v-if="totalPagesUpcoming > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                    <button :disabled="currentPageUpcoming === 1" @click="goToPageUpcoming(currentPageUpcoming - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                    <span style="font-size: 14px; font-weight: 600">Page {{ currentPageUpcoming }} of {{ totalPagesUpcoming }}</span>
+                    <button :disabled="currentPageUpcoming === totalPagesUpcoming" @click="goToPageUpcoming(currentPageUpcoming + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
                   </div>
                 </div>
               </div>
@@ -421,38 +503,63 @@
                       style="width: 100%; max-width: 300px"
                     />
                   </div>
-                  <div class="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Service</th>
-                          <th>Staff Member</th>
-                          <th>Date & Time</th>
-                          <th>Price</th>
-                          <th>Status</th>
-                          <th>Rating</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="appt in filteredHistoryAppointments" :key="appt.id" @click="viewAppointmentDetails(appt.id)" style="cursor: pointer; transition: background-color 0.2s;" @mouseenter="($event.target.parentNode.style.backgroundColor = 'var(--light-bg)')" @mouseleave="($event.target.parentNode.style.backgroundColor = 'transparent')">
-                          <td>{{ appt.service }}</td>
-                          <td>{{ appt.staff }}</td>
-                          <td>{{ appt.date }} {{ appt.time }}</td>
-                          <td>₹{{ appt.price }}</td>
-                          <td>
-                            <span :class="['badge', getStatusBadgeClass(appt.status)]">{{ appt.status }}</span>
-                          </td>
-                          <td>
-                            <div style="display: flex; align-items: center; gap: 6px">
-                              <span style="letter-spacing: 1px">
-                                <span v-for="i in 5" :key="i" :style="{ color: i <= (appt.rating || 0) ? 'var(--gold)' : 'var(--border)', fontSize: '12px' }">⭐</span>
-                              </span>
-                              <span style="font-size: 12px; font-weight: 600; color: var(--gold)">{{ appt.rating || '-' }}</span>
+                  <div style="display: grid; gap: 16px">
+                    <div v-for="group in paginatedHistoryAppointments" :key="`${group.date}-${group.time}`" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--text-muted); cursor: pointer; transition: background-color 0.2s;" @click="viewHistoryGroupDetails(group)" @mouseenter="($event.currentTarget.style.backgroundColor = 'rgba(218,165,32,0.1)')" @mouseleave="($event.currentTarget.style.backgroundColor = 'var(--light-bg)')">
+                      <!-- Group header with date and time -->
+                      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
+                        <div>
+                          <div style="font-weight: 600; font-size: 14px; color: var(--text-muted)">
+                            📅 {{ group.date }}{{ group.time ? ' at ' + group.time : '' }}
+                          </div>
+                          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">with {{ group.appointments[0].staff }}</div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px">
+                          <div style="text-align: right">
+                            <div v-if="group.appointments[0].has_invoice && group.appointments[0].subtotal != null && group.appointments[0].subtotal !== group.appointments[0].payable_amount" style="font-size: 11px; color: var(--text-muted); text-decoration: line-through; margin-bottom: 2px">
+                              ₹{{ Number(group.appointments[0].subtotal).toFixed(2) }}
                             </div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                            <span class="badge badge-gold" style="padding: 4px 8px; font-size: 12px; font-weight: 600">
+                              ₹{{ group.appointments[0].payable_amount != null
+                                ? Number(group.appointments[0].payable_amount).toFixed(2)
+                                : group.appointments.reduce((sum, a) => sum + (a.price || 0), 0).toFixed(2) }}
+                            </span>
+                            <div v-if="group.appointments[0].has_invoice" style="font-size: 10px; color: #4caf50; margin-top: 2px">Paid</div>
+                          </div>
+                          <div v-if="group.appointments[0].rating !== undefined" style="display: flex; align-items: center; gap: 6px">
+                            <span style="letter-spacing: 1px">
+                              <span v-for="i in 5" :key="i" :style="{ color: i <= (group.appointments[0].rating || 0) ? 'var(--gold)' : 'var(--border)', fontSize: '14px' }">⭐</span>
+                            </span>
+                            <span style="font-size: 12px; font-weight: 600; color: var(--gold)">{{ group.appointments[0].rating || '-' }}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- Services list -->
+                      <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px">
+                        <div v-for="appt in group.appointments" :key="appt.id" style="font-size: 13px; padding: 6px 10px; background: var(--surface); border-radius: 6px; font-weight: 500">
+                          {{ appt.service }}
+                        </div>
+                      </div>
+
+                      <!-- View Invoice button -->
+                      <div v-if="group.appointments[0].has_invoice" style="display: flex; justify-content: flex-end" @click.stop>
+                        <a
+                          :href="`http://localhost:5000/api/generate-invoice-pdf/${group.appointments[0].invoice_number}`"
+                          target="_blank"
+                          style="display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; font-size: 12px; font-weight: 600; background: rgba(201,169,110,0.15); border: 1px solid rgba(201,169,110,0.4); border-radius: 6px; color: var(--gold); text-decoration: none; cursor: pointer; transition: background 0.2s"
+                          @mouseenter="$event.currentTarget.style.background='rgba(201,169,110,0.25)'"
+                          @mouseleave="$event.currentTarget.style.background='rgba(201,169,110,0.15)'"
+                        >
+                          📄 View Invoice
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- Pagination Controls -->
+                  <div v-if="totalPagesHistory > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                    <button :disabled="currentPageHistory === 1" @click="goToPageHistory(currentPageHistory - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                    <span style="font-size: 14px; font-weight: 600">Page {{ currentPageHistory }} of {{ totalPagesHistory }}</span>
+                    <button :disabled="currentPageHistory === totalPagesHistory" @click="goToPageHistory(currentPageHistory + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
                   </div>
                 </div>
               </div>
@@ -473,7 +580,7 @@
               </div>
 
               <!-- Error State -->
-              <div v-else-if="servicesError" style="padding: 20px; background-color: #fee; border: 1px solid #fcc; border-radius: 8px; color: #c33; margin-bottom: 20px">
+              <div v-else-if="servicesError" style="padding: 20px; background-color: rgba(192,57,43,0.10); border: 1px solid rgba(192,57,43,0.28); border-radius: 8px; color: #f08070; margin-bottom: 20px">
                 <div style="font-weight: 600">⚠️ Error Loading Services</div>
                 <div style="font-size: 14px; margin-top: 8px">{{ servicesError }}</div>
               </div>
@@ -698,21 +805,28 @@
                   <p style="color: var(--text-muted); margin-top: 8px">All completed appointments have been reviewed!</p>
                 </div>
                 <div v-else>
-                  <div style="display: grid; gap: 12px">
-                    <div v-for="review in pendingReviews" :key="review.appointment_id" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold)">
-                      <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
-                        <div>
-                          <div style="font-weight: 600; font-size: 16px">{{ review.services.join(', ') }}</div>
-                          <div class="text-muted" style="font-size: 13px; margin-top: 4px">with {{ review.staff_name }}</div>
+                  <div style="display: grid; gap: 16px">
+                    <div v-for="group in groupedPendingReviews" :key="group.datetime" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold)">
+                      <!-- Group header with date and time -->
+                      <div style="font-weight: 600; font-size: 14px; color: var(--text-muted); margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border)">
+                        📅 {{ group.date }} at {{ group.time }}
+                      </div>
+                      
+                      <!-- Services in this group -->
+                      <div style="display: grid; gap: 10px">
+                        <div v-for="review in group.reviews" :key="review.appointment_id" style="padding: 12px; background: var(--surface); border-radius: 8px">
+                          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px">
+                            <div>
+                              <div style="font-weight: 600; font-size: 14px">{{ review.services.join(', ') }}</div>
+                              <div class="text-muted" style="font-size: 12px; margin-top: 2px">with {{ review.staff_name }}</div>
+                            </div>
+                            <span class="badge badge-gold" style="padding: 4px 8px; font-size: 11px">Review Needed</span>
+                          </div>
+                          <button class="btn btn-primary" style="width: 100%; font-size: 12px; padding: 6px 12px" @click="openReviewModal(review)">
+                            Add Rating & Review
+                          </button>
                         </div>
-                        <span class="badge badge-gold" style="padding: 6px 12px">Review Needed</span>
                       </div>
-                      <div class="text-muted" style="font-size: 12px; margin-bottom: 12px">
-                        {{ new Date(review.datetime).toLocaleDateString() }} at {{ new Date(review.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }}
-                      </div>
-                      <button class="btn btn-primary" style="width: 100%" @click="openReviewModal(review)">
-                        Add Rating & Review
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -733,7 +847,7 @@
                 </div>
                 <div v-else>
                   <div style="display: grid; gap: 16px">
-                    <div v-for="review in reviewedAppointments" :key="review.appointment_id" style="padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); background: white">
+                    <div v-for="review in paginatedReviewedAppointments" :key="review.appointment_id" style="padding: 16px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); transition: border-color 0.2s" @mouseenter="$event.currentTarget.style.borderColor='rgba(212,175,55,0.35)'" @mouseleave="$event.currentTarget.style.borderColor='rgba(212,175,55,0.15)'">
                       <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px">
                         <div>
                           <div style="font-weight: 600; font-size: 16px">{{ review.services.join(', ') }}</div>
@@ -749,13 +863,19 @@
                       <div class="text-muted" style="font-size: 12px; margin-bottom: 12px">
                         {{ new Date(review.datetime).toLocaleDateString() }}
                       </div>
-                      <div v-if="review.review" style="padding: 12px; background: var(--light-bg); border-radius: var(--radius); font-size: 14px; color: var(--charcoal)">
+                      <div v-if="review.review" style="padding: 12px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; color: var(--text)">
                         "{{ review.review }}"
                       </div>
                       <div v-else style="padding: 12px; background: var(--light-bg); border-radius: var(--radius); font-size: 14px; color: var(--text-muted); font-style: italic">
                         No review text provided
                       </div>
                     </div>
+                  </div>
+                  <!-- Pagination Controls -->
+                  <div v-if="totalPagesReviews > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                    <button :disabled="currentPageReviews === 1" @click="goToPageReviews(currentPageReviews - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                    <span style="font-size: 14px; font-weight: 600">Page {{ currentPageReviews }} of {{ totalPagesReviews }}</span>
+                    <button :disabled="currentPageReviews === totalPagesReviews" @click="goToPageReviews(currentPageReviews + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
                   </div>
                 </div>
               </div>
@@ -788,17 +908,25 @@
             <input id="profile-phone" v-model="profileForm.phone" type="tel" placeholder="Enter phone" class="form-input" />
           </div>
           <div class="form-group">
+            <label for="profile-address">Address</label>
+            <input id="profile-address" v-model="profileForm.address" type="text" placeholder="Enter address" class="form-input" />
+          </div>
+          <div class="form-group">
+            <label for="profile-dob">Date of Birth</label>
+            <input id="profile-dob" v-model="profileForm.dob" type="date" class="form-input" />
+          </div>
+          <div class="form-group">
             <label>Preferred Services</label>
             <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; background: var(--light-bg)">
-              <div v-for="service in customerData.availableServices" :key="service.id" style="margin-bottom: 8px">
+              <div v-for="service in availableServicesData" :key="service.id" style="margin-bottom: 8px">
                 <label style="display: flex; align-items: center; cursor: pointer; font-size: 14px">
                   <input 
                     type="checkbox" 
-                    :value="service.id" 
+                    :value="service.name" 
                     v-model="profileForm.preferredServices"
                     style="margin-right: 8px"
                   />
-                  <span>{{ service.name }} ({{ service.category }})</span>
+                  <span>{{ service.name }}</span>
                 </label>
               </div>
             </div>
@@ -824,37 +952,52 @@
         <form @submit.prevent="handleChangePassword">
           <div class="form-group">
             <label for="current-password">Current Password</label>
-            <input 
-              id="current-password"
-              v-model="passwordForm.currentPassword" 
-              type="password" 
-              placeholder="Enter current password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="current-password"
+                v-model="passwordForm.currentPassword" 
+                :type="showCurrentPassword ? 'text' : 'password'" 
+                placeholder="Enter current password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showCurrentPassword = !showCurrentPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showCurrentPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label for="new-password">New Password</label>
-            <input 
-              id="new-password"
-              v-model="passwordForm.newPassword" 
-              type="password" 
-              placeholder="Enter new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="new-password"
+                v-model="passwordForm.newPassword" 
+                :type="showNewPassword ? 'text' : 'password'" 
+                placeholder="Enter new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showNewPassword = !showNewPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showNewPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
             <div class="form-hint">At least 8 characters</div>
           </div>
           <div class="form-group">
             <label for="confirm-password">Confirm Password</label>
-            <input 
-              id="confirm-password"
-              v-model="passwordForm.confirmPassword" 
-              type="password" 
-              placeholder="Confirm new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="confirm-password"
+                v-model="passwordForm.confirmPassword" 
+                :type="showConfirmPassword ? 'text' : 'password'" 
+                placeholder="Confirm new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showConfirmPassword = !showConfirmPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showConfirmPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
           <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
@@ -919,15 +1062,15 @@
               <button
                 type="button"
                 @click="showAiFeedbackPanel = !showAiFeedbackPanel; aiFeedbackError = ''"
-                style="font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--gold); background: #fffbea; color: #8B6914; cursor: pointer; font-weight: 600;"
+                style="font-size: 12px; padding: 4px 12px; border-radius: 12px; border: 1px solid rgba(212,175,55,0.4); background: rgba(212,175,55,0.10); color: var(--gold-bright); cursor: pointer; font-weight: 600;"
               >
                 ✨ {{ showAiFeedbackPanel ? 'Hide AI Writer' : 'Write with AI' }}
               </button>
             </div>
 
             <!-- AI Feedback Writer Panel -->
-            <div v-if="showAiFeedbackPanel" style="background: #fffbea; border: 1px solid #f0d060; border-radius: 8px; padding: 14px; margin-bottom: 12px;">
-              <div style="font-size: 13px; font-weight: 600; color: #8B6914; margin-bottom: 10px;">✨ Select topics your feedback covers:</div>
+            <div v-if="showAiFeedbackPanel" style="background: rgba(212,175,55,0.07); border: 1px solid rgba(212,175,55,0.25); border-radius: 10px; padding: 14px; margin-bottom: 12px;">
+              <div style="font-size: 13px; font-weight: 600; color: var(--gold-bright); margin-bottom: 10px;">✨ Select topics your feedback covers:</div>
               <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
                 <button
                   v-for="kw in FEEDBACK_KEYWORDS"
@@ -938,9 +1081,9 @@
                     fontSize: '12px',
                     padding: '5px 12px',
                     borderRadius: '14px',
-                    border: aiFeedbackKeywords.includes(kw) ? '2px solid var(--gold)' : '1px solid #ddd',
-                    background: aiFeedbackKeywords.includes(kw) ? 'var(--gold)' : 'white',
-                    color: aiFeedbackKeywords.includes(kw) ? 'white' : 'var(--charcoal)',
+                    border: aiFeedbackKeywords.includes(kw) ? '2px solid var(--gold)' : '1px solid rgba(212,175,55,0.25)',
+                    background: aiFeedbackKeywords.includes(kw) ? 'linear-gradient(135deg, var(--gold-deep), var(--gold))' : 'rgba(255,255,255,0.04)',
+                    color: aiFeedbackKeywords.includes(kw) ? 'var(--obsidian)' : 'var(--text-muted)',
                     cursor: 'pointer',
                     fontWeight: aiFeedbackKeywords.includes(kw) ? '600' : '400',
                     transition: 'all 0.15s',
@@ -1007,7 +1150,7 @@
               <div class="form-group">
                 <label>Select Services</label>
                 <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 250px; overflow-y: auto">
-                  <div v-for="service in customerData.availableServices" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+                  <div v-for="service in availableServicesData" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
                     <input 
                       :id="'edit-service-' + service.id"
                       type="checkbox" 
@@ -1031,19 +1174,41 @@
                 >
                   <option value="">Choose a stylist</option>
                   <option v-for="staff in availableStylists" :key="staff.id" :value="staff.id">
-                    {{ staff.name }}
+                    {{ staff.name }}{{ staff.skills ? ' - ' + staff.skills : '' }}
                   </option>
                 </select>
+                <div v-if="editAppointmentForm.staffId" class="text-muted" style="font-size: 12px; margin-top: 6px">
+                  Selected: {{ availableStylists.find(s => s.id == editAppointmentForm.staffId)?.name }}{{ availableStylists.find(s => s.id == editAppointmentForm.staffId)?.skills ? ' - Specializes in ' + availableStylists.find(s => s.id == editAppointmentForm.staffId)?.skills : '' }}
+                </div>
               </div>
 
-              <div class="form-group">
-                <label for="edit-datetime">Date & Time</label>
-                <input 
-                  id="edit-datetime"
-                  v-model="editAppointmentForm.datetime" 
-                  type="datetime-local" 
-                  class="form-input"
-                />
+              <div class="grid-2">
+                <div class="form-group">
+                  <label for="edit-date">Date *</label>
+                  <input 
+                    id="edit-date"
+                    v-model="editAppointmentForm.date" 
+                    type="date" 
+                    class="form-input"
+                    :min="minEditDate"
+                    :max="maxEditDate"
+                    required
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="edit-time">Time *</label>
+                  <select 
+                    id="edit-time"
+                    v-model="editAppointmentForm.time" 
+                    class="form-input"
+                    required
+                  >
+                    <option value="">Choose a time</option>
+                    <option v-for="time in availableRescheduleTimes" :key="time">
+                      {{ time }}
+                    </option>
+                  </select>
+                </div>
               </div>
 
               <div style="display: flex; gap: 12px; margin-top: 20px">
@@ -1058,9 +1223,14 @@
           </div>
           <div v-else style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
             <!-- VIEW MODE -->
-            <div class="detail-item">
-              <label class="detail-label">Service</label>
-              <div class="detail-value">{{ selectedAppointment.service || selectedAppointment.service_name }}</div>
+            <div class="detail-item" style="grid-column: 1 / -1">
+              <label class="detail-label">Services</label>
+              <div v-if="selectedHistoryGroup" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px;">
+                <span v-for="appt in selectedHistoryGroup.appointments" :key="appt.id" style="font-size: 13px; padding: 5px 10px; background: var(--surface); border-radius: 6px; font-weight: 500; border: 1px solid var(--border)">
+                  {{ appt.service }}
+                </span>
+              </div>
+              <div v-else class="detail-value">{{ selectedAppointment.service || selectedAppointment.service_name }}</div>
             </div>
             <div class="detail-item">
               <label class="detail-label">Staff Member</label>
@@ -1071,8 +1241,14 @@
               <div class="detail-value">{{ selectedAppointment.date }} {{ selectedAppointment.time || 'N/A' }}</div>
             </div>
             <div class="detail-item">
-              <label class="detail-label">Price</label>
-              <div class="detail-value">₹{{ selectedAppointment.price }}</div>
+              <label class="detail-label">Total Paid</label>
+              <div class="detail-value">
+                <span v-if="selectedAppointment.has_invoice && selectedAppointment.payable_amount != null">
+                  <span v-if="selectedAppointment.subtotal !== selectedAppointment.payable_amount" style="text-decoration: line-through; color: var(--text-muted); font-size: 12px; margin-right: 6px">₹{{ Number(selectedAppointment.subtotal).toFixed(2) }}</span>
+                  <span style="color: var(--gold); font-weight: 600">₹{{ Number(selectedAppointment.payable_amount).toFixed(2) }}</span>
+                </span>
+                <span v-else>₹{{ selectedAppointment.price }}</span>
+              </div>
             </div>
             <div class="detail-item">
               <label class="detail-label">Duration</label>
@@ -1081,7 +1257,7 @@
             <div class="detail-item">
               <label class="detail-label">Status</label>
               <div class="detail-value">
-                <span :class="['badge', getStatusBadgeClass(selectedAppointment.status)]">{{ selectedAppointment.status }}</span>
+                <span :class="['badge', getStatusBadgeClass(selectedAppointment.status)]" :title="getStatusLabel(selectedAppointment.status)" :style="{ color: getStatusColor(selectedAppointment.status), fontWeight: '600' }">{{ selectedAppointment.status }}</span>
               </div>
             </div>
           </div>
@@ -1100,16 +1276,13 @@
         <button type="button" class="btn btn-outline" @click="editingAppointmentId = null; showAppointmentDetailsModal = false" style="flex: 1;">
           Close
         </button>
-        <button v-if="!editingAppointmentId && selectedAppointment && selectedAppointment.status !== 'Completed'" type="button" class="btn btn-primary" @click="startEditAppointment(selectedAppointment)" style="flex: 1;">
-          ✏️ Edit
-        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, nextTick, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/appStore";
 import { apiClient } from "../api/apiClient";
@@ -1121,21 +1294,28 @@ const API_BASE_URL = "http://localhost:5000";
 const currentView = ref("dashboard");
 const sidebarOpen = ref(false);
 const showChangePasswordModal = ref(false);
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 const showProfileMenu = ref(false);
 const showProfileEditModal = ref(false);
 const showAppointmentDetailsModal = ref(false);
 const selectedAppointment = ref(null);
+const selectedHistoryGroup = ref(null);
 const loadingAppointmentDetails = ref(false);
 const editingAppointmentId = ref(null);
 const editAppointmentForm = ref({
   staffId: "",
   serviceIds: [],
-  datetime: ""
+  date: "",
+  time: ""
 });
 const profileForm = ref({
   name: "",
   email: "",
   phone: "",
+  address: "",
+  dob: "",
   preferredServices: []
 });
 const passwordForm = ref({
@@ -1160,6 +1340,12 @@ const bookingSuccess = ref("");
 const availableServicesData = ref([]);
 const loadingServices = ref(false);
 const servicesError = ref("");
+
+// Salon configuration
+const salonConfig = ref({
+  openTime: "09:00",
+  closeTime: "21:00"
+});
 
 // Feedback form state
 const feedbackForm = ref({
@@ -1203,31 +1389,47 @@ const chatMessages = ref([
   { type: "bot", text: "Hi! I'm your beauty assistant. How can I help you today?", time: "Now" }
 ]);
 
+// Notification state
+const showNotificationDropdown = ref(false);
+const todayAppointmentsNotifications = ref([]);
+const loadingTodayAppointments = ref(false);
+const todayAppointmentsError = ref("");
+
 // Filter state
 const appointmentHistoryFilter = ref("");
 const selectedServiceCategory = ref(null);
 const appointmentsTab = ref("upcoming"); // "upcoming" or "history"
+
+// Pagination state for Customer Dashboard
+const pageSize = ref(8);
+const currentPageUpcoming = ref(1);
+const currentPageHistory = ref(1);
+const currentPageReviews = ref(1);
+
 const upcomingAppointmentsData = ref([]);
 const upcomingAppointmentsError = ref("");
 const loadingUpcomingAppointments = ref(false);
+
+// Compute today's appointment count
+const todayAppointmentCount = computed(() => {
+  const today = new Date().toISOString().split('T')[0];
+  return todayAppointmentsNotifications.value.filter(appt => appt.date === today).length;
+});
 const historyAppointmentsData = ref([]);
 const historyAppointmentsError = ref("");
 const loadingHistoryAppointments = ref(false);
 
-// Mock data with real customer name from appStore
-const customerData = computed(() => {
-  const username = appStore.user?.username;
-  const customer = appStore.data.customers.find(c => c.customerType); // Find a customer or use first
-  return {
-    name: customer?.name || "John Anderson",
-    email: customer?.email || "john@example.com",
-    phone: customer?.phone || "+233 123 456 789",
-    address: customer?.address || "123 Main Street, Accra",
-    dob: customer?.dob || "1992-05-20",
-    memberSince: "2024-01-15",
-    membershipStatus: customer?.customerType === "VIP" ? "Gold" : "Silver",
-    totalSpent: customer?.totalSpent || 1250,
-    preferredServices: [1, 4, 6],
+// Customer data ref to store backend data
+const customerData = ref({
+  name: "Customer",
+  email: "email@example.com",
+  phone: "+233 123 456 789",
+  address: "Address not provided",
+  dob: "Not provided",
+  memberSince: "2024-01-15",
+  membershipStatus: "Regular",
+  totalSpent: 0,
+  preferredServices: [],
   todayStats: {
     upcomingAppointments: 1,
     totalAppointments: 12,
@@ -1242,7 +1444,7 @@ const customerData = computed(() => {
       date: "2026-03-06",
       time: "10:00 AM",
       price: "₹ 50",
-      status: "confirmed",
+      status: 0,
     },
   ],
   appointmentHistory: [
@@ -1252,7 +1454,7 @@ const customerData = computed(() => {
       staff: "Sarah Johnson",
       date: "2026-03-02",
       price: 50,
-      status: "completed",
+      status: 1,
       rating: 5,
     },
     {
@@ -1261,7 +1463,7 @@ const customerData = computed(() => {
       staff: "Emma Davis",
       date: "2026-02-28",
       price: 30,
-      status: "completed",
+      status: 1,
       rating: 4.5,
     },
     {
@@ -1270,7 +1472,7 @@ const customerData = computed(() => {
       staff: "Lisa Chen",
       date: "2026-02-20",
       price: 120,
-      status: "completed",
+      status: 1,
       rating: 5,
     },
     {
@@ -1279,31 +1481,63 @@ const customerData = computed(() => {
       staff: "Sarah Johnson",
       date: "2026-02-15",
       price: 70,
-      status: "completed",
+      status: 1,
       rating: 4,
     },
   ],
   availableServices: availableServicesData.value,
-  feedback: [
-    {
-      id: 1,
-      service: "Hair Styling",
-      staff: "Sarah Johnson",
-      date: "2026-03-02",
-      rating: 5,
-      comment: "Excellent service! Very professional and friendly. Highly recommend!"
-    },
-    {
-      id: 2,
-      service: "Manicure",
-      staff: "Emma Davis",
-      date: "2026-02-25",
-      rating: 4,
-      comment: "Great work! The nails look perfect."
-    }
-  ]
-  };
+  feedback: []
 });
+
+// Fetch customer info from backend
+const fetchCustomerInfo = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/customer-info`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const customer = await response.json();
+      
+      // Update customerData with backend values
+      customerData.value.name = customer.customer_name || "Customer";
+      customerData.value.email = customer.customer_email || "email@example.com";
+      customerData.value.phone = customer.customer_contact || "Not provided";
+      customerData.value.address = customer.customer_address || "Not provided";
+      customerData.value.dob = customer.customer_dob || "Not provided";
+      customerData.value.membershipStatus = customer.customer_type || "Regular";
+      customerData.value.totalSpent = customer.total_spend || 0;
+      
+      console.log("Backend customer_type:", customer.customer_type);
+      console.log("Set membershipStatus to:", customerData.value.membershipStatus);
+      
+      // Parse preferred services from customer_preferences
+      if (customer.customer_preferences) {
+        const preferredIds = customer.customer_preferences.split(',').map(id => id.trim()).filter(id => id);
+        customerData.value.preferredServices = preferredIds;
+        preferredServiceIds.value = preferredIds;
+        console.log("Preferred services loaded:", preferredIds);
+      }
+      
+      console.log("Customer info updated from backend:", customerData.value);
+    } else {
+      console.error("Failed to fetch customer info:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching customer info:", error);
+  }
+};
 
 const preferredServiceIds = ref([...customerData.value.preferredServices]);
 
@@ -1356,22 +1590,91 @@ const fetchAvailableStaff = async () => {
   }
 };
 
-// Available time slots
-const availableTimes = computed(() => {
+// Available time slots for booking (filters past times if booking for today)
+const availableBookingTimes = computed(() => {
   const times = [];
-  for (let hour = 9; hour <= 17; hour++) {
-    times.push(`${String(hour).padStart(2, '0')}:00`);
-    times.push(`${String(hour).padStart(2, '0')}:30`);
+  const [openHour, openMinute] = salonConfig.value.openTime.split(':').map(Number);
+  const [closeHour, closeMinute] = salonConfig.value.closeTime.split(':').map(Number);
+  
+  let currentHour = openHour;
+  let currentMinute = openMinute;
+  
+  // Get current time
+  const now = new Date();
+  const currentTimeHour = now.getHours();
+  const currentTimeMinute = now.getMinutes();
+  
+  while (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute)) {
+    const timeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+    
+    // Only show time if:
+    // 1. Not booking for today, OR
+    // 2. Booking for today but time is at least 2 hours from now
+    if (bookingForm.value.date !== getTodayDate.value || 
+        (currentHour > currentTimeHour + 1) || 
+        (currentHour === currentTimeHour + 1 && currentMinute >= currentTimeMinute)) {
+      times.push(timeStr);
+    }
+    
+    currentMinute += 30;
+    if (currentMinute >= 60) {
+      currentMinute = 0;
+      currentHour += 1;
+    }
   }
+  
+  return times;
+});
+
+// Available time slots for rescheduling (filters past times if rescheduling for today)
+const availableRescheduleTimes = computed(() => {
+  const times = [];
+  const [openHour, openMinute] = salonConfig.value.openTime.split(':').map(Number);
+  const [closeHour, closeMinute] = salonConfig.value.closeTime.split(':').map(Number);
+  
+  let currentHour = openHour;
+  let currentMinute = openMinute;
+  
+  // Get current time
+  const now = new Date();
+  const currentTimeHour = now.getHours();
+  const currentTimeMinute = now.getMinutes();
+  
+  while (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute)) {
+    const timeStr = `${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`;
+    
+    // Only show time if:
+    // 1. Not rescheduling for today, OR
+    // 2. Rescheduling for today but time is at least 2 hours from now
+    if (editAppointmentForm.value.date !== getTodayDate.value || 
+        (currentHour > currentTimeHour + 1) || 
+        (currentHour === currentTimeHour + 1 && currentMinute >= currentTimeMinute)) {
+      times.push(timeStr);
+    }
+    
+    currentMinute += 30;
+    if (currentMinute >= 60) {
+      currentMinute = 0;
+      currentHour += 1;
+    }
+  }
+  
   return times;
 });
 
 // Preferred services list
 const preferredServicesList = computed(() => {
-  const selectedIds = preferredServiceIds.value.map((id) => Number(id));
-  return customerData.value.availableServices.filter(service => 
-    selectedIds.includes(Number(service.id))
-  );
+  // Get service names directly from customer_preferences
+  if (!customerData.value.preferredServices || customerData.value.preferredServices.length === 0) {
+    return [];
+  }
+  
+  // Map preference names to service objects for display
+  return customerData.value.preferredServices.map((name, index) => ({
+    id: index,
+    name: name,
+    category: ""
+  }));
 });
 
 // Get today's date for min date validation
@@ -1380,46 +1683,42 @@ const getTodayDate = computed(() => {
   return today.toISOString().split('T')[0];
 });
 
-// Helper function to check if customer is VIP
-const isVIPCustomer = () => {
-  return customerData.value.membershipStatus === "Platinum" || customerData.value.membershipStatus === "Gold";
-};
+// Helper function to check if customer is VIP (make it reactive with computed)
+const isVIPCustomer = computed(() => {
+  const membershipStatus = customerData.value.membershipStatus;
+  const isVIP = membershipStatus === "VIP" || membershipStatus === "Premium" || membershipStatus === "Gold" || membershipStatus === "Platinum";
+  console.log("isVIPCustomer check:", membershipStatus, "=>", isVIP);
+  return isVIP;
+});
 
 // Helper function to check if booking is for bridal package
 const hasbridalPackageSelected = () => {
   return bookingForm.value.serviceIds.some(serviceId => {
-    const service = customerData.value.availableServices.find(s => s.id === parseInt(serviceId));
-    return service && service.name === "Bridal Package";
+    const service = availableServicesData.value.find(s => s.id === parseInt(serviceId));
+    return service && (service.name?.toLowerCase().includes("bridal") || service.category?.toLowerCase().includes("bridal"));
   });
 };
 
-// Compute minimum booking date based on service type and customer type
-// Compute minimum booking date based on service type
+// Compute minimum booking date
+// Bridal+VIP: 1 month | Bridal+Regular: 2 months | Regular: today
 const minBookingDate = computed(() => {
   const today = new Date();
   const minDate = new Date(today);
-  
   if (hasbridalPackageSelected()) {
-    minDate.setMonth(minDate.getMonth() + 1); // 1 month for bridal package
-  } else {
-    minDate.setDate(minDate.getDate()); // Allow booking today for normal services
+    minDate.setMonth(minDate.getMonth() + (isVIPCustomer.value ? 1 : 2));
   }
-  
   return minDate.toISOString().split('T')[0];
 });
 
-// Compute maximum booking date (6 months for bridal, VIP=5days/Regular=2days for others)
+// Compute maximum booking date: bridal = 6 months | regular = 3 days
 const maxBookingDate = computed(() => {
   const today = new Date();
   const maxDate = new Date(today);
-  
   if (hasbridalPackageSelected()) {
-    maxDate.setMonth(maxDate.getMonth() + 6); // 6 months for bridal package
+    maxDate.setMonth(maxDate.getMonth() + 6);
   } else {
-    const daysToAdd = isVIPCustomer() ? 5 : 2; // VIP=5 days, Regular=2 days for other services
-    maxDate.setDate(maxDate.getDate() + daysToAdd);
+    maxDate.setDate(maxDate.getDate() + 3);
   }
-  
   return maxDate.toISOString().split('T')[0];
 });
 
@@ -1428,13 +1727,42 @@ const bookingDateInfo = computed(() => {
   if (bookingForm.value.serviceIds.length === 0) {
     return "Select a service to see available booking dates";
   }
-  
   if (hasbridalPackageSelected()) {
-    return `Bridal Package: Book 1 to 6 months in advance`;
+    const months = isVIPCustomer.value ? 1 : 2;
+    return `Bridal service: book at least ${months === 1 ? '1 month' : '2 months'} in advance (max 6 months)`;
   } else {
-    const daysWindow = isVIPCustomer() ? 5 : 2;
-    return `Other services: Book from tomorrow onwards for ${daysWindow} days`;
+    return `Regular service: book within the next 3 days`;
   }
+});
+
+// For reschedule modal - check if bridal package is in edit form
+const hasEditBridalPackageSelected = () => {
+  return editAppointmentForm.value.serviceIds.some(serviceId => {
+    const service = availableServicesData.value.find(s => s.id === parseInt(serviceId));
+    return service && (service.name?.toLowerCase().includes("bridal") || service.category?.toLowerCase().includes("bridal"));
+  });
+};
+
+// Min date for reschedule: Bridal+VIP=1month | Bridal+Regular=2months | Regular=today
+const minEditDate = computed(() => {
+  const today = new Date();
+  const minDate = new Date(today);
+  if (hasEditBridalPackageSelected()) {
+    minDate.setMonth(minDate.getMonth() + (isVIPCustomer.value ? 1 : 2));
+  }
+  return minDate.toISOString().split('T')[0];
+});
+
+// Max date for reschedule: bridal=6months | regular=3days
+const maxEditDate = computed(() => {
+  const today = new Date();
+  const maxDate = new Date(today);
+  if (hasEditBridalPackageSelected()) {
+    maxDate.setMonth(maxDate.getMonth() + 6);
+  } else {
+    maxDate.setDate(maxDate.getDate() + 3);
+  }
+  return maxDate.toISOString().split('T')[0];
 });
 
 const pageTitle = computed(() => {
@@ -1473,6 +1801,113 @@ const filteredHistoryAppointments = computed(() => {
   );
 });
 
+// Group pending reviews by same date and time
+const groupedPendingReviews = computed(() => {
+  const grouped = {};
+  
+  pendingReviews.value.forEach(review => {
+    // Create a key from date and time
+    const date = new Date(review.datetime).toLocaleDateString();
+    const time = new Date(review.datetime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const key = `${date} ${time}`;
+    
+    if (!grouped[key]) {
+      grouped[key] = {
+        datetime: review.datetime,
+        date: date,
+        time: time,
+        reviews: []
+      };
+    }
+    
+    grouped[key].reviews.push(review);
+  });
+  
+  // Convert to array and sort by datetime
+  return Object.values(grouped).sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+});
+
+// Group upcoming appointments by same date and time
+const groupedUpcomingAppointments = computed(() => {
+  const grouped = {};
+  
+  upcomingAppointmentsData.value.forEach(appt => {
+    const key = `${appt.date} ${appt.time}`;
+    
+    if (!grouped[key]) {
+      grouped[key] = {
+        date: appt.date,
+        time: appt.time,
+        datetime: appt.datetime,
+        appointments: []
+      };
+    }
+    
+    grouped[key].appointments.push(appt);
+  });
+  
+  // Convert to array and sort by datetime
+  return Object.values(grouped).sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+});
+
+// Group history appointments by same date and time
+const groupedHistoryAppointments = computed(() => {
+  const grouped = {};
+  
+  filteredHistoryAppointments.value.forEach(appt => {
+    const key = `${appt.date} ${appt.time || ''}`;
+    
+    if (!grouped[key]) {
+      grouped[key] = {
+        date: appt.date,
+        time: appt.time,
+        appointments: []
+      };
+    }
+    
+    grouped[key].appointments.push(appt);
+  });
+  
+  // Convert to array and sort by date (descending - newest first)
+  return Object.values(grouped).sort((a, b) => new Date(`${b.date} ${b.time || '00:00'}`) - new Date(`${a.date} ${a.time || '00:00'}`));
+});
+
+// ─────────────────────── PAGINATION COMPUTED PROPERTIES ───────────────────────
+// Paginated Upcoming Appointments
+const paginatedUpcomingAppointments = computed(() => {
+  const start = (currentPageUpcoming.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return groupedUpcomingAppointments.value.slice(start, end);
+});
+
+const totalPagesUpcoming = computed(() => Math.ceil(groupedUpcomingAppointments.value.length / pageSize.value) || 1);
+
+// Paginated History Appointments
+const paginatedHistoryAppointments = computed(() => {
+  const start = (currentPageHistory.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return groupedHistoryAppointments.value.slice(start, end);
+});
+
+const totalPagesHistory = computed(() => Math.ceil(groupedHistoryAppointments.value.length / pageSize.value) || 1);
+
+// Paginated Reviewed Appointments
+const paginatedReviewedAppointments = computed(() => {
+  const start = (currentPageReviews.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return reviewedAppointments.value.slice(start, end);
+});
+
+const totalPagesReviews = computed(() => Math.ceil(reviewedAppointments.value.length / pageSize.value) || 1);
+
+// Reset pagination when switching tabs
+watch(() => appointmentsTab.value, () => {
+  currentPageUpcoming.value = 1;
+  currentPageHistory.value = 1;
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Service categories
 const serviceCategories = computed(() => {
   const categories = [...new Set(availableServicesData.value.map(s => s.category))];
@@ -1492,13 +1927,71 @@ const getServicesByCategory = (category) => {
 
 const getStatusBadgeClass = (status) => {
   const badges = {
-    completed: "badge-green",
-    scheduled: "badge-blue",
-    confirmed: "badge-gold",
-    pending: "badge-gray",
-    cancelled: "badge-red",
+    0: "badge-gray",    // 0: Booked
+    1: "badge-green",   // 1: Completed
+    2: "badge-red",     // 2: No-show
+    3: "badge-gray",    // 3: Cancelled
+    4: "badge-blue",    // 4: Rescheduled
+    5: "badge-gold",    // 5: Invoiced
   };
   return badges[status] || "badge-gray";
+};
+
+const getStatusLabel = (status) => {
+  const labels = {
+    0: "Booked",
+    1: "Completed",
+    2: "No-show",
+    3: "Cancelled",
+    4: "Rescheduled",
+    5: "Invoiced",
+  };
+  return labels[status] || "Unknown";
+};
+
+const getStatusColor = (status) => {
+  const colors = {
+    0: "#95a3a3",       // 0: Booked - gray
+    1: "#27ae60",       // 1: Completed - green
+    2: "#e74c3c",       // 2: No-show - red
+    3: "#95a3a3",       // 3: Cancelled - gray
+    4: "#3498db",       // 4: Rescheduled - blue
+    5: "#d4af37",       // 5: Invoiced - gold
+  };
+  return colors[status] || "#95a3a3";
+};
+
+// ──── PAGINATION HELPER FUNCTIONS ────
+const goToPageUpcoming = (page) => {
+  if (page >= 1 && page <= totalPagesUpcoming.value) {
+    currentPageUpcoming.value = page;
+  }
+};
+
+const goToPageHistory = (page) => {
+  if (page >= 1 && page <= totalPagesHistory.value) {
+    currentPageHistory.value = page;
+  }
+};
+
+const goToPageReviews = (page) => {
+  if (page >= 1 && page <= totalPagesReviews.value) {
+    currentPageReviews.value = page;
+  }
+};
+
+// View history group details (multi-service appointment)
+const viewHistoryGroupDetails = (group) => {
+  selectedHistoryGroup.value = group;
+  const first = group.appointments[0];
+  selectedAppointment.value = {
+    ...first,
+    service: first.service || first.service_name,
+    staff: first.staff || first.staff_name,
+    duration: 60
+  };
+  editingAppointmentId.value = null;
+  showAppointmentDetailsModal.value = true;
 };
 
 // Fetch appointment details from backend
@@ -1600,27 +2093,82 @@ const handleChangePassword = async () => {
   }
 };
 
-const openProfileEdit = () => {
+const openProfileEdit = async () => {
   profileForm.value = {
-    name: customerData.name,
-    email: customerData.email,
-    phone: customerData.phone,
-    preferredServices: [...preferredServiceIds.value]
+    name: customerData.value.name,
+    email: customerData.value.email,
+    phone: customerData.value.phone,
+    address: customerData.value.address,
+    dob: customerData.value.dob,
+    preferredServices: [...customerData.value.preferredServices]
   };
+  await nextTick();
   showProfileEditModal.value = true;
 };
 
-const handleUpdateProfile = () => {
-  customerData.name = profileForm.value.name.trim() || customerData.name;
-  customerData.email = profileForm.value.email.trim() || customerData.email;
-  customerData.phone = profileForm.value.phone.trim() || customerData.phone;
-  const normalizedPreferred = profileForm.value.preferredServices.map((id) => Number(id));
-  preferredServiceIds.value = [...normalizedPreferred];
-  customerData.preferredServices = [...normalizedPreferred];
-  showProfileEditModal.value = false;
+const handleUpdateProfile = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    alert("Authentication token not found. Please login again.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/customer-info`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify({
+        customer_name: profileForm.value.name,
+        customer_email: profileForm.value.email,
+        customer_contact: profileForm.value.phone,
+        customer_address: profileForm.value.address,
+        customer_dob: profileForm.value.dob,
+        customer_preferences: profileForm.value.preferredServices.join(',')
+      })
+    });
+
+    if (response.ok) {
+      // Update local state with form values
+      customerData.value.name = profileForm.value.name;
+      customerData.value.email = profileForm.value.email;
+      customerData.value.phone = profileForm.value.phone;
+      customerData.value.address = profileForm.value.address;
+      customerData.value.dob = profileForm.value.dob;
+      customerData.value.preferredServices = [...profileForm.value.preferredServices];
+      
+      // Close modal and show success
+      showProfileEditModal.value = false;
+      console.log("Profile updated successfully on backend");
+    } else {
+      const error = await response.json();
+      alert("Failed to update profile: " + (error.message || "Unknown error"));
+    }
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    alert("Error updating profile: " + error.message);
+  }
 };
 
-const handleLogout = () => {
+const handleLogout = async () => {
+  const token = localStorage.getItem("authToken");
+  if (token) {
+    try {
+      await fetch(`${API_BASE_URL}/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        }
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  }
   appStore.logout();
   router.push("/login/customer");
 };
@@ -1724,6 +2272,54 @@ const getReviewForBooking = (appointmentId) => {
   });
 };
 
+// Fetch today's appointments for notifications
+const fetchTodayAppointments = async () => {
+  const token = localStorage.getItem("authToken");
+  
+  if (!token) {
+    console.warn("No authentication token found");
+    return;
+  }
+  
+  loadingTodayAppointments.value = true;
+  todayAppointmentsError.value = "";
+  
+  try {
+    const data = await apiClient.get("/api/customer-upcoming-appointments");
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Filter appointments for today only
+    todayAppointmentsNotifications.value = data
+      .filter(appt => appt.datetime && appt.datetime.split('T')[0] === today)
+      .map(appt => {
+        // Convert UTC datetime to IST
+        const dateObj = new Date(appt.datetime);
+        const istTime = new Date(dateObj.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        const istHours = String(istTime.getHours()).padStart(2, '0');
+        const istMinutes = String(istTime.getMinutes()).padStart(2, '0');
+        
+        return {
+          id: appt.appointment_id,
+          service_name: appt.services && appt.services.length > 0 
+            ? appt.services.map(s => s.service_name).join(", ")
+            : "Service",
+          staff_name: appt.staff_name || "Not Assigned",
+          datetime: appt.datetime,
+          price: appt.total_price || 0,
+          date: appt.datetime ? appt.datetime.split('T')[0] : '',
+          time: `${istHours}:${istMinutes}`
+        };
+      });
+    
+    console.log("Today's appointments for notifications:", todayAppointmentsNotifications.value);
+  } catch (error) {
+    console.error("Error fetching today's appointments:", error);
+    todayAppointmentsError.value = "Failed to load today's appointments";
+  } finally {
+    loadingTodayAppointments.value = false;
+  }
+};
+
 // Fetch upcoming appointments from API
 const fetchUpcomingAppointments = async () => {
   const token = localStorage.getItem("authToken");
@@ -1743,11 +2339,16 @@ const fetchUpcomingAppointments = async () => {
     // Transform API data to match frontend format
     upcomingAppointmentsData.value = data.map(appt => ({
       id: appt.appointment_id,
-      service_name: appt.service_name || appt.service_desc || "Service",
-      staff_name: appt.staff_name,
+      service_name: appt.services && appt.services.length > 0 
+        ? appt.services.map(s => s.service_name).join(", ")
+        : "Service",
+      staff_name: appt.staff_name || "Not Assigned",
+      staff_id: appt.staff_id || null,
       datetime: appt.datetime,
-      price: appt.price,
+      price: appt.total_price || 0,
       status: appt.status,
+      services: appt.services || [],
+      service_ids: appt.services?.map(s => s.service_id) || [],
       // Extract date and time from ISO datetime
       date: appt.datetime ? appt.datetime.split('T')[0] : '',
       time: appt.datetime ? appt.datetime.split('T')[1]?.substring(0, 5) : ''
@@ -1786,7 +2387,11 @@ const fetchHistoryAppointments = async () => {
       status: appt.status,
       rating: appt.rating || 0,
       date: appt.datetime ? appt.datetime.split('T')[0] : '',
-      time: appt.datetime ? appt.datetime.split('T')[1]?.substring(0, 5) : ''
+      time: appt.datetime ? appt.datetime.split('T')[1]?.substring(0, 5) : '',
+      has_invoice: appt.has_invoice || false,
+      invoice_number: appt.invoice_number || null,
+      payable_amount: appt.payable_amount ?? null,
+      subtotal: appt.subtotal ?? null
     }));
     console.log("Mapped history appointments:", historyAppointmentsData.value);
   } catch (error) {
@@ -1835,6 +2440,49 @@ const fetchServices = async () => {
     availableServicesData.value = [];
   } finally {
     loadingServices.value = false;
+  }
+};
+
+// Fetch salon configuration
+const fetchSalonConfig = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/salon-config`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      if (Array.isArray(data)) {
+        const openTimeConfig = data.find(config => config.param_name === "SALON_OPEN_TIME");
+        const closeTimeConfig = data.find(config => config.param_name === "SALON_CLOSE_TIME");
+        
+        if (openTimeConfig) {
+          salonConfig.value.openTime = openTimeConfig.param_value; // e.g., "09:00"
+        }
+        if (closeTimeConfig) {
+          salonConfig.value.closeTime = closeTimeConfig.param_value; // e.g., "21:00"
+        }
+        
+        console.log("Salon config loaded:", salonConfig.value);
+      }
+    } else {
+      console.error("Failed to fetch salon config:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching salon config:", error);
+    // Use defaults if fetch fails
   }
 };
 
@@ -2022,13 +2670,16 @@ const generateAiFeedback = async () => {
 };
 
 onMounted(() => {
+  fetchCustomerInfo();
   fetchServices();
+  fetchSalonConfig();
   fetchUpcomingAppointments();
   fetchHistoryAppointments();
   fetchCustomerSummary();
   fetchPendingReviews();
   fetchReviewedAppointments();
   fetchAvailableStaff();
+  fetchTodayAppointments();
 });
 
 // Book appointment API using apiClient
@@ -2052,6 +2703,12 @@ const handleBookAppointment = async () => {
   }
 
   try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      bookingError.value = "Not authenticated. Please login again.";
+      return;
+    }
+
     // Combine date and time into ISO datetime string
     const dateTime = `${bookingForm.value.date}T${bookingForm.value.time}:00`;
     
@@ -2063,9 +2720,22 @@ const handleBookAppointment = async () => {
     if (bookingForm.value.staffId) {
       payload.staff_id = parseInt(bookingForm.value.staffId);
     }
-    
-    const response = await apiClient.post("/api/customer-upcoming-appointments", payload);
-    
+
+    const response = await fetch(`${API_BASE_URL}/api/customer-upcoming-appointments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to book appointment");
+    }
+
     bookingSuccess.value = "Appointment booked successfully!";
     
     // Reset form and refresh appointments
@@ -2090,14 +2760,21 @@ const handleBookAppointment = async () => {
 };
 
 // Edit appointment
-const startEditAppointment = (appt) => {
+const startEditAppointment = async (appt) => {
   editingAppointmentId.value = appt.id;
-  editAppointmentForm.value = {
-    staffId: appt.staff_id || "",
-    serviceIds: appt.service_ids || [],
-    datetime: appt.datetime || `${appt.date}T${appt.time}:00`
-  };
+  selectedAppointment.value = appt;
+  selectedHistoryGroup.value = null;
   showAppointmentDetailsModal.value = true;
+  
+  // Wait for modal to render before auto-filling form
+  await nextTick();
+  
+  editAppointmentForm.value = {
+    staffId: appt.staff_id ? String(appt.staff_id) : "",
+    serviceIds: appt.service_ids ? appt.service_ids.map(id => String(id)) : [],
+    date: appt.date || "",
+    time: appt.time || ""
+  };
 };
 
 // Update appointment handler
@@ -2105,7 +2782,11 @@ const handleEditAppointmentSubmit = async () => {
   if (!editingAppointmentId.value) return;
   
   try {
-    const dateTime = editAppointmentForm.value.datetime;
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication token not found. Please login again.");
+      return;
+    }
     
     const payload = {};
     if (editAppointmentForm.value.staffId) {
@@ -2114,17 +2795,34 @@ const handleEditAppointmentSubmit = async () => {
     if (editAppointmentForm.value.serviceIds.length > 0) {
       payload.service_ids = editAppointmentForm.value.serviceIds.map(id => parseInt(id));
     }
-    if (editAppointmentForm.value.datetime) {
-      payload.appointment_datetime = dateTime;
+    if (editAppointmentForm.value.date && editAppointmentForm.value.time) {
+      payload.appointment_datetime = `${editAppointmentForm.value.date}T${editAppointmentForm.value.time}:00`;
     }
     
-    const response = await apiClient.put(`/api/customer-upcoming-appointments/${editingAppointmentId.value}`, payload);
+    const response = await fetch(`${API_BASE_URL}/api/customer/appointment/${editingAppointmentId.value}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(payload)
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to update appointment");
+    }
     
     // Refresh appointments
     await fetchUpcomingAppointments();
     selectedAppointment.value = null;
     editingAppointmentId.value = null;
     showAppointmentDetailsModal.value = false;
+    
+    // Switch to appointments view
+    currentView.value = "appointments";
+    appointmentsTab.value = "upcoming";
     
     alert("Appointment updated successfully!");
   } catch (error) {
@@ -2138,10 +2836,32 @@ const handleCancelAppointment = async (appointmentId) => {
   if (!confirm("Are you sure you want to cancel this appointment?")) return;
   
   try {
-    const response = await apiClient.delete(`/api/customer-upcoming-appointments/${appointmentId}`);
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication token not found. Please login again.");
+      return;
+    }
+    
+    const response = await fetch(`${API_BASE_URL}/api/customer/appointment/${appointmentId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to delete appointment");
+    }
     
     // Refresh appointments
     await fetchUpcomingAppointments();
+    
+    // Switch to appointments view
+    currentView.value = "appointments";
+    appointmentsTab.value = "upcoming";
     
     alert("Appointment cancelled successfully!");
   } catch (error) {
@@ -2152,9 +2872,19 @@ const handleCancelAppointment = async (appointmentId) => {
 </script>
 
 <style scoped>
+/* ── Local token overrides ── */
+:root, * {
+  --light-bg:    rgba(255,255,255,0.05);
+  --radius:      14px;
+  --radius-sm:   8px;
+  --radius-md:   14px;
+  --text-secondary: var(--text-muted);
+}
+
 .booking-item {
   padding: 12px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--divider);
+  color: var(--text);
 }
 
 .booking-item:last-child {
@@ -2167,32 +2897,39 @@ const handleCancelAppointment = async (appointmentId) => {
 
 .form-group label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--charcoal);
-  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 7px;
 }
 
 .form-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-family: inherit;
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
+  outline: none;
 }
 
+.form-input::placeholder { color: rgba(255,255,255,0.22); }
+
 .form-input:focus {
-  outline: none;
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(229, 170, 84, 0.1);
+  box-shadow: 0 0 0 3px rgba(212,175,55,0.10);
 }
 
 .form-input:disabled {
-  background-color: var(--ivory);
+  background-color: rgba(255,255,255,0.03);
   color: var(--text-muted);
+  cursor: not-allowed;
 }
 
 .form-hint {
@@ -2203,20 +2940,20 @@ const handleCancelAppointment = async (appointmentId) => {
 
 .error-message {
   padding: 10px 12px;
-  background: rgba(231, 76, 60, 0.1);
-  border-left: 3px solid #e74c3c;
+  background: rgba(192,57,43,0.10);
+  border-left: 3px solid rgba(192,57,43,0.6);
   border-radius: var(--radius-sm);
-  color: #c0392b;
+  color: #f08070;
   font-size: 13px;
   margin-top: 12px;
 }
 
 .success-message {
   padding: 10px 12px;
-  background: rgba(39, 174, 96, 0.1);
-  border-left: 3px solid #27ae60;
+  background: rgba(39,174,96,0.10);
+  border-left: 3px solid rgba(39,174,96,0.6);
   border-radius: var(--radius-sm);
-  color: #229954;
+  color: #5cba7d;
   font-size: 13px;
   margin-top: 12px;
 }
@@ -2224,22 +2961,23 @@ const handleCancelAppointment = async (appointmentId) => {
 /* Detail Item Styles */
 .detail-item {
   padding: 12px;
-  background: var(--light-bg);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
 }
 
 .detail-label {
   display: block;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 700;
   margin-bottom: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.12em;
 }
 
 .detail-value {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: var(--text);
   font-weight: 500;
 }
@@ -2251,7 +2989,8 @@ const handleCancelAppointment = async (appointmentId) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2260,18 +2999,15 @@ const handleCancelAppointment = async (appointmentId) => {
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .modal-content {
-  background: white;
+  background: var(--surface);
+  border: 1px solid rgba(212,175,55,0.18);
   border-radius: var(--radius-md);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xl);
   width: 100%;
   max-width: 420px;
   max-height: 90vh;
@@ -2280,14 +3016,8 @@ const handleCancelAppointment = async (appointmentId) => {
 }
 
 @keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  from { transform: translateY(20px); opacity: 0; }
+  to   { transform: translateY(0);    opacity: 1; }
 }
 
 .modal-header {
@@ -2295,20 +3025,22 @@ const handleCancelAppointment = async (appointmentId) => {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--divider);
 }
 
 .modal-title {
   font-size: 18px;
-  font-weight: 600;
-  color: var(--charcoal);
+  font-weight: 500;
+  color: var(--text);
   margin: 0;
+  font-family: var(--font-display);
 }
 
 .modal-close {
   background: none;
-  border: none;
-  font-size: 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 18px;
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;

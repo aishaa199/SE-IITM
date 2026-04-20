@@ -20,9 +20,46 @@ class Config(object):
     SECURITY_REGISTERABLE = True
     SECURITY_CONFIRMABLE = False
     SECURITY_RECOVERABLE = False
+    SECURITY_JOIN_USER_ROLES = False
+    SECURITY_PASSWORD_SINGLE_HASH = False
+    SECURITY_PASSWORD_HASH = 'bcrypt'
     # SECURITY_USER_IDENTITY_ATTRIBUTES = ('username', )
     SECURITY_USERNAME_ENABLE = True
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
+    FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+    # Mail configuration (using a placeholder/local server by default)
+    MAIL_SERVER = os.getenv("MAIL_SERVER", "localhost")
+    MAIL_PORT = int(os.getenv("MAIL_PORT", 1025))
+    MAIL_USE_TLS = os.getenv("MAIL_USE_TLS", "False").lower() == "true"
+    MAIL_USERNAME = os.getenv("MAIL_USERNAME", None)
+    MAIL_PASSWORD = os.getenv("MAIL_PASSWORD", None)
+    MAIL_DEFAULT_SENDER = os.getenv("MAIL_DEFAULT_SENDER", "glowsuite8@gmail.com")
+
+    # Scheduler Configuration
+    SCHEDULER_API_ENABLED = True
+    JOBS = [
+        {
+            'id': 'job1',
+            'func': 'application.tasks:daily_notification_cleanup',
+            'trigger': 'interval',
+            'seconds': 3600  # Run every hour
+        },
+        {
+            'id': 'job2',
+            'func': 'application.tasks:send_daily_reminder',
+            'trigger': 'cron',
+            'hour': 9,
+            'minute': 0  # Run every day at 9:00 AM
+        },
+        {
+            'id': 'attendance_threshold_job',
+            'func': 'application.tasks:mark_absent_staff',
+            'trigger': 'cron',
+            'hour': 10,
+            'minute': 27 # Placeholder: 12:01 PM
+        }
+    ]
 
 
 class DevelopmentConfig(Config):

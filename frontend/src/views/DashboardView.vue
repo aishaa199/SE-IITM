@@ -1,7 +1,7 @@
 <template>
   <div class="content-layout">
     <!-- Mobile Menu Toggle -->
-    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: white; border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
+    <div style="display: none; position: fixed; top: 16px; left: 16px; z-index: 1001; background: var(--surface); border-radius: 8px; border: 1px solid var(--border); padding: 8px; cursor: pointer" @click="sidebarOpen = !sidebarOpen" class="mobile-menu-toggle">
       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="3" y1="6" x2="21" y2="6"></line>
         <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -20,83 +20,50 @@
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section">Appointment & Services</div>
-        <div
-          :class="['nav-item', { active: currentView === 'dashboard' }]"
-          @click="currentView = 'dashboard'; sidebarOpen = false"
-        >
-          <span class="nav-icon">📊</span> Dashboard
+        <div :class="['nav-item', { active: currentView === 'dashboard' }]" @click="currentView = 'dashboard'; sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></span> Dashboard
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'bookings' }]"
-          @click="currentView = 'bookings'; sidebarOpen = false"
-        >
-          <span class="nav-icon">📅</span> Appointments
+        <div :class="['nav-item', { active: currentView === 'bookings' }]" @click="currentView = 'bookings'; fetchSalonConfig(); sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span> Appointments
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'services' }]"
-          @click="currentView = 'services'; sidebarOpen = false"
-        >
-          <span class="nav-icon">💇</span> Services
+        <div :class="['nav-item', { active: currentView === 'services' }]" @click="currentView = 'services'; sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></span> Services
         </div>
 
         <div class="nav-section">Management</div>
-        <div
-          :class="['nav-item', { active: currentView === 'customers' }]"
-          @click="currentView = 'customers'; sidebarOpen = false"
-        >
-          <span class="nav-icon">👥</span> Customers
+        <div :class="['nav-item', { active: currentView === 'customers' }]" @click="currentView = 'customers'; sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span> Customers
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'staff-by-day' }]"
-          @click="currentView = 'staff-by-day'; sidebarOpen = false"
-        >
-          <span class="nav-icon">📅</span> Staff by Day
+        <div :class="['nav-item', { active: currentView === 'staff-by-day' }]" @click="currentView = 'staff-by-day'; sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg></span> Staff by Day
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'staff' }]"
-          @click="currentView = 'staff'; sidebarOpen = false"
-        >
-          <span class="nav-icon">👔</span> Staff
+        <div :class="['nav-item', { active: currentView === 'staff' }]" @click="currentView = 'staff'; sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span> Staff
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'rewards' }]"
-          @click="currentView = 'rewards'; fetchRewardsSettings(); sidebarOpen = false"
-        >
-          <span class="nav-icon">🎁</span> Rewards
+        <div :class="['nav-item', { active: currentView === 'rewards' }]" @click="currentView = 'rewards'; fetchRewardsSettings(); sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></span> Rewards
+        </div>
+        <div :class="['nav-item', { active: currentView === 'invoices' }]" @click="currentView = 'invoices'; fetchInvoices(); sidebarOpen = false">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span> Invoices
         </div>
 
         <div class="nav-section">Operations</div>
-        <div
-          :class="['nav-item', { active: currentView === 'inventory' }]"
-          @click="currentView = 'inventory'"
-        >
-          <span class="nav-icon">📦</span> Inventory
+        <div :class="['nav-item', { active: currentView === 'inventory' }]" @click="currentView = 'inventory'">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span> Inventory
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'orders' }]"
-          @click="currentView = 'orders'"
-        >
-          <span class="nav-icon">📮</span> Orders ({{ pendingOrders.length }})
+        <div :class="['nav-item', { active: currentView === 'orders' }]" @click="currentView = 'orders'">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span> Orders
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'finance' }]"
-          @click="handleFinanceAccess"
-        >
-          <span class="nav-icon">💰</span> Finance
+        <div :class="['nav-item', { active: currentView === 'finance' }]" @click="handleFinanceAccess">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span> Finance
         </div>
-        <div
-          :class="['nav-item', { active: currentView === 'reports' }]"
-          @click="handleReportsAccess"
-        >
-          <span class="nav-icon">📄</span> Download Reports
+        <div :class="['nav-item', { active: currentView === 'reports' }]" @click="handleReportsAccess">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span> Download Reports
         </div>
 
         <div class="nav-section">Settings</div>
-        <div
-          :class="['nav-item', { active: currentView === 'settings' }]"
-          @click="currentView = 'settings'; fetchSalonConfig()"
-        >
-          <span class="nav-icon">⚙️</span> Salon Settings
+        <div :class="['nav-item', { active: currentView === 'settings' }]" @click="currentView = 'settings'; fetchSalonConfig()">
+          <span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span> Salon Settings
         </div>
       </nav>
       <div class="sidebar-footer">
@@ -109,14 +76,14 @@
           <div style="font-size: 18px">▼</div>
           
           <!-- Profile Dropdown Menu -->
-          <div v-if="showProfileMenu" class="profile-dropdown" @click.stop style="position: absolute; bottom: 100%; left: 0; width: 220px; background: white; border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 -2px 8px rgba(0,0,0,0.1); margin-bottom: 8px; z-index: 1000">
-            <button class="profile-menu-item" @click="openProfileEdit(); showProfileMenu = false" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--charcoal); transition: background-color 0.2s; border-bottom: 1px solid var(--border-color)">
-              👤 Profile Edit
+          <div v-if="showProfileMenu" class="profile-dropdown" @click.stop>
+            <button class="profile-menu-item" @click="currentView = 'profile'; showProfileMenu = false">
+              👤 Profile
             </button>
-            <button class="profile-menu-item" @click="showChangePasswordModal = true; showProfileMenu = false" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: var(--charcoal); transition: background-color 0.2s; border-bottom: 1px solid var(--border-color)">
+            <button class="profile-menu-item" @click="showChangePasswordModal = true; showProfileMenu = false">
               🔑 Change Password
             </button>
-            <button class="profile-menu-item" @click="handleLogout" style="width: 100%; padding: 12px 16px; text-align: left; border: none; background: none; cursor: pointer; font-size: 14px; color: #e74c3c; transition: background-color 0.2s">
+            <button class="profile-menu-item profile-menu-danger" @click="handleLogout">
               🚪 Logout
             </button>
           </div>
@@ -130,11 +97,57 @@
       <div class="topbar">
         <div class="topbar-title">{{ pageTitle }}</div>
         <div class="topbar-right">
-          <div class="search-bar">
-            <span>🔍</span>
-            <input type="text" placeholder="Search..." />
+          <button class="notif-btn" @click="toggleNotificationPanel">
+            🔔
+            <span v-if="unreadCount > 0" class="notif-badge">{{ unreadCount }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Notification Panel -->
+      <div v-if="showNotificationPanel" class="notification-panel">
+        <div class="notification-panel-header">
+          <h3>Notifications</h3>
+          <div class="notification-header-actions">
+            <button 
+              v-if="unreadCount > 0"
+              @click="markAllNotificationsAsRead" 
+              class="mark-all-btn"
+              title="Mark all as read"
+            >
+              ✓ Mark All
+            </button>
+            <button @click="showNotificationPanel = false" class="close-btn">✕</button>
           </div>
-          <button class="notif-btn">🔔</button>
+        </div>
+        
+        <div class="notification-panel-content">
+          <!-- Loading state -->
+          <div v-if="notificationsLoading" class="notification-loading">
+            <p>Loading notifications...</p>
+          </div>
+          
+          <!-- Empty state -->
+          <div v-else-if="unreadNotifications.length === 0" class="notification-empty">
+            <p>No unread notifications</p>
+          </div>
+          
+          <!-- Unread Notifications list -->
+          <div v-else class="notifications-list">
+            <div v-for="notif in unreadNotifications" :key="notif.id" class="notification-item">
+              <div class="notification-content">
+                <div class="notification-subject">{{ notif.subject }}</div>
+                <div class="notification-message">{{ notif.message }}</div>
+                <div class="notification-time">{{ new Date(notif.created_at).toLocaleString('en-IN') }}</div>
+              </div>
+              <button 
+                @click="markNotificationAsRead(notif.id)" 
+                class="mark-read-btn"
+              >
+                Mark as Read
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -147,76 +160,76 @@
           <div v-if="!briefingDismissed" style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; background: linear-gradient(135deg, #8B6914 0%, #C9A96E 60%, #b8945a 100%); box-shadow: 0 4px 20px rgba(139,105,20,0.35); border: 1px solid rgba(255,220,140,0.3);">
 
             <!-- Loading state -->
-            <div v-if="briefingLoading" style="padding: 32px; text-align: center; color: #1A1A1A;">
+            <div v-if="briefingLoading" style="padding: 32px; text-align: center; color: rgba(255,255,255,0.9);">
               <div style="font-size: 30px; margin-bottom: 10px;">✨</div>
-              <div style="font-size: 14px; opacity: 0.7;">Generating your AI briefing…</div>
+              <div style="font-size: 14px; opacity: 0.8;">Generating your AI briefing…</div>
             </div>
 
             <!-- Error state -->
-            <div v-else-if="briefingError" style="padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; color: #1A1A1A;">
-              <span style="font-size: 14px; opacity: 0.8;">⚠️ {{ briefingError }}</span>
+            <div v-else-if="briefingError" style="padding: 20px 24px; display: flex; align-items: center; justify-content: space-between; color: rgba(255,255,255,0.9);">
+              <span style="font-size: 14px; opacity: 0.85;">⚠️ {{ briefingError }}</span>
               <div style="display: flex; gap: 8px;">
-                <button @click="fetchBriefing()" style="background: rgba(26,26,26,0.12); border: 1px solid rgba(26,26,26,0.25); color: #1A1A1A; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">Retry</button>
-                <button @click="briefingDismissed = true" style="background: transparent; border: none; color: rgba(26,26,26,0.5); cursor: pointer; font-size: 18px; line-height: 1;">✕</button>
+                <button @click="fetchBriefing()" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">Retry</button>
+                <button @click="briefingDismissed = true" style="background: transparent; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 18px; line-height: 1;">✕</button>
               </div>
             </div>
 
             <!-- Briefing content -->
-            <div v-else-if="briefingData" style="padding: 24px; color: #1A1A1A;">
+            <div v-else-if="briefingData" style="padding: 24px; color: rgba(255,255,255,0.92);">
               <!-- Header row -->
               <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
                 <div>
-                  <div style="font-size: 20px; font-weight: 700; margin-bottom: 4px; color: #1A1A1A;">{{ briefingData.greeting }}</div>
-                  <div style="font-size: 14px; color: #2D2D2D; opacity: 0.8;">{{ briefingData.summary }}</div>
+                  <div style="font-size: 20px; font-weight: 700; margin-bottom: 4px; color: #fff;">{{ briefingData.greeting }}</div>
+                  <div style="font-size: 14px; color: rgba(255,255,255,0.75);">{{ briefingData.summary }}</div>
                 </div>
                 <div style="display: flex; gap: 8px; flex-shrink: 0; margin-left: 16px;">
-                  <button @click="fetchBriefing()" title="Refresh briefing" style="background: rgba(26,26,26,0.1); border: 1px solid rgba(26,26,26,0.2); color: #1A1A1A; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center;">↻</button>
-                  <button @click="briefingDismissed = true" title="Dismiss" style="background: rgba(26,26,26,0.1); border: 1px solid rgba(26,26,26,0.2); color: #1A1A1A; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center;">✕</button>
+                  <button @click="fetchBriefing()" title="Refresh briefing" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center;">↻</button>
+                  <button @click="briefingDismissed = true" title="Dismiss" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); color: #fff; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 13px; display: flex; align-items: center; justify-content: center;">✕</button>
                 </div>
               </div>
 
               <!-- Divider -->
-              <div style="height: 1px; background: rgba(26,26,26,0.15); margin-bottom: 18px;"></div>
+              <div style="height: 1px; background: rgba(255,255,255,0.18); margin-bottom: 18px;"></div>
 
               <!-- Insights + Recommendations columns -->
               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div>
-                  <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #4A4A4A; margin-bottom: 10px;">Key Insights</div>
+                  <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 10px;">Key Insights</div>
                   <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-                    <li v-for="(insight, i) in briefingData.insights" :key="'ins-' + i" style="font-size: 13px; padding-left: 18px; position: relative; color: #1A1A1A; line-height: 1.45;">
-                      <span style="position: absolute; left: 0; color: #4A3000; font-size: 16px; line-height: 1;">•</span>{{ insight }}
+                    <li v-for="(insight, i) in briefingData.insights" :key="'ins-' + i" style="font-size: 13px; padding-left: 18px; position: relative; color: rgba(255,255,255,0.88); line-height: 1.45;">
+                      <span style="position: absolute; left: 0; color: #F0DEB0; font-size: 16px; line-height: 1;">•</span>{{ insight }}
                     </li>
                   </ul>
                 </div>
                 <div>
-                  <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #4A4A4A; margin-bottom: 10px;">Recommendations</div>
+                  <div style="font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: rgba(255,255,255,0.55); margin-bottom: 10px;">Recommendations</div>
                   <ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px;">
-                    <li v-for="(rec, i) in briefingData.recommendations" :key="'rec-' + i" style="font-size: 13px; padding-left: 18px; position: relative; color: #1A1A1A; line-height: 1.45;">
-                      <span style="position: absolute; left: 0; color: #2D5A27; font-size: 14px; line-height: 1.1;">→</span>{{ rec }}
+                    <li v-for="(rec, i) in briefingData.recommendations" :key="'rec-' + i" style="font-size: 13px; padding-left: 18px; position: relative; color: rgba(255,255,255,0.88); line-height: 1.45;">
+                      <span style="position: absolute; left: 0; color: #7ec8a0; font-size: 14px; line-height: 1.1;">→</span>{{ rec }}
                     </li>
                   </ul>
                 </div>
               </div>
 
-              <div v-if="briefingData.ai_error" style="margin-top: 14px; font-size: 11px; color: rgba(26,26,26,0.4);">Note: AI unavailable — showing data-driven fallback.</div>
+              <div v-if="briefingData.ai_error" style="margin-top: 14px; font-size: 11px; color: rgba(255,255,255,0.4);">Note: AI unavailable — showing data-driven fallback.</div>
             </div>
 
             <!-- Initial state (no data yet, not loading) -->
-            <div v-else style="padding: 28px; text-align: center; color: #1A1A1A;">
+            <div v-else style="padding: 28px; text-align: center; color: rgba(255,255,255,0.9);">
               <div style="font-size: 28px; margin-bottom: 10px;">🤖</div>
-              <div style="font-size: 14px; opacity: 0.7; margin-bottom: 16px;">Get your AI-powered daily briefing</div>
-              <button @click="fetchBriefing()" style="background: rgba(26,26,26,0.12); border: 1px solid rgba(26,26,26,0.25); color: #1A1A1A; padding: 8px 22px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">Generate Briefing</button>
+              <div style="font-size: 14px; opacity: 0.75; margin-bottom: 16px;">Get your AI-powered daily briefing</div>
+              <button @click="fetchBriefing()" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35); color: #fff; padding: 8px 22px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 600;">Generate Briefing</button>
             </div>
           </div>
           <!-- End AI Daily Briefing Card -->
 
           <!-- AI Task Checklist Card -->
-          <div style="margin-bottom: 24px; background: white; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
-            <div style="padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+          <div style="margin-bottom: 24px; background: var(--surface); border-radius: 14px; border: 1px solid var(--border); box-shadow: var(--shadow-sm);">
+            <div style="padding: 16px 20px; border-bottom: 1px solid var(--divider); display: flex; justify-content: space-between; align-items: center;">
               <div style="display: flex; align-items: center; gap: 8px;">
                 <span style="font-size: 18px;">✅</span>
-                <span style="font-weight: 700; font-size: 15px; color: var(--charcoal);">Today's AI Tasks</span>
-                <span v-if="managerTasks.length > 0" style="background: var(--gold); color: white; border-radius: 10px; padding: 1px 8px; font-size: 11px; font-weight: 600;">{{ pendingTasks.length }} left</span>
+                <span style="font-weight: 600; font-size: 15px; color: var(--text); letter-spacing: 0.01em;">Today's AI Tasks</span>
+                <span v-if="managerTasks.length > 0" style="background: rgba(212,175,55,0.15); color: var(--gold-bright); border-radius: 10px; padding: 2px 8px; font-size: 11px; font-weight: 700; border: 1px solid rgba(212,175,55,0.28);">{{ pendingTasks.length }} left</span>
               </div>
               <button @click="generateManagerTasks" :disabled="tasksLoading" class="generate-tasks-btn">
                 <span v-if="tasksLoading">⏳ Generating…</span>
@@ -285,28 +298,35 @@
           </div>
 
           <!-- Available Staff Today -->
-          <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, var(--ivory) 0%, var(--cream) 100%); border-left: 4px solid var(--gold)">
+          <div class="card" style="margin-bottom: 24px; border-left: 3px solid var(--gold);">
             <div class="card-body">
-              <div style="display: flex; align-items: center; gap: 12px">
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px">
                 <span style="font-size: 24px">👥</span>
-                <div style="flex: 1">
-                  <div style="font-weight: 600; color: var(--charcoal); margin-bottom: 8px; font-size: 16px">
+                <div>
+                  <div style="font-weight: 600; color: var(--text); font-size: 15px; letter-spacing: 0.01em">
                     Available Staff Today
                   </div>
-                  <div v-if="todayAvailableStaff.length > 0" style="color: var(--charcoal); font-size: 15px">
-                    <div v-for="staff in todayAvailableStaff" :key="staff.id" style="margin-bottom: 12px">
-                      <div style="display: inline-block; margin-right: 16px">
-                        <span style="background: var(--gold); color: white; padding: 6px 12px; border-radius: 16px; font-size: 14px; font-weight: 600">✓ {{ staff.name }}</span>
-                      </div>
-                      <div style="font-size: 12px; color: var(--charcoal-light); margin-top: 2px">
+                  <div style="font-size: 12px; color: var(--text-muted)">
+                    {{ todayAvailableStaff.length }} staff member{{ todayAvailableStaff.length !== 1 ? 's' : '' }} present
+                  </div>
+                </div>
+              </div>
+              <div v-if="todayAvailableStaff.length > 0" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px">
+                <div v-for="staff in todayAvailableStaff" :key="staff.id" style="background: var(--light-bg); border: 1px solid rgba(212,175,55,0.2); border-radius: 10px; padding: 12px; transition: all 0.2s">
+                  <div style="display: flex; align-items: flex-start; gap: 8px">
+                    <span style="font-size: 20px; flex-shrink: 0">✓</span>
+                    <div style="flex: 1; min-width: 0">
+                      <div style="font-weight: 600; color: var(--text); font-size: 14px; margin-bottom: 4px">{{ staff.name }}</div>
+                      <div style="font-size: 12px; color: var(--text-muted); line-height: 1.4">
                         {{ staff.skills || 'Skills not specified' }}
                       </div>
                     </div>
                   </div>
-                  <div v-else style="color: var(--charcoal-light); font-size: 14px">
-                    ℹ️ No staff available today
-                  </div>
                 </div>
+              </div>
+              <div v-else style="text-align: center; padding: 20px; color: var(--text-muted); font-size: 14px">
+                <div style="font-size: 32px; margin-bottom: 8px">😴</div>
+                No staff available today
               </div>
             </div>
           </div>
@@ -323,24 +343,27 @@
                   <div class="empty-state-icon">📅</div>
                   <div class="empty-state-text">No appointments today</div>
                 </div>
-                <div v-for="appt in todayAppointments" :key="appt.id" class="booking-item">
-                  <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
-                    <div class="booking-time">{{ getTimeFromDate(appt.datetime) }}</div>
+                <div v-for="group in groupedTodayAppointments" :key="group.customerId" style="padding: 16px; background: var(--light-bg); border-radius: var(--radius); border-left: 4px solid var(--gold); margin-bottom: 12px">
+                  <!-- Group header with date/time -->
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border)">
                     <div>
-                      <div style="font-weight: 600">{{ getCustomerName(appt.customerId) }}</div>
-                      <div class="text-muted">{{ getServiceName(appt.serviceId) }}</div>
+                      <div style="font-weight: 600; font-size: 14px">{{ group.customerName }}</div>
+                      <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px">{{ getTimeFromDate(group.appointments[0].datetime) }} • {{ group.appointments[0].date }}</div>
                     </div>
-                  </div>
-                  <div style="display: flex; align-items: center; justify-content: space-between">
-                    <div style="display: flex; align-items: center; gap: 12px; flex: 1">
-                      <div class="text-muted" style="font-size: 12px">Staff: {{ getStaffName(appt.staffId) || "Unassigned" }}</div>
-                      <span :class="['badge', apptStatusBadge(appt.status)]">{{ appt.status }}</span>
-                    </div>
-                    <button class="btn btn-sm btn-primary" @click="handleCreateInvoiceFromAppointment(appt)" style="padding: 4px 8px; font-size: 11px">
+                    <button class="btn btn-sm btn-primary" @click="handleCreateInvoiceFromAppointment(group.appointments[0])" style="padding: 6px 12px; font-size: 12px">
                       📄 Invoice
                     </button>
                   </div>
-                  <div style="height: 1px; background: var(--border); margin: 8px 0"></div>
+                  
+                  <!-- Services in this group -->
+                  <div style="display: grid; gap: 8px">
+                    <div v-for="appt in group.appointments" :key="appt.id" style="display: flex; justify-content: space-between; align-items: center; font-size: 13px; padding: 8px; background: var(--surface); border-radius: 6px">
+                      <div style="flex: 1">
+                        <div style="font-weight: 600">{{ getServiceName(appt.serviceId) }}</div>
+                        <div class="text-muted" style="font-size: 11px">Staff: {{ getStaffName(appt.staffId) || "Unassigned" }}</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -351,59 +374,18 @@
                 <h3 class="card-title">⚡ Alerts & Notifications</h3>
               </div>
               <div class="card-body">
-                <div v-if="systemAlerts.length === 0" class="empty-state">
+                <div v-if="unreadNotifications.length === 0" class="empty-state">
                   <div class="empty-state-icon">✅</div>
                   <div class="empty-state-text">All systems operational</div>
                 </div>
-                <div v-for="(alert, idx) in systemAlerts" :key="idx" :class="['alert-item', alert.type]">
-                  <div class="alert-icon">{{ alert.icon }}</div>
+                <div v-for="notif in unreadNotifications" :key="notif.id" class="alert-item warning">
+                  <div class="alert-icon">⚠️</div>
                   <div style="flex: 1">
-                    <div class="alert-title">{{ alert.title }}</div>
-                    <div class="alert-message">{{ alert.message }}</div>
+                    <div class="alert-title">{{ notif.subject }}</div>
+                    <div class="alert-message">{{ notif.message }}</div>
                   </div>
-                  <div class="alert-time">{{ alert.time }}</div>
+                  <div class="alert-time">{{ new Date(notif.created_at).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit' }) }}</div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Daywise Appointment Count -->
-          <div class="card" style="margin-top: 24px">
-            <div class="card-header">
-              <h3 class="card-title">📊 Salon Appointments - Daywise</h3>
-            </div>
-            <div class="card-body">
-              <div v-if="dailyCountLoading" style="text-align: center; padding: 20px; color: var(--text-muted)">
-                ⏳ Loading appointment data...
-              </div>
-              <div v-else-if="dailyCountError" class="error-message" style="margin-bottom: 16px">
-                {{ dailyCountError }}
-              </div>
-              <div v-else-if="dailyAppointmentCounts.length === 0" class="empty-state">
-                <div class="empty-state-icon">📊</div>
-                <div class="empty-state-text">No appointment data available</div>
-              </div>
-              <div v-else style="overflow-x: auto">
-                <table style="width: 100%; border-collapse: collapse">
-                  <thead>
-                    <tr style="background: var(--light-bg); border-bottom: 2px solid var(--border)">
-                      <th style="padding: 12px; text-align: left; font-weight: 600">Date</th>
-                      <th style="padding: 12px; text-align: center; font-weight: 600">Appointments</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="dayCount in dailyAppointmentCounts" :key="dayCount.date" style="border-bottom: 1px solid var(--border); cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.closest('tr').style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.closest('tr').style.backgroundColor = 'transparent'">
-                      <td style="padding: 12px; text-align: left">
-                        {{ new Date(dayCount.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', weekday: 'short' }) }}
-                      </td>
-                      <td style="padding: 12px; text-align: center">
-                        <span style="display: inline-block; background: var(--gold); color: white; padding: 6px 12px; border-radius: 20px; font-weight: 600; font-size: 14px">
-                          {{ dayCount.count }}
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
               </div>
             </div>
           </div>
@@ -420,8 +402,15 @@
               <form @submit.prevent="handleCreateBooking" style="max-width: 800px">
                 <div class="form-group">
                   <label>Select Services * (You can choose multiple)</label>
+                  <input 
+                    v-model="bookingServiceSearch"
+                    type="text"
+                    class="form-input"
+                    placeholder="Search services..."
+                    style="margin-bottom: 12px"
+                  />
                   <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 300px; overflow-y: auto">
-                    <div v-for="service in data.services" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+                    <div v-for="service in data.services.filter(s => getServiceStatus(s) === 'Active' && s.name.toLowerCase().includes(bookingServiceSearch.toLowerCase()))" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
                       <input 
                         :id="'service-' + service.id"
                         type="checkbox" 
@@ -533,23 +522,9 @@
                       required
                     >
                       <option value="">Choose a time</option>
-                      <option value="09:00">09:00</option>
-                      <option value="09:30">09:30</option>
-                      <option value="10:00">10:00</option>
-                      <option value="10:30">10:30</option>
-                      <option value="11:00">11:00</option>
-                      <option value="11:30">11:30</option>
-                      <option value="12:00">12:00</option>
-                      <option value="12:30">12:30</option>
-                      <option value="13:00">13:00</option>
-                      <option value="13:30">13:30</option>
-                      <option value="14:00">14:00</option>
-                      <option value="14:30">14:30</option>
-                      <option value="15:00">15:00</option>
-                      <option value="15:30">15:30</option>
-                      <option value="16:00">16:00</option>
-                      <option value="16:30">16:30</option>
-                      <option value="17:00">17:00</option>
+                      <option v-for="time in availableTimeSlots" :key="time" :value="time">
+                        {{ time }}
+                      </option>
                     </select>
                   </div>
                 </div>
@@ -606,7 +581,10 @@
               </div>
               <div v-for="appt in filteredBookings" :key="appt.id" class="booking-item">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px">
-                  <div class="booking-time">{{ getTimeFromDate(appt.datetime) }}</div>
+                  <div style="display: flex; flex-direction: column; gap: 4px">
+                    <div class="booking-time">{{ getTimeFromDate(appt.datetime) }}</div>
+                    <div style="font-size: 11px; color: var(--text-muted)">{{ appt.date }}</div>
+                  </div>
                   <div>
                     <div style="font-weight: 600">{{ getCustomerName(appt.customerId) }}</div>
                     <div class="text-muted">{{ getServiceName(appt.serviceId) }}</div>
@@ -615,7 +593,7 @@
                 <div style="display: flex; align-items: center; justify-content: space-between">
                   <div style="display: flex; align-items: center; gap: 12px; flex: 1">
                     <div class="text-muted" style="font-size: 12px">Staff: {{ getStaffName(appt.staffId) || "Unassigned" }}</div>
-                    <span :class="['badge', apptStatusBadge(appt.status)]">{{ appt.status }}</span>
+                    <span :class="['badge', apptStatusBadge(appt.status)]" :title="apptStatusLabel(appt.status)" :style="{ color: apptStatusColor(appt.status), fontWeight: '600' }">{{ apptStatusLabel(appt.status) }}</span>
                   </div>
                   <div style="display: flex; gap: 6px">
                     <button class="btn btn-sm btn-outline" @click="handleEditBooking(appt)" style="padding: 4px 8px; font-size: 11px">
@@ -635,7 +613,7 @@
         <!-- SERVICES VIEW -->
         <div v-if="currentView === 'services'" class="fade-in">
           <!-- Add Service Form -->
-          <div class="card" style="margin-bottom: 20px">
+          <div ref="serviceFormRef" class="card" style="margin-bottom: 20px">
             <div class="card-header">
               <h3 class="card-title">{{ isEditingService ? '✎ Edit Service' : '➕ Add New Service' }}</h3>
             </div>
@@ -713,6 +691,7 @@
                       v-model="serviceForm.fromDate"
                       type="date"
                       class="form-input"
+                      :min="today()"
                     />
                   </div>
 
@@ -723,6 +702,7 @@
                       v-model="serviceForm.toDate"
                       type="date"
                       class="form-input"
+                      :min="today()"
                     />
                   </div>
                 </div>
@@ -746,8 +726,8 @@
               <h3 class="card-title">All Services</h3>
             </div>
             <div class="card-body">
-              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end">
-                <div style="flex: 1; max-width: 300px">
+              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                <div style="flex: 1; min-width: 200px">
                   <label for="service-name-filter" style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Service Name</label>
                   <input 
                     id="service-name-filter"
@@ -758,7 +738,7 @@
                     style="width: 100%"
                   />
                 </div>
-                <div style="flex: 1; max-width: 300px">
+                <div style="flex: 1; min-width: 200px">
                   <label for="service-category-filter" style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Category</label>
                   <select 
                     id="service-category-filter"
@@ -772,15 +752,28 @@
                     </option>
                   </select>
                 </div>
+                <div style="flex: 1; min-width: 200px">
+                  <label for="service-status-filter" style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Status</label>
+                  <select 
+                    id="service-status-filter"
+                    v-model="serviceStatusFilter"
+                    class="form-input"
+                    style="width: 100%"
+                  >
+                    <option value="">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Disabled">Disabled</option>
+                  </select>
+                </div>
               </div>
               <div class="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Service Name</th>
-                      <th>Category</th>
-                      <th>Price</th>
-                      <th>Duration (min)</th>
+                      <th style="cursor: pointer" @click="toggleSort('services', 'name')">Service Name {{ getSortIndicator('services', 'name') }}</th>
+                      <th style="cursor: pointer" @click="toggleSort('services', 'categoryId')">Category {{ getSortIndicator('services', 'categoryId') }}</th>
+                      <th style="cursor: pointer; text-align: right" @click="toggleSort('services', 'price')">Price {{ getSortIndicator('services', 'price') }}</th>
+                      <th style="cursor: pointer" @click="toggleSort('services', 'duration')">Duration (min) {{ getSortIndicator('services', 'duration') }}</th>
                       <th>From Date</th>
                       <th>To Date</th>
                       <th>Status</th>
@@ -790,16 +783,17 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="service in filteredServices" :key="service.id">
+                    <tr v-for="service in paginatedServices" :key="service.id">
                       <td>{{ service.name }}</td>
                       <td>{{ getCategoryName(service.categoryId) }}</td>
-                      <td>₹{{ service.price }}</td>
+                      <td style="text-align: right">₹{{ service.price }}</td>
                       <td>{{ service.duration }}</td>
                       <td style="font-size: 12px">{{ service.fromDate || '-' }}</td>
                       <td style="font-size: 12px">{{ service.toDate || '-' }}</td>
                       <td>
-                        <span v-if="getServiceStatus(service) === 'Active'" style="background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600">✓ Active</span>
-                        <span v-else style="background: #f8d7da; color: #721c24; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600">✗ Inactive</span>
+                        <span v-if="getServiceStatus(service) === 'Active'" style="background: rgba(45,138,78,0.15); color: #5cba7d; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1px solid rgba(45,138,78,0.28)">✓ Active</span>
+                        <span v-else-if="getServiceStatus(service) === 'Disabled'" style="background: rgba(192,57,43,0.15); color: #f08070; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1px solid rgba(192,57,43,0.28)">⊘ Disabled</span>
+                        <span v-else style="background: rgba(192,57,43,0.10); color: #f08070; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; border: 1px solid rgba(192,57,43,0.22)">✗ Inactive</span>
                       </td>
                       <td class="text-muted" style="font-size: 12px">{{ service.productsRequired || "None" }}</td>
                       <td>{{ service.rating ? service.rating + ' ⭐' : 'No rating' }}</td>
@@ -817,6 +811,12 @@
                   </tbody>
                 </table>
               </div>
+              <!-- Pagination Controls -->
+              <div v-if="totalPagesServices > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                <button :disabled="currentPageServices === 1" @click="goToPageServices(currentPageServices - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                <span style="font-size: 14px; font-weight: 600">Page {{ currentPageServices }} of {{ totalPagesServices }}</span>
+                <button :disabled="currentPageServices === totalPagesServices" @click="goToPageServices(currentPageServices + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
+              </div>
             </div>
           </div>
         </div>
@@ -824,7 +824,7 @@
         <!-- CUSTOMERS VIEW -->
         <div v-if="currentView === 'customers'" class="fade-in">
           <!-- Add Customer Form -->
-          <div class="card" style="margin-bottom: 20px">
+          <div ref="customerFormRef" class="card" style="margin-bottom: 20px">
             <div class="card-header">
               <h3 class="card-title">{{ isEditingCustomer ? '✎ Edit Customer' : '➕ Add New Customer' }}</h3>
             </div>
@@ -874,20 +874,9 @@
                       v-model="customerForm.dob"
                       type="date"
                       class="form-input"
+                      :max="todayDate"
                       required
                     />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="customer-type">Customer Type</label>
-                    <select 
-                      id="customer-type"
-                      v-model="customerForm.customerType"
-                      class="form-input"
-                    >
-                      <option value="Normal">Normal</option>
-                      <option value="VIP">VIP</option>
-                    </select>
                   </div>
 
                   <div class="form-group" style="grid-column: 1 / -1">
@@ -934,41 +923,57 @@
               <h3 class="card-title">All Customers</h3>
             </div>
             <div class="card-body">
-              <div style="margin-bottom: 16px">
-                <input 
-                  v-model="customerName"
-                  type="text" 
-                  placeholder="🔍 Filter by name or email..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
+              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Name or Email</label>
+                  <input 
+                    v-model="customerName"
+                    type="text" 
+                    placeholder="🔍 Filter by name or email..." 
+                    class="form-input"
+                    style="width: 100%"
+                  />
+                </div>
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Customer Type</label>
+                  <select 
+                    v-model="customerTypeFilter"
+                    class="form-input"
+                    style="width: 100%"
+                  >
+                    <option value="">All Types</option>
+                    <option value="VIP">VIP</option>
+                    <option value="Regular">Regular</option>
+                    <option value="Walk-in">Walk-in</option>
+                  </select>
+                </div>
               </div>
               <div class="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Name</th>
+                      <th style="cursor: pointer" @click="toggleSort('customers', 'name')">Name {{ getSortIndicator('customers', 'name') }}</th>
                       <th>Email</th>
-                      <th>Phone</th>
+                      <th style="cursor: pointer" @click="toggleSort('customers', 'phone')">Phone {{ getSortIndicator('customers', 'phone') }}</th>
                       <th>Customer Type</th>
-                      <th>Total Spent</th>
+                      <th style="cursor: pointer; text-align: right" @click="toggleSort('customers', 'totalSpent')">Total Spent {{ getSortIndicator('customers', 'totalSpent') }}</th>
                       <th>Available Rewards</th>
                       <th>Preferences</th>
-                      <th>No. of Visits</th>
+                      <th style="cursor: pointer; text-align: center" @click="toggleSort('customers', 'noOfVisits')">Visits {{ getSortIndicator('customers', 'noOfVisits') }}</th>
                       <th>Address</th>
                       <th>Registered</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="customer in filteredCustomers" :key="customer.id" @click="viewCustomerVisits(customer)" style="cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.parentElement.style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.parentElement.style.backgroundColor = 'transparent'">
+                    <tr v-for="customer in paginatedCustomers" :key="customer.id" @click="viewCustomerVisits(customer)" style="cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.parentElement.style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.parentElement.style.backgroundColor = 'transparent'">
                       <td>{{ customer.name }}</td>
                       <td>{{ customer.email }}</td>
                       <td>{{ customer.phone }}</td>
                       <td><span class="badge" :style="{ background: customer.customerType === 'VIP' ? '#FFD700' : '#95a5a6', color: customer.customerType === 'VIP' ? '#000' : '#fff', padding: '4px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '600' }">{{ customer.customerType || 'Normal' }}</span></td>
-                      <td style="text-align: center; font-weight: 600; color: var(--success)">₹{{ customer.totalSpent || 0 }}</td>
+                      <td style="text-align: right; font-weight: 600; color: var(--success)">₹{{ customer.totalSpent || 0 }}</td>
                       <td style="text-align: center; font-weight: 600; color: var(--gold)">🎁 {{ customer.pointsBalance || 0 }}</td>
-                      <td style="font-size: 12px; color: #666">{{ customer.preferences || '-' }}</td>
+                      <td style="font-size: 12px; color: var(--text-muted)">{{ customer.preferences || '-' }}</td>
                       <td style="text-align: center; font-weight: 600">{{ customer.noOfVisits || 0 }}</td>
                       <td class="text-muted">{{ customer.address || "N/A" }}</td>
                       <td>{{ customer.registrationDate }}</td>
@@ -986,136 +991,12 @@
                   </tbody>
                 </table>
               </div>
-            </div>
-          </div>
-
-          <!-- Edit Customer Modal -->
-          <div v-if="isEditingCustomer" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000" @click.self="cancelEditCustomer">
-            <div style="background: white; border-radius: 12px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3)">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px">
-                <h2 style="margin: 0; font-size: 24px; font-weight: 600">✎ Edit Customer</h2>
-                <button @click="cancelEditCustomer" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999">✕</button>
+              <!-- Pagination Controls -->
+              <div v-if="totalPagesCustomers > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                <button :disabled="currentPageCustomers === 1" @click="goToPageCustomers(currentPageCustomers - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                <span style="font-size: 14px; font-weight: 600">Page {{ currentPageCustomers }} of {{ totalPagesCustomers }}</span>
+                <button :disabled="currentPageCustomers === totalPagesCustomers" @click="goToPageCustomers(currentPageCustomers + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
               </div>
-
-              <!-- Customer Info Display -->
-              <div style="background: var(--light-bg); padding: 16px; border-radius: 8px; margin-bottom: 24px">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">REGISTRATION DATE</div>
-                    <div style="font-weight: 600">{{ editingCustomerData?.registrationDate || 'N/A' }}</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">DATE OF BIRTH</div>
-                    <div style="font-weight: 600">{{ editingCustomerData?.dob || 'N/A' }}</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">TOTAL VISITS</div>
-                    <div style="font-weight: 600">{{ editingCustomerData?.noOfVisits || 0 }}</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">POINTS BALANCE</div>
-                    <div style="font-weight: 600; color: var(--primary)">{{ Math.round(editingCustomerData?.pointsBalance || 0) }}</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Edit Form -->
-              <form @submit.prevent="handleUpdateCustomer" style="margin-bottom: 20px">
-                <div class="grid-2">
-                  <div class="form-group">
-                    <label for="edit-customer-name">Name *</label>
-                    <input 
-                      id="edit-customer-name"
-                      v-model="customerForm.name"
-                      type="text"
-                      placeholder="e.g., Sofia Mensah"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-customer-email">Email *</label>
-                    <input 
-                      id="edit-customer-email"
-                      v-model="customerForm.email"
-                      type="email"
-                      placeholder="e.g., sofia@email.com"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-customer-phone">Phone *</label>
-                    <input 
-                      id="edit-customer-phone"
-                      v-model="customerForm.phone"
-                      type="tel"
-                      placeholder="e.g., 030-111-2222"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-customer-dob">Date of Birth *</label>
-                    <input 
-                      id="edit-customer-dob"
-                      v-model="customerForm.dob"
-                      type="date"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-customer-type">Customer Type</label>
-                    <select 
-                      id="edit-customer-type"
-                      v-model="customerForm.customerType"
-                      class="form-input"
-                    >
-                      <option value="Normal">Normal</option>
-                      <option value="VIP">VIP</option>
-                    </select>
-                  </div>
-
-                  <div class="form-group" style="grid-column: 1 / -1">
-                    <label for="edit-customer-address">Address</label>
-                    <input 
-                      id="edit-customer-address"
-                      v-model="customerForm.address"
-                      type="text"
-                      placeholder="e.g., 14 Cantonments Rd"
-                      class="form-input"
-                    />
-                  </div>
-
-                  <div class="form-group" style="grid-column: 1 / -1">
-                    <label for="edit-customer-preferences">Preferences</label>
-                    <textarea 
-                      id="edit-customer-preferences"
-                      v-model="customerForm.preferences"
-                      placeholder="e.g., Relaxing massage, No harsh chemicals, etc."
-                      class="form-input"
-                      style="resize: vertical; min-height: 60px"
-                    ></textarea>
-                  </div>
-                </div>
-
-                <div v-if="customerError" class="error-message">{{ customerError }}</div>
-                <div v-if="customerSuccess" class="success-message">{{ customerSuccess }}</div>
-
-                <div style="display: flex; gap: 12px; margin-top: 20px">
-                  <button type="submit" class="btn btn-primary">
-                    Update Customer
-                  </button>
-                  <button type="button" class="btn btn-outline" @click="cancelEditCustomer">
-                    Cancel
-                  </button>
-                </div>
-              </form>
             </div>
           </div>
         </div>
@@ -1127,23 +1008,36 @@
               <h3 class="card-title">📅 Select Staff by Day</h3>
             </div>
             <div class="card-body">
-              <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px">
+              <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px; flex-wrap: wrap">
                 <label style="font-weight: 600">Select Date:</label>
                 <input 
                   v-model="selectedStaffDate" 
                   type="date" 
                   class="form-input"
                   style="max-width: 200px"
+                  :max="new Date().toISOString().split('T')[0]"
                 />
+                <button 
+                  @click="handleMarkStaffAbsentWithNotifications" 
+                  class="btn btn-primary"
+                  style="padding: 8px 16px; font-size: 13px; background: #e74c3c"
+                  title="Mark all unmarked staff as absent for today and send notifications to manager"
+                >
+                  🔔 Mark All Absent & Notify
+                </button>
               </div>
 
-              <div v-if="staffForSelectedDay.length === 0" style="text-align: center; padding: 32px; color: var(--text-muted)">
+              <div v-if="(appStore.data?.staff || []).length === 0" style="text-align: center; padding: 32px; color: var(--text-muted)">
                 <div style="font-size: 32px; margin-bottom: 12px">📭</div>
-                <div style="font-size: 16px">No staff available on {{ selectedStaffDate }}</div>
+                <div style="font-size: 16px">No staff available</div>
               </div>
 
               <div v-else style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px">
-                <div v-for="staff in staffForSelectedDay" :key="staff.id" style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: var(--light-bg); transition: all 0.3s ease" @mouseenter="hoveredStaff = staff.id" @mouseleave="hoveredStaff = null" :style="{ boxShadow: hoveredStaff === staff.id ? '0 8px 24px rgba(212, 175, 55, 0.2)' : 'none', borderColor: hoveredStaff === staff.id ? 'var(--gold)' : 'var(--border)' }">
+                <div v-for="staff in staffForSelectedDay" :key="staff.id" style="border: 1px solid var(--border); border-radius: 8px; padding: 20px; background: var(--light-bg); transition: all 0.3s ease; position: relative" @mouseenter="hoveredStaff = staff.id" @mouseleave="hoveredStaff = null" :style="{ boxShadow: hoveredStaff === staff.id ? '0 8px 24px rgba(212, 175, 55, 0.2)' : 'none', borderColor: hoveredStaff === staff.id ? 'var(--gold)' : 'var(--border)', opacity: staff.attendanceStatus === 'present' ? '1' : (staff.attendanceStatus === 'absent' ? '0.7' : '0.5') }">
+                  <!-- Attendance Status Badge -->
+                  <div style="position: absolute; top: 12px; right: 12px; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600" :style="{ background: staff.attendanceStatus === 'present' ? 'rgba(92, 186, 125, 0.2)' : (staff.attendanceStatus === 'absent' ? 'rgba(240, 128, 112, 0.2)' : 'rgba(200, 200, 200, 0.2)'), color: staff.attendanceStatus === 'present' ? '#5cba7d' : (staff.attendanceStatus === 'absent' ? '#f08070' : '#999') }">
+                    {{ staff.attendanceStatus === 'present' ? '✓ Present' : (staff.attendanceStatus === 'absent' ? '✗ Absent' : '• Unmarked') }}
+                  </div>
                   <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px">
                     <div style="width: 56px; height: 56px; background: linear-gradient(135deg, var(--gold), var(--charcoal)); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; font-weight: 600">
                       {{ staff.name.charAt(0) }}
@@ -1178,7 +1072,7 @@
         <!-- STAFF VIEW -->
         <div v-if="currentView === 'staff'" class="fade-in">
           <!-- Add Staff Form -->
-          <div class="card" style="margin-bottom: 20px">
+          <div ref="staffFormRef" class="card" style="margin-bottom: 20px">
             <div class="card-header">
               <h3 class="card-title">{{ isEditingStaff ? '✎ Edit Staff' : '➕ Add New Staff' }}</h3>
             </div>
@@ -1252,6 +1146,7 @@
                       v-model="staffForm.dob"
                       type="date"
                       class="form-input"
+                      :max="todayDate"
                       required
                     />
                   </div>
@@ -1308,177 +1203,47 @@
             </div>
           </div>
 
-          <!-- Edit Staff Modal -->
-          <div v-if="isEditingStaff" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000" @click.self="cancelEditStaff">
-            <div style="background: white; border-radius: 12px; padding: 32px; max-width: 700px; width: 90%; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3)">
-              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px">
-                <h2 style="margin: 0; font-size: 24px; font-weight: 600">✎ Edit Staff</h2>
-                <button @click="cancelEditStaff" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999">✕</button>
-              </div>
-
-              <!-- Staff Info Display -->
-              <div style="background: var(--light-bg); padding: 16px; border-radius: 8px; margin-bottom: 24px">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">DATE OF JOINING</div>
-                    <div style="font-weight: 600">{{ editingStaffData?.doj || 'N/A' }}</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">DATE OF BIRTH</div>
-                    <div style="font-weight: 600">{{ editingStaffData?.dob || 'N/A' }}</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">RATING</div>
-                    <div style="font-weight: 600; color: var(--gold)">⭐ {{ editingStaffData?.rating || 'N/A' }}</div>
-                  </div>
-                  <div>
-                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600; margin-bottom: 4px">REVIEWS</div>
-                    <div style="font-weight: 600">{{ editingStaffData?.reviews || 0 }}</div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Edit Form -->
-              <form @submit.prevent="handleUpdateStaff" style="margin-bottom: 20px">
-                <div class="grid-2">
-                  <div class="form-group">
-                    <label for="edit-staff-name">Name *</label>
-                    <input 
-                      id="edit-staff-name"
-                      v-model="staffForm.name"
-                      type="text"
-                      placeholder="e.g., Amara Osei"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-staff-role">Role *</label>
-                    <input 
-                      id="edit-staff-role"
-                      v-model="staffForm.role"
-                      type="text"
-                      placeholder="e.g., Senior Stylist"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-staff-email">Email *</label>
-                    <input 
-                      id="edit-staff-email"
-                      v-model="staffForm.email"
-                      type="email"
-                      placeholder="e.g., amara@glowsuite.com"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-staff-phone">Phone *</label>
-                    <input 
-                      id="edit-staff-phone"
-                      v-model="staffForm.phone"
-                      type="tel"
-                      placeholder="e.g., 050-111-2222"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group" style="grid-column: 1 / -1">
-                    <label for="edit-staff-skills">Skills *</label>
-                    <input 
-                      id="edit-staff-skills"
-                      v-model="staffForm.skills"
-                      type="text"
-                      placeholder="e.g., Hair Cutting, Styling, Coloring"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-staff-dob">Date of Birth *</label>
-                    <input
-                      id="edit-staff-dob"
-                      v-model="staffForm.dob"
-                      type="date"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-staff-doj">Date of Joining *</label>
-                    <input 
-                      id="edit-staff-doj"
-                      v-model="staffForm.doj"
-                      type="date"
-                      class="form-input"
-                      required
-                    />
-                  </div>
-
-                  <div class="form-group">
-                    <label for="edit-staff-salary">Salary (₹) *</label>
-                    <input 
-                      id="edit-staff-salary"
-                      v-model.number="staffForm.salary"
-                      type="number"
-                      placeholder="e.g., 2000"
-                      class="form-input"
-                      required
-                      min="0"
-                    />
-                  </div>
-                </div>
-
-                <div v-if="staffError" class="error-message">{{ staffError }}</div>
-                <div v-if="staffSuccess" class="success-message">{{ staffSuccess }}</div>
-
-                <div style="display: flex; gap: 12px; margin-top: 20px">
-                  <button type="submit" class="btn btn-primary">
-                    Update Staff
-                  </button>
-                  <button type="button" class="btn btn-outline" @click="cancelEditStaff">
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
           <!-- Staff Members Table -->
           <div class="card">
             <div class="card-header">
               <h3 class="card-title">👔 Staff Members</h3>
             </div>
             <div class="card-body">
-              <div style="margin-bottom: 16px">
-                <input 
-                  v-model="staffName"
-                  type="text" 
-                  placeholder="🔍 Filter by name or email..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
+              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Name or Email</label>
+                  <input 
+                    v-model="staffName"
+                    type="text" 
+                    placeholder="🔍 Filter by name or email..." 
+                    class="form-input"
+                    style="width: 100%"
+                  />
+                </div>
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Sort Order</label>
+                  <select 
+                    v-model="tableSort.staff.direction"
+                    class="form-input"
+                    style="width: 100%"
+                  >
+                    <option value="asc">⬆ Ascending</option>
+                    <option value="desc">⬇ Descending</option>
+                  </select>
+                </div>
               </div>
               <div class="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Name</th>
-                      <th>Role</th>
+                      <th style="cursor: pointer" @click="toggleSort('staff', 'name')">Name {{ getSortIndicator('staff', 'name') }}</th>
+                      <th style="cursor: pointer" @click="toggleSort('staff', 'role')">Role {{ getSortIndicator('staff', 'role') }}</th>
                       <th>Skills</th>
                       <th>Email</th>
-                      <th>Phone</th>
+                      <th style="cursor: pointer" @click="toggleSort('staff', 'phone')">Phone {{ getSortIndicator('staff', 'phone') }}</th>
                       <th>Date of Birth</th>
                       <th>Date of Joining</th>
-                      <th>Rating</th>
+                      <th style="cursor: pointer; text-align: center" @click="toggleSort('staff', 'rating')">Rating {{ getSortIndicator('staff', 'rating') }}</th>
                       <th>Attendance</th>
                       <th>Today's Appts</th>
                       <th>Status</th>
@@ -1486,15 +1251,15 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="staff in filteredStaff" :key="staff.id" @click="viewStaffBookings(staff)" style="cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.parentElement.style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.parentElement.style.backgroundColor = 'transparent'">
+                    <tr v-for="staff in paginatedStaff" :key="staff.id" @click="viewStaffBookings(staff)" style="cursor: pointer; transition: background-color 0.2s" @mouseenter="$event.target.parentElement.style.backgroundColor = 'var(--light-bg)'" @mouseleave="$event.target.parentElement.style.backgroundColor = 'transparent'">
                       <td>{{ staff.name }}</td>
                       <td>{{ staff.role }}</td>
-                      <td><span style="font-size: 12px; color: #666">{{ staff.skills || '-' }}</span></td>
+                      <td><span style="font-size: 12px; color: var(--text-muted)">{{ staff.skills || '-' }}</span></td>
                       <td>{{ staff.email }}</td>
                       <td>{{ staff.phone }}</td>
                       <td>{{ staff.dob || '-' }}</td>
                       <td>{{ staff.doj }}</td>
-                      <td><span style="font-weight: 600; color: #f5a623">⭐ {{ staff.rating || 'N/A' }}</span></td>
+                      <td style="text-align: center"><span style="font-weight: 600; color: #f5a623">⭐ {{ staff.rating || 'N/A' }}</span></td>
                       <td><span :class="['badge', staffAttendanceBadge(staff.id)]">{{ getStaffAttendance(staff.id) }}</span></td>
                       <td><span style="font-weight: 600">{{ getStaffAppointments(staff.id) }}</span></td>
                       <td><span :class="['badge', staff.status === 'active' ? 'badge-green' : 'badge-red']">{{ staff.status }}</span></td>
@@ -1511,6 +1276,12 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+              <!-- Pagination Controls -->
+              <div v-if="totalPagesStaff > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                <button :disabled="currentPageStaff === 1" @click="goToPageStaff(currentPageStaff - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                <span style="font-size: 14px; font-weight: 600">Page {{ currentPageStaff }} of {{ totalPagesStaff }}</span>
+                <button :disabled="currentPageStaff === totalPagesStaff" @click="goToPageStaff(currentPageStaff + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
               </div>
             </div>
           </div>
@@ -1540,14 +1311,22 @@
 
                   <div class="form-group">
                     <label for="product-category">Category *</label>
-                    <input 
+                    <select 
                       id="product-category"
                       v-model="inventoryForm.categoryName"
-                      type="text"
-                      placeholder="e.g., Hair Care"
                       class="form-input"
                       required
-                    />
+                    >
+                      <option value="">Select a category</option>
+                      <option value="Hair Care">Hair Care</option>
+                      <option value="Skin Care">Skin Care</option>
+                      <option value="Makeup">Makeup</option>
+                      <option value="Nails">Nails</option>
+                      <option value="Waxing">Waxing</option>
+                      <option value="Tools & Brushes">Tools & Brushes</option>
+                      <option value="Accessories">Accessories</option>
+                      <option value="Other">Other</option>
+                    </select>
                   </div>
 
                   <div class="form-group">
@@ -1643,35 +1422,50 @@
               <h3 class="card-title">📦 All Products</h3>
             </div>
             <div class="card-body">
-              <div style="margin-bottom: 16px">
-                <input 
-                  v-model="productName"
-                  type="text" 
-                  placeholder="🔍 Filter by product name or category..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
+              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Product Name</label>
+                  <input 
+                    v-model="productName"
+                    type="text" 
+                    placeholder="🔍 Filter by product name or category..." 
+                    class="form-input"
+                    style="width: 100%"
+                  />
+                </div>
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Stock Status</label>
+                  <select 
+                    v-model="stockStatusFilter"
+                    class="form-input"
+                    style="width: 100%"
+                  >
+                    <option value="">All Stock</option>
+                    <option value="low">Low Stock</option>
+                    <option value="high">Adequate Stock</option>
+                  </select>
+                </div>
               </div>
               <div class="table-wrap">
                 <table>
                   <thead>
                     <tr>
-                      <th>Product</th>
+                      <th style="cursor: pointer" @click="toggleSort('inventory', 'name')">Product {{ getSortIndicator('inventory', 'name') }}</th>
                       <th>Category</th>
-                      <th>Stock</th>
-                      <th>Min Stock</th>
-                      <th>Cost Price</th>
+                      <th style="cursor: pointer; text-align: center" @click="toggleSort('inventory', 'stock')">Stock {{ getSortIndicator('inventory', 'stock') }}</th>
+                      <th style="cursor: pointer; text-align: center" @click="toggleSort('inventory', 'minStock')">Min Stock {{ getSortIndicator('inventory', 'minStock') }}</th>
+                      <th style="cursor: pointer; text-align: right" @click="toggleSort('inventory', 'costPrice')">Cost Price {{ getSortIndicator('inventory', 'costPrice') }}</th>
                       <th>Supplier</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="product in filteredProducts" :key="product.id" @click="viewProductDetails(product)" style="cursor: pointer">
+                    <tr v-for="product in paginatedProducts" :key="product.id" @click="viewProductDetails(product)" style="cursor: pointer">
                       <td>{{ product.name }}</td>
                       <td>{{ product.categoryName }}</td>
-                      <td><span :class="['badge', product.stock <= product.minStock ? 'badge-red' : 'badge-green']">{{ product.stock }} {{ product.unit }}</span></td>
-                      <td>{{ product.minStock }}</td>
-                      <td>₹{{ product.costPrice }}</td>
+                      <td style="text-align: center"><span :class="['badge', product.stock <= product.minStock ? 'badge-red' : 'badge-green']">{{ product.stock }} {{ product.unit }}</span></td>
+                      <td style="text-align: center">{{ product.minStock }}</td>
+                      <td style="text-align: right">₹{{ product.costPrice }}</td>
                       <td class="text-muted">{{ product.supplier }}</td>
                       <td>
                         <div style="display: flex; gap: 6px">
@@ -1686,6 +1480,12 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+              <!-- Pagination Controls -->
+              <div v-if="totalPagesInventory > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                <button :disabled="currentPageInventory === 1" @click="goToPageInventory(currentPageInventory - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                <span style="font-size: 14px; font-weight: 600">Page {{ currentPageInventory }} of {{ totalPagesInventory }}</span>
+                <button :disabled="currentPageInventory === totalPagesInventory" @click="goToPageInventory(currentPageInventory + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
               </div>
             </div>
           </div>
@@ -1731,16 +1531,16 @@
                   <div class="empty-state-icon">✅</div>
                   <div class="empty-state-text">No pending orders</div>
                 </div>
-                <div v-for="order in pendingOrders" :key="order.id" class="order-item">
+                <div v-for="order in pendingOrders" :key="order.order_id" class="order-item">
                   <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px">
                     <div>
-                      <div style="font-weight: 600">{{ getProductNameForOrder(order.productId) }}</div>
-                      <div class="text-muted">Ordered: {{ order.date }}</div>
+                      <div style="font-weight: 600">{{ order.product_name }}</div>
+                      <div class="text-muted">Ordered: {{ new Date(order.order_date).toLocaleDateString('en-IN') }}</div>
                     </div>
-                    <span class="badge badge-gold">{{ order.qty }} units</span>
+                    <span class="badge badge-gold">{{ order.order_quantity }} units</span>
                   </div>
                   <div style="display: flex; align-items: center; gap: 8px">
-                    <span style="flex: 1" class="text-muted">📝 {{ order.notes }}</span>
+                    <span style="flex: 1" class="text-muted">📝 {{ order.reason_for_order }}</span>
                   </div>
                 </div>
               </div>
@@ -1771,7 +1571,29 @@
           <!-- Balance Sheet -->
           <div class="card" style="margin-bottom: 24px">
             <div class="card-header">
-              <h3 class="card-title">📊 Balance Sheet</h3>
+              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%">
+                <h3 class="card-title">📊 Balance Sheet</h3>
+                <div style="display: flex; gap: 12px; align-items: center">
+                  <div>
+                    <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px">Select Month</label>
+                    <input 
+                      v-model="selectedBalanceSheetMonth"
+                      type="month" 
+                      class="form-input"
+                      @change="loadBalanceSheetForMonth"
+                      style="width: 150px; height: 36px"
+                    />
+                  </div>
+                  <button 
+                    @click="loadBalanceSheetForMonth" 
+                    class="btn btn-outline" 
+                    style="padding: 8px 16px; margin-top: 20px"
+                    :disabled="financeLoading"
+                  >
+                    🔄 Load
+                  </button>
+                </div>
+              </div>
             </div>
             <div class="card-body">
               <div class="table-wrap">
@@ -1800,11 +1622,16 @@
                     </tr>
                     <tr>
                       <td style="padding-left: 24px">Overhead Bills</td>
-                      <td style="text-align: right">₹{{ overheadBillsTotal.toLocaleString() }}</td>
+                      <td style="text-align: right; display: flex; justify-content: space-between; align-items: center">
+                        <span>₹{{ overheadBillsTotal.toLocaleString() }}</span>
+                        <button @click="openEditOverheadModal" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 12px; margin-left: 12px">
+                          ✏️ Edit
+                        </button>
+                      </td>
                     </tr>
                     <tr style="border-top: 2px solid var(--border)">
                       <td style="font-weight: 600; padding-top: 12px">Net Profit</td>
-                      <td style="text-align: right; font-weight: 600; padding-top: 12px; color: #27ae60">₹{{ Math.max(0, calculatedNetProfit).toLocaleString() }}</td>
+                      <td style="text-align: right; font-weight: 600; padding-top: 12px; color: #5cba7d">₹{{ Math.max(0, calculatedNetProfit).toLocaleString() }}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1826,6 +1653,19 @@
               <!-- Staff Replenishments -->
               <div style="margin-bottom: 24px">
                 <h4 style="margin-bottom: 16px; font-weight: 600">📥 Staff Replenishments</h4>
+                <!-- Search and filter controls -->
+                <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                  <div style="flex: 1; min-width: 200px">
+                    <label style="font-size: 12px; color: var(--text-muted)">Search</label>
+                    <input 
+                      v-model="staffReplenishmentSearch"
+                      type="text" 
+                      class="form-input"
+                      placeholder="Search by product, staff, or service..."
+                      style="width: 100%"
+                    />
+                  </div>
+                </div>
                 <!-- Date range filter -->
                 <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
                   <div>
@@ -1863,9 +1703,9 @@
                 </div>
 
                 <!-- Transaction Table -->
-                <div v-if="staffOrderRequests.length === 0" class="empty-state">
+                <div v-if="filteredStaffReplenishments.length === 0" class="empty-state">
                   <div class="empty-state-icon">📊</div>
-                  <div class="empty-state-text">No staff orders found</div>
+                  <div class="empty-state-text">{{ staffOrderRequests.length === 0 ? 'No staff orders found' : 'No results match your search' }}</div>
                 </div>
                 <div v-else class="table-wrap">
                   <table>
@@ -1879,7 +1719,7 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="txn in staffOrderRequests" :key="txn.txn_id">
+                      <tr v-for="txn in filteredStaffReplenishments" :key="txn.txn_id">
                         <td><strong>{{ txn.product_name }}</strong></td>
                         <td>{{ txn.quantity }}</td>
                         <td>{{ getStaffName(txn.staff_id) || "Unknown" }}</td>
@@ -1913,7 +1753,7 @@
                 </div>
                 <div class="form-group">
                   <label for="replen-supplier">Supplier</label>
-                  <input v-model="replenishmentForm.supplier" id="replen-supplier" type="text" class="form-input" placeholder="Auto-filled from product info" disabled style="background: var(--light-bg); color: #666; cursor: not-allowed" />
+                  <input v-model="replenishmentForm.supplier" id="replen-supplier" type="text" class="form-input" placeholder="Auto-filled from product info" disabled style="background: var(--light-bg); color: var(--text-muted); cursor: not-allowed" />
                   <small class="text-muted" style="font-size: 11px; margin-top: 4px">Auto-filled from product supplier information</small>
                 </div>
                 <div v-if="replenishmentError" class="error-message" style="margin-bottom: 12px">{{ replenishmentError }}</div>
@@ -1942,15 +1782,15 @@
                             <th>Product</th>
                             <th>Qty</th>
                             <th>Cost (₹)</th>
-                            <th>Date</th>
+                            <th>Order Date</th>
                           </tr>
                         </thead>
                         <tbody>
-                          <tr v-for="item in group.items" :key="item.txn_id">
-                            <td><strong>{{ getProductName(item.product_id) }}</strong></td>
-                            <td>{{ item.quantity }}</td>
-                            <td><strong>₹{{ (item.quantity * (data.products.find(p => p.id === item.product_id)?.price || 0)).toFixed(2) }}</strong></td>
-                            <td><small>{{ formatDate(item.date_of_txn) }}</small></td>
+                          <tr v-for="item in group.items" :key="item.order_id">
+                            <td><strong>{{ item.product_name }}</strong></td>
+                            <td>{{ item.order_quantity }}</td>
+                            <td><strong>₹{{ item.order_cost.toFixed(2) }}</strong></td>
+                            <td><small>{{ new Date(item.order_date).toLocaleDateString('en-IN') }}</small></td>
                           </tr>
                         </tbody>
                       </table>
@@ -1963,8 +1803,24 @@
               <div style="margin-top: 32px; padding-top: 32px; border-top: 2px solid var(--border)">
                 <h4 style="margin-bottom: 24px; font-weight: 600">🛒 Wholesale Orders Placed</h4>
 
+                <!-- Filter -->
+                <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                  <div style="flex: 1; min-width: 200px">
+                    <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Filter by Status</label>
+                    <select 
+                      v-model="orderStatusFilter"
+                      class="form-input"
+                      style="width: 100%"
+                    >
+                      <option value="">All Status</option>
+                      <option value="0">Pending</option>
+                      <option value="1">Delivered</option>
+                    </select>
+                  </div>
+                </div>
+
                 <!-- Orders Table -->
-                <div v-if="managerOrders.length === 0" class="empty-state">
+                <div v-if="filteredWholesaleOrders.length === 0" class="empty-state">
                   <div class="empty-state-icon">📮</div>
                   <div class="empty-state-text">No wholesale orders placed yet</div>
                 </div>
@@ -1972,22 +1828,22 @@
                   <table>
                     <thead>
                       <tr>
-                        <th>Product</th>
-                        <th>Quantity</th>
-                        <th>Cost (₹)</th>
-                        <th>Supplier</th>
+                        <th style="cursor: pointer" @click="toggleSort('orders', 'product_name')">Product {{ getSortIndicator('orders', 'product_name') }}</th>
+                        <th style="cursor: pointer; text-align: center" @click="toggleSort('orders', 'order_quantity')">Quantity {{ getSortIndicator('orders', 'order_quantity') }}</th>
+                        <th style="cursor: pointer; text-align: right" @click="toggleSort('orders', 'order_date')">Cost (₹) {{ getSortIndicator('orders', 'order_date') }}</th>
+                        <th style="cursor: pointer" @click="toggleSort('orders', 'supplier_name')">Supplier {{ getSortIndicator('orders', 'supplier_name') }}</th>
                         <th>Reason</th>
-                        <th>Status</th>
-                        <th>Order Date</th>
+                        <th style="cursor: pointer" @click="toggleSort('orders', 'status')">Status {{ getSortIndicator('orders', 'status') }}</th>
+                        <th style="cursor: pointer" @click="toggleSort('orders', 'order_date')">Order Date {{ getSortIndicator('orders', 'order_date') }}</th>
                         <th>Replenishment Date</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr v-for="order in managerOrders" :key="order.order_id">
+                      <tr v-for="order in orderStatusFilter ? filteredWholesaleOrders.filter(o => parseInt(orderStatusFilter) === o.status) : filteredWholesaleOrders" :key="order.order_id">
                         <td><strong>{{ order.product_name }}</strong></td>
-                        <td>{{ order.order_quantity }}</td>
-                        <td>₹{{ (order.order_quantity * (data.products.find(p => p.id === order.product_id)?.price || 0)).toFixed(2) }}</td>
+                        <td style="text-align: center">{{ order.order_quantity }}</td>
+                        <td style="text-align: right">₹{{ (order.order_quantity * (data.products.find(p => p.id === order.product_id)?.price || 0)).toFixed(2) }}</td>
                         <td><small>{{ order.supplier_name }}</small></td>
                         <td><small>{{ order.reason_for_order || '-' }}</small></td>
                         <td>
@@ -2002,12 +1858,10 @@
                             {{ getStatusLabel(order.status) }}
                           </span>
                         </td>
-                        <td><small>{{ formatDate(order.order_date) }}</small></td>
-                        <td><small>{{ order.order_replenishment_date ? formatDate(order.order_replenishment_date) : '-' }}</small></td>
+                        <td><small>{{ new Date(order.order_date).toLocaleDateString('en-IN') }}</small></td>
+                        <td><small>{{ order.order_replenishment_date ? new Date(order.order_replenishment_date).toLocaleDateString('en-IN') : '-' }}</small></td>
                         <td style="display: flex; gap: 6px; flex-wrap: wrap">
                           <button v-if="order.status === 0" @click="handleMarkOrderDelivered(order)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #27ae60; border-color: #27ae60">✓ Delivered</button>
-                          <button @click="openEditOrderModal(order)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px">✏️ Edit</button>
-                          <button @click="handleDeleteOrder(order.order_id)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #e74c3c; border-color: #e74c3c">🗑️ Delete</button>
                         </td>
                       </tr>
                     </tbody>
@@ -2018,69 +1872,225 @@
           </div>
         </div>
 
-        <!-- Edit Order Modal -->
-        <div v-if="showEditOrderModal && editingOrder" class="modal-overlay" @click.self="showEditOrderModal = false">
-          <div class="modal">
-            <div class="modal-header">
-              <h4 class="modal-title">✏️ Edit Order</h4>
-              <button type="button" class="close" @click="showEditOrderModal = false">&times;</button>
+        <!-- INVOICES VIEW -->
+        <div v-if="currentView === 'invoices'" class="fade-in">
+          <!-- Add Invoice Form -->
+          <div class="card" style="margin-bottom: 20px">
+            <div class="card-header">
+              <h3 class="card-title">➕ Create New Invoice</h3>
             </div>
-            <div class="modal-body">
-              <div v-if="editOrderError" class="error-message">{{ editOrderError }}</div>
-              <form @submit.prevent="handleUpdateOrder">
-                <div class="form-group">
-                  <label>Product</label>
-                  <input type="text" class="form-input" :value="editingOrder.product_name" disabled />
+            <div class="card-body">
+              <form @submit.prevent="handleAddInvoice" style="max-width: 800px">
+                <div class="grid-2" style="margin-top: 16px; opacity: 0.7">
+                  <div class="form-group">
+                    <label>Customer</label>
+                    <input type="text" :value="getCustomerName(invoiceForm.customerId)" class="form-input" disabled />
+                  </div>
+                  <div class="form-group">
+                    <label>Staff</label>
+                    <input type="text" :value="invoiceForm.staffName || 'Unassigned'" class="form-input" disabled />
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>Quantity</label>
-                  <input 
-                    v-model.number="editOrderForm.quantity" 
-                    type="number" 
-                    min="1" 
-                    class="form-input" 
-                    required 
-                  />
+
+                <!-- Selected Services Display -->
+                <div v-if="invoiceForm.services.length > 0" style="margin-top: 16px; padding: 16px; background: var(--light-bg); border-radius: 8px; border-left: 4px solid var(--gold)">
+                  <div style="font-weight: 600; font-size: 14px; margin-bottom: 12px">Services Included:</div>
+                  <div style="display: grid; gap: 8px; margin-bottom: 12px">
+                    <div v-for="service in invoiceForm.services" :key="service.id" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; background: var(--surface); border-radius: 6px; font-size: 13px">
+                      <span>{{ service.name || service.service_desc }}</span>
+                      <span style="font-weight: 600; color: var(--gold)">₹{{ service.price || service.service_price }}</span>
+                    </div>
+                  </div>
+                  <div style="padding-top: 12px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; font-weight: 600; font-size: 14px">
+                    <span>Total Bill:</span>
+                    <span style="color: var(--gold); font-size: 16px">₹{{ invoiceForm.totalServiceAmount }}</span>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>Cost (₹)</label>
+
+                <div class="grid-2" style="margin-top: 16px; opacity: 0.7">
+                  <div class="form-group">
+                    <label>Invoice Date</label>
+                    <input type="text" :value="invoiceForm.date" class="form-input" disabled />
+                  </div>
+                </div>
+
+                <div class="grid-2" style="margin-top: 16px">
+                  <div class="form-group">
+                    <label for="invoice-payment">Payment Type *</label>
+                    <select 
+                      id="invoice-payment"
+                      v-model="invoiceForm.paymentType"
+                      class="form-input"
+                      required
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="card">Card</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="invoice-discount">Discount (%) *</label>
+                    <input 
+                      id="invoice-discount"
+                      v-model.number="invoiceForm.discount"
+                      type="number"
+                      placeholder="e.g., 10"
+                      class="form-input"
+                      required
+                      min="0"
+                      max="100"
+                    />
+                  </div>
+                </div>
+
+                <!-- Birthday Alert -->
+                <div v-if="invoiceBirthdayAlert" style="margin-top: 16px; padding: 14px 16px; border-radius: 8px; background: rgba(255,200,50,0.12); border: 1px solid rgba(255,200,50,0.4); display: flex; align-items: flex-start; gap: 12px">
+                  <span style="font-size: 22px; line-height: 1">{{ invoiceBirthdayAlert.days === 0 ? '🎂' : '🎁' }}</span>
+                  <div>
+                    <div style="font-weight: 600; font-size: 13px; color: #f0c040; margin-bottom: 4px">
+                      {{ invoiceBirthdayAlert.days === 0 ? "Today is " + invoiceBirthdayAlert.name + "'s Birthday!" : invoiceBirthdayAlert.name + "'s birthday is in " + invoiceBirthdayAlert.days + " day" + (invoiceBirthdayAlert.days > 1 ? 's' : '') + "!" }}
+                    </div>
+                    <div style="font-size: 12px; color: rgba(255,255,255,0.6)">
+                      Consider giving a special birthday discount.
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="invoiceError" class="error-message">{{ invoiceError }}</div>
+                <div v-if="invoiceSuccess" class="success-message">{{ invoiceSuccess }}</div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 16px">
+                  Create Invoice
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <!-- Stats Cards -->
+          <div class="stat-grid">
+            <div class="stat-card">
+              <div class="stat-icon">📋</div>
+              <div class="stat-value">{{ invoices.length }}</div>
+              <div class="stat-label">Total Invoices</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">✅</div>
+              <div class="stat-value">{{ invoices.filter(inv => inv.status === 1).length }}</div>
+              <div class="stat-label">Completed</div>
+            </div>
+          </div>
+
+          <!-- Invoices Table -->
+          <div class="card" style="margin-top: 24px">
+            <div class="card-header">
+              <h3 class="card-title">All Invoices</h3>
+            </div>
+            <div class="card-body">
+              <div style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap">
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Customer Name</label>
                   <input 
+                    v-model="invoiceCustomerName"
                     type="text" 
-                    class="form-input" 
-                    :value="(editOrderForm.quantity * editingOrder.product_price).toFixed(2)" 
-                    disabled 
+                    placeholder="🔍 Filter by customer name..." 
+                    class="form-input"
+                    style="width: 100%"
                   />
                 </div>
-                <div class="form-group">
-                  <label>Status</label>
-                  <select v-model.number="editOrderForm.status" class="form-input">
-                    <option :value="0">Pending</option>
-                    <option :value="1">Processed</option>
-                    <option :value="2">Cancelled</option>
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Invoice Status</label>
+                  <select 
+                    v-model="invoiceStatusFilter"
+                    class="form-input"
+                    style="width: 100%"
+                  >
+                    <option value="">All Status</option>
+                    <option value="1">Invoiced</option>
+                    <option value="2">Sent</option>
                   </select>
                 </div>
-                <div class="form-group">
-                  <label>Reason for Order</label>
-                  <textarea 
-                    v-model="editOrderForm.reason" 
-                    class="form-input" 
-                    rows="3"
-                    placeholder="e.g., Low stock, seasonal demand..."
-                  ></textarea>
-                </div>
-                <div class="form-group">
-                  <label>Replenishment Date</label>
-                  <input 
-                    v-model="editOrderForm.replenishment_date" 
-                    type="date" 
+                <div style="flex: 1; min-width: 200px">
+                  <label style="display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px">Sort Order</label>
+                  <select 
+                    v-model="tableSort.invoices.direction"
                     class="form-input"
-                  />
+                    style="width: 100%"
+                  >
+                    <option value="desc"> Newest to Oldest</option>
+                    <option value="asc"> Oldest to Newest</option>
+                  </select>
                 </div>
-                <div style="display: flex; gap: 8px; margin-top: 16px">
-                  <button type="submit" class="btn btn-primary">💾 Save Changes</button>
-                  <button type="button" @click="showEditOrderModal = false" class="btn btn-secondary">Cancel</button>
-                </div>
-              </form>
+              </div>
+              
+              <div v-if="filteredInvoices.length === 0" class="empty-state">
+                <div class="empty-state-icon">📄</div>
+                <div class="empty-state-text">No invoices found</div>
+              </div>
+              
+              <div v-else class="table-wrap" style="overflow-x: auto; width: 100%">
+                <table style="min-width: 1000px; width: 100%">
+                  <thead>
+                    <tr>
+                      <th style="min-width: 80px; cursor: pointer" @click="toggleSort('invoices', 'invoice_number')">Invoice # {{ getSortIndicator('invoices', 'invoice_number') }}</th>
+                      <th style="min-width: 120px; cursor: pointer" @click="toggleSort('invoices', 'customer_name')">Customer {{ getSortIndicator('invoices', 'customer_name') }}</th>
+                      <th style="min-width: 120px">Staff</th>
+                      <th style="min-width: 150px">Services</th>
+                      <th style="min-width: 100px; cursor: pointer; text-align: right" @click="toggleSort('invoices', 'total_charges')">Amount (₹) {{ getSortIndicator('invoices', 'total_charges') }}</th>
+                      <th style="min-width: 100px; cursor: pointer" @click="toggleSort('invoices', 'invoice_date')">Date {{ getSortIndicator('invoices', 'invoice_date') }}</th>
+                      <th style="min-width: 90px">Status</th>
+                      <th style="min-width: 90px">Feedback</th>
+                      <th style="min-width: 200px">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="invoice in paginatedInvoices" :key="invoice.id">
+                      <td><strong>{{ invoice.invoice_number }}</strong></td>
+                      <td>{{ invoice.customer_name || getCustomerName(invoice.customer_id) }}</td>
+                      <td>{{ invoice.staffName || invoice.staff_name || getStaffName(invoice.staff_id) || "Unassigned" }}</td>
+                      <td><small>{{ invoice.service_names || invoice.service_ids || 'N/A' }}</small></td>
+                      <td style="text-align: right"><strong>₹{{ invoice.total_charges?.toFixed(2) || 0 }}</strong></td>
+                      <td><small>{{ new Date(invoice.invoice_date).toLocaleDateString() }}</small></td>
+                      <td>
+                        <span :style="{ 
+                          padding: '4px 8px', 
+                          borderRadius: '4px', 
+                          fontSize: '11px', 
+                          fontWeight: '600',
+                          backgroundColor: invoice.status === 1 ? '#fff3cd' : '#e0f2fe',
+                          color: invoice.status === 1 ? '#856404' : '#0369a1'
+                        }">
+                          {{ invoice.status === 1 ? 'Invoiced' : invoice.status === 2 ? 'Sent' : 'Unknown' }}
+                        </span>
+                      </td>
+                      <td>
+                        <button v-if="invoice.appointment_id && invoice.rating" @click="viewFeedback(invoice)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #f59e0b; border-color: #f59e0b; background-color: rgba(245, 158, 11, 0.1); font-weight: 600">
+                          ⭐ {{ invoice.rating }}/5
+                        </button>
+                        <button v-else-if="invoice.appointment_id" disabled class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #999; border-color: #ddd; opacity: 0.6; cursor: not-allowed">
+                          ⭐ No Review
+                        </button>
+                        <span v-else style="font-size: 11px; color: var(--text-muted)">-</span>
+                      </td>
+                      <td>
+                        <div style="display: flex; gap: 6px; flex-wrap: wrap">
+                          <button @click="viewInvoice(invoice)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px">
+                            📄 View
+                          </button>
+                          <button @click="handleSendInvoice(invoice)" class="btn btn-sm btn-outline" style="padding: 4px 8px; font-size: 11px; color: #27ae60; border-color: #27ae60">
+                            📧 Send
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- Pagination Controls -->
+              <div v-if="totalPagesInvoices > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                <button :disabled="currentPageInvoices === 1" @click="goToPageInvoices(currentPageInvoices - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                <span style="font-size: 14px; font-weight: 600">Page {{ currentPageInvoices }} of {{ totalPagesInvoices }}</span>
+                <button :disabled="currentPageInvoices === totalPagesInvoices" @click="goToPageInvoices(currentPageInvoices + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
+              </div>
             </div>
           </div>
         </div>
@@ -2380,7 +2390,7 @@
                   >
                     {{ analyticsView.shared ? '✓ Shared with Owner' : analyticsView.sharing ? '⏳ Sharing...' : '📤 Send to Owner' }}
                   </button>
-                  <span v-if="shareMessage" style="font-size: 12px; color: #276749;">{{ shareMessage }}</span>
+                  <span v-if="shareMessage" style="font-size: 12px; color: #5cba7d;">{{ shareMessage }}</span>
                 </div>
               </div>
             </template>
@@ -2485,7 +2495,7 @@
                     <div style="flex: 1; min-width: 0;">
                       <div style="font-weight: 600; font-size: 14px; color: var(--charcoal);">
                         {{ report.report_type.charAt(0).toUpperCase() + report.report_type.slice(1) }} Report
-                        <span v-if="report.shared" style="margin-left: 6px; font-size: 10px; background: #e6f4ea; color: #276749; padding: 1px 7px; border-radius: 10px; font-weight: 600;">Shared</span>
+                        <span v-if="report.shared" style="margin-left: 6px; font-size: 10px; background: rgba(45,138,78,0.15); color: #5cba7d; padding: 1px 7px; border-radius: 10px; font-weight: 600; border: 1px solid rgba(45,138,78,0.28);">Shared</span>
                       </div>
                       <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
                         {{ REPORT_PERIOD_LABELS[report.time_period] || report.time_period }} &bull; {{ new Date(report.created_at).toLocaleDateString() }}
@@ -2498,6 +2508,85 @@
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Profile View -->
+        <div v-if="currentView === 'profile'" class="fade-in">
+          <div class="card" style="margin-bottom: 24px">
+            <div class="card-header">
+              <h3 class="card-title">My Profile</h3>
+            </div>
+            <div class="card-body">
+              <!-- Header with Avatar -->
+              <div style="display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border)">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: bold">
+                  {{ user.name?.charAt(0) || "M" }}
+                </div>
+                <div>
+                  <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px">{{ user.name }}</div>
+                  <div style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 4px">{{ managerProfileData?.manager_role || 'Manager' }}</div>
+                  <div style="color: var(--text-muted); font-size: 12px">ID: {{ managerProfileData?.manager_id }}</div>
+                </div>
+              </div>
+
+              <!-- Information Grid -->
+              <div style="background: var(--light-bg); padding: 20px; border-radius: 8px; margin-bottom: 24px">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px">
+                  <!-- Email -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Email</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.manager_email || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Phone -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Phone</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.manager_contact || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Role -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Role</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.manager_role || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Date of Birth -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Date of Birth</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.manager_dob?.substring(0, 10) || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Date of Joining -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Date of Joining</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.manager_doj?.substring(0, 10) || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Branch -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Branch</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.branch_name || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Skills -->
+                  <div style="grid-column: 1 / -1">
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Skills</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ managerProfileData?.manager_skills || 'Not provided' }}</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div style="display: flex; gap: 12px; flex-wrap: wrap">
+                <button class="btn btn-primary" @click="openProfileEdit()">
+                  ✏️ Edit Profile
+                </button>
+                <button class="btn btn-outline" @click="showChangePasswordModal = true">
+                  🔑 Change Password
+                </button>
               </div>
             </div>
           </div>
@@ -2548,52 +2637,67 @@
   </div>
 
   <!-- Change Password Modal -->
-  <div v-if="showChangePasswordModal" class="modal-overlay" @click="showChangePasswordModal = false">
+  <div v-if="showChangePasswordModal" class="modal-overlay" @click="showChangePasswordModal = false; showCurrentPassword.value = false; showNewPassword.value = false; showConfirmPassword.value = false">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
         <h3 class="modal-title">🔑 Change Password</h3>
-        <button class="modal-close" @click="showChangePasswordModal = false">✕</button>
+        <button class="modal-close" @click="showChangePasswordModal = false; showCurrentPassword.value = false; showNewPassword.value = false; showConfirmPassword.value = false">✕</button>
       </div>
       <div class="modal-body">
         <form @submit.prevent="handleChangePassword">
           <div class="form-group">
             <label for="current-password">Current Password</label>
-            <input 
-              id="current-password"
-              v-model="passwordForm.currentPassword" 
-              type="password" 
-              placeholder="Enter current password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="current-password"
+                v-model="passwordForm.currentPassword" 
+                :type="showCurrentPassword.value ? 'text' : 'password'" 
+                placeholder="Enter current password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click.prevent="showCurrentPassword.value = !showCurrentPassword.value" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px; line-height: 1">
+                {{ showCurrentPassword.value ? '🙈' : '👁️' }}
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label for="new-password">New Password</label>
-            <input 
-              id="new-password"
-              v-model="passwordForm.newPassword" 
-              type="password" 
-              placeholder="Enter new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="new-password"
+                v-model="passwordForm.newPassword" 
+                :type="showNewPassword.value ? 'text' : 'password'" 
+                placeholder="Enter new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click.prevent="showNewPassword.value = !showNewPassword.value" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px; line-height: 1">
+                {{ showNewPassword.value ? '🙈' : '👁️' }}
+              </button>
+            </div>
             <div class="form-hint">At least 8 characters</div>
           </div>
           <div class="form-group">
             <label for="confirm-password">Confirm Password</label>
-            <input 
-              id="confirm-password"
-              v-model="passwordForm.confirmPassword" 
-              type="password" 
-              placeholder="Confirm new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="confirm-password"
+                v-model="passwordForm.confirmPassword" 
+                :type="showConfirmPassword.value ? 'text' : 'password'" 
+                placeholder="Confirm new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click.prevent="showConfirmPassword.value = !showConfirmPassword.value" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px; line-height: 1">
+                {{ showConfirmPassword.value ? '🙈' : '👁️' }}
+              </button>
+            </div>
           </div>
           <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
           <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
           <div style="display: flex; gap: 12px; margin-top: 20px">
-            <button type="button" class="btn btn-outline" @click="showChangePasswordModal = false" style="flex: 1">
+            <button type="button" class="btn btn-outline" @click="showChangePasswordModal = false; showCurrentPassword.value = false; showNewPassword.value = false; showConfirmPassword.value = false" style="flex: 1">
               Cancel
             </button>
             <button type="submit" class="btn btn-primary" style="flex: 1">
@@ -2646,17 +2750,80 @@
             />
           </div>
           <div class="form-group">
-            <label for="profile-address">Address</label>
-            <textarea 
-              id="profile-address"
-              v-model="profileEditForm.address" 
-              placeholder="Enter address"
+            <label for="profile-role">Role</label>
+            <input 
+              id="profile-role"
+              v-model="profileEditForm.role" 
+              type="text" 
+              placeholder="Enter role"
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="profile-dob">Date of Birth</label>
+            <input 
+              id="profile-dob"
+              v-model="profileEditForm.dob" 
+              type="date" 
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="profile-doj">Date of Joining</label>
+            <input 
+              id="profile-doj"
+              v-model="profileEditForm.doj" 
+              type="date" 
+              class="form-input"
+            />
+          </div>
+          <div class="form-group">
+            <label for="profile-skills">Skills</label>
+            <textarea
+              id="profile-skills"
+              v-model="profileEditForm.skills" 
+              placeholder="Enter skills (comma-separated)"
               class="form-input"
               rows="3"
             ></textarea>
           </div>
           <div style="display: flex; gap: 12px; margin-top: 20px">
             <button type="button" class="btn btn-outline" @click="showProfileEditModal = false" style="flex: 1">
+              Cancel
+            </button>
+            <button type="submit" class="btn btn-primary" style="flex: 1">
+              Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Overhead Bills Modal -->
+  <div v-if="showEditOverheadModal" class="modal-overlay" @click="showEditOverheadModal = false">
+    <div class="modal-content" @click.stop>
+      <div class="modal-header">
+        <h3 class="modal-title">💵 Edit Overhead Bills</h3>
+        <button class="modal-close" @click="showEditOverheadModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <form @submit.prevent="handleUpdateOverhead">
+          <div class="form-group">
+            <label for="overhead-bills">Overhead Bills Amount (₹)</label>
+            <input 
+              id="overhead-bills"
+              v-model.number="overheadEditForm.overheads" 
+              type="number" 
+              placeholder="Enter overhead bills amount"
+              class="form-input"
+              min="0"
+              step="0.01"
+              required
+            />
+          </div>
+          <div style="display: flex; gap: 12px; margin-top: 20px">
+            <button type="button" class="btn btn-outline" @click="showEditOverheadModal = false" style="flex: 1">
               Cancel
             </button>
             <button type="submit" class="btn btn-primary" style="flex: 1">
@@ -2679,13 +2846,13 @@
         <form @submit.prevent="handleSubmitEditAppointment">
           <div class="form-group" style="margin-bottom: 16px">
             <label style="font-weight: 600; display: block; margin-bottom: 8px">Customer</label>
-            <input type="text" :value="getCustomerName(editingAppointment.customerId)" class="form-input" readonly style="background: #f5f5f5"/>
+            <input type="text" :value="getCustomerName(editingAppointment.customerId)" class="form-input" readonly style="background: #f5f5f5; color: black"/>
           </div>
 
           <div class="form-group" style="margin-bottom: 16px">
             <label style="font-weight: 600; display: block; margin-bottom: 8px">Select Services *</label>
             <div style="border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; max-height: 200px; overflow-y: auto">
-              <div v-for="service in data.services" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
+              <div v-for="service in data.services.filter(s => getServiceStatus(s) === 'Active')" :key="service.id" style="display: flex; align-items: center; margin-bottom: 12px">
                 <input 
                   :id="'edit-service-' + service.id"
                   type="checkbox" 
@@ -2723,23 +2890,9 @@
                 required
               >
                 <option value="">Choose a time</option>
-                <option value="09:00">09:00</option>
-                <option value="09:30">09:30</option>
-                <option value="10:00">10:00</option>
-                <option value="10:30">10:30</option>
-                <option value="11:00">11:00</option>
-                <option value="11:30">11:30</option>
-                <option value="12:00">12:00</option>
-                <option value="12:30">12:30</option>
-                <option value="13:00">13:00</option>
-                <option value="13:30">13:30</option>
-                <option value="14:00">14:00</option>
-                <option value="14:30">14:30</option>
-                <option value="15:00">15:00</option>
-                <option value="15:30">15:30</option>
-                <option value="16:00">16:00</option>
-                <option value="16:30">16:30</option>
-                <option value="17:00">17:00</option>
+                <option v-for="time in editAppointmentTimeSlots" :key="time" :value="time">
+                  {{ time }}
+                </option>
               </select>
             </div>
 
@@ -2792,15 +2945,24 @@
         <form @submit.prevent="verifyFinancialPassword">
           <div class="form-group">
             <label for="financial-password">Enter Password</label>
-            <input 
-              id="financial-password"
-              v-model="financialPasswordInput" 
-              type="password" 
-              placeholder="Enter password"
-              class="form-input"
-              required
-              autofocus
-            />
+            <div style="position: relative">
+              <input 
+                id="financial-password"
+                v-model="financialPasswordInput" 
+                :type="showFinancePassword ? 'text' : 'password'" 
+                placeholder="Enter password"
+                class="form-input"
+                required
+                autofocus
+              />
+              <button
+                type="button"
+                @click="showFinancePassword = !showFinancePassword"
+                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 18px; padding: 0; color: var(--text-muted)"
+              >
+                {{ showFinancePassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div v-if="financialPasswordError" class="error-message">{{ financialPasswordError }}</div>
           <div style="display: flex; gap: 12px; margin-top: 20px">
@@ -2830,15 +2992,24 @@
         <form @submit.prevent="verifyReportsPassword">
           <div class="form-group">
             <label for="reports-password">Enter Password</label>
-            <input 
-              id="reports-password"
-              v-model="financialPasswordInput" 
-              type="password" 
-              placeholder="Enter password"
-              class="form-input"
-              required
-              autofocus
-            />
+            <div style="position: relative">
+              <input 
+                id="reports-password"
+                v-model="financialPasswordInput" 
+                :type="showReportsPassword ? 'text' : 'password'" 
+                placeholder="Enter password"
+                class="form-input"
+                required
+                autofocus
+              />
+              <button
+                type="button"
+                @click="showReportsPassword = !showReportsPassword"
+                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 18px; padding: 0; color: var(--text-muted)"
+              >
+                {{ showReportsPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div v-if="financialPasswordError" class="error-message">{{ financialPasswordError }}</div>
           <div style="display: flex; gap: 12px; margin-top: 20px">
@@ -2891,7 +3062,7 @@
                 <td>{{ getCustomerName(booking.customerId) }}</td>
                 <td>{{ getServiceName(booking.serviceId) }}</td>
                 <td>{{ booking.date }}</td>
-                <td><span :class="['badge', apptStatusBadge(booking.status)]">{{ booking.status }}</span></td>
+                <td><span :class="['badge', apptStatusBadge(booking.status)]" :title="apptStatusLabel(booking.status)" :style="{ color: apptStatusColor(booking.status), fontWeight: '600' }">{{ apptStatusLabel(booking.status) }}</span></td>
                 <td>₹{{ getServicePrice(booking.serviceId) }}</td>
               </tr>
             </tbody>
@@ -2920,7 +3091,6 @@
                 <th>Service</th>
                 <th>Date</th>
                 <th>Staff</th>
-                <th>Status</th>
                 <th>Amount</th>
               </tr>
             </thead>
@@ -2929,7 +3099,6 @@
                 <td>{{ getServiceName(visit.serviceId) }}</td>
                 <td>{{ visit.date }}</td>
                 <td>{{ getStaffName(visit.staffId) }}</td>
-                <td><span :class="['badge', apptStatusBadge(visit.status)]">{{ visit.status }}</span></td>
                 <td>₹{{ getServicePrice(visit.serviceId) }}</td>
               </tr>
             </tbody>
@@ -2983,7 +3152,7 @@
           <div style="display: grid; gap: 8px">
             <div style="display: grid; grid-template-columns: 140px 1fr">
               <span style="color: var(--text-muted)">Services:</span>
-              <span style="font-weight: 500">{{ selectedInvoice.service_descs || 'N/A' }}</span>
+              <span style="font-weight: 500">{{ selectedInvoice.service_names || selectedInvoice.service_ids || 'N/A' }}</span>
             </div>
             <div style="display: grid; grid-template-columns: 140px 1fr">
               <span style="color: var(--text-muted)">Staff:</span>
@@ -2993,17 +3162,29 @@
         </div>
 
         <div style="border-top: 2px solid var(--border-color); padding-top: 16px; margin-bottom: 20px">
-          <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; margin-bottom: 8px">
+          <div style="display: grid; grid-template-columns: 160px 1fr; gap: 8px; margin-bottom: 6px">
             <span style="color: var(--text-muted)">Subtotal:</span>
-            <span style="text-align: right; font-weight: 500">₹{{ selectedInvoice.invoice_amount || getServicePrice(selectedInvoice.serviceId) }}</span>
+            <span style="text-align: right; font-weight: 500">₹{{ (selectedInvoice.invoice_amount || 0).toFixed(2) }}</span>
           </div>
-          <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; margin-bottom: 8px" v-if="selectedInvoice.other_charges">
+          <div v-if="selectedInvoice.other_charges" style="display: grid; grid-template-columns: 160px 1fr; gap: 8px; margin-bottom: 6px">
             <span style="color: var(--text-muted)">Other Charges:</span>
-            <span style="text-align: right; font-weight: 500">₹{{ selectedInvoice.other_charges }}</span>
+            <span style="text-align: right; font-weight: 500">₹{{ (selectedInvoice.other_charges || 0).toFixed(2) }}</span>
           </div>
-          <div style="display: grid; grid-template-columns: 140px 1fr; gap: 12px; font-size: 14px; margin-bottom: 8px">
-            <span style="color: var(--text-muted)">Total Amount:</span>
-            <span style="text-align: right; font-weight: 600; color: var(--gold); font-size: 16px">₹{{ selectedInvoice.total_charges || selectedInvoice.invoice_amount || getServicePrice(selectedInvoice.serviceId) }}</span>
+          <div v-if="selectedInvoice.discount_percentage" style="display: grid; grid-template-columns: 160px 1fr; gap: 8px; margin-bottom: 6px">
+            <span style="color: var(--text-muted)">Discount ({{ (selectedInvoice.discount_percentage || 0).toFixed(2) }}%):</span>
+            <span style="text-align: right; font-weight: 500; color: #4caf50">
+              -₹{{ ((selectedInvoice.invoice_amount || 0) * (selectedInvoice.discount_percentage || 0) / 100).toFixed(2) }}
+            </span>
+          </div>
+          <div v-if="selectedInvoice.rewards_utilized" style="display: grid; grid-template-columns: 160px 1fr; gap: 8px; margin-bottom: 6px">
+            <span style="color: var(--text-muted)">Rewards ({{ selectedInvoice.rewards_utilized }} pts):</span>
+            <span style="text-align: right; font-weight: 500; color: #4caf50">
+              -₹{{ (selectedInvoice.rewards_monetary_discount || 0).toFixed(2) }}
+            </span>
+          </div>
+          <div style="display: grid; grid-template-columns: 160px 1fr; gap: 8px; padding-top: 8px; border-top: 1px solid var(--border-color)">
+            <span style="color: var(--text-muted); font-weight: 600">Total Payable:</span>
+            <span style="text-align: right; font-weight: 700; color: var(--gold); font-size: 16px">₹{{ Number(selectedInvoice.payable_amount || selectedInvoice.total_charges || 0).toFixed(2) }}</span>
           </div>
         </div>
 
@@ -3023,11 +3204,11 @@
           <div style="display: grid; gap: 8px">
             <div style="display: grid; grid-template-columns: 140px 1fr" v-if="selectedInvoice.rewards_earned > 0">
               <span style="color: var(--text-muted)">Rewards Earned:</span>
-              <span style="font-weight: 500; color: #27ae60">+{{ selectedInvoice.rewards_earned }} pts</span>
+              <span style="font-weight: 500; color: #5cba7d">+{{ selectedInvoice.rewards_earned }} pts</span>
             </div>
             <div style="display: grid; grid-template-columns: 140px 1fr" v-if="selectedInvoice.rewards_utilized > 0">
               <span style="color: var(--text-muted)">Rewards Used:</span>
-              <span style="font-weight: 500; color: #e74c3c">-{{ selectedInvoice.rewards_utilized }} pts</span>
+              <span style="font-weight: 500; color: #f08070">-{{ selectedInvoice.rewards_utilized }} pts</span>
             </div>
             <div style="display: grid; grid-template-columns: 140px 1fr">
               <span style="color: var(--text-muted)">Current Balance:</span>
@@ -3261,6 +3442,54 @@
     </div>
   </div>
 
+  <!-- Feedback Modal -->
+  <div v-if="showFeedbackModal" class="modal-overlay" @click="showFeedbackModal = false">
+    <div class="modal-content" @click.stop style="max-width: 600px">
+      <div class="modal-header">
+        <h3 class="modal-title">⭐ Customer Feedback</h3>
+        <button class="modal-close" @click="showFeedbackModal = false">✕</button>
+      </div>
+      <div class="modal-body">
+        <div v-if="feedbackError" class="error-message" style="margin-bottom: 16px">
+          {{ feedbackError }}
+        </div>
+        <div v-else-if="currentFeedback">
+          <div style="margin-bottom: 20px">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px">
+              <span style="font-size: 24px">⭐</span>
+              <span style="font-size: 18px; font-weight: 600; color: #f59e0b">
+                {{ currentFeedback.rating }}/5 Stars
+              </span>
+            </div>
+            <div style="padding: 16px; background: #ffffff; border-radius: 8px; border-left: 4px solid #f59e0b;">
+              <p style="margin: 0; color: #1a1a1a; line-height: 1.7; font-size: 15px; word-wrap: break-word; white-space: normal; font-weight: 500;">
+                {{ currentFeedback.review || currentFeedback.review_text || "No review text provided" }}
+              </p>
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+            <div>
+              <small style="color: var(--text-muted); font-weight: 600">Staff</small>
+              <div style="font-weight: 600">{{ currentFeedback.staff_name || "Unknown" }}</div>
+            </div>
+            <div>
+              <small style="color: var(--text-muted); font-weight: 600">Services</small>
+              <div style="font-weight: 600; font-size: 12px">{{ Array.isArray(currentFeedback.services) ? currentFeedback.services.join(", ") : currentFeedback.services }}</div>
+            </div>
+            <div>
+              <small style="color: var(--text-muted); font-weight: 600">Date</small>
+              <div style="font-weight: 600">{{ currentFeedback.datetime ? new Date(currentFeedback.datetime).toLocaleDateString() : "N/A" }}</div>
+            </div>
+          </div>
+        </div>
+        <div v-else class="empty-state">
+          <div class="empty-state-icon">📝</div>
+          <div class="empty-state-text">No feedback available</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- AI Assistant Chat Modal -->
   <div v-if="showAIAssistant" class="ai-assistant-modal">
     <div class="ai-assistant-content">
@@ -3299,7 +3528,6 @@ import { useAppStore } from "@/stores/appStore";
 const router = useRouter();
 const appStore = useAppStore();
 const API_BASE_URL = "http://localhost:5000";
-
 const currentView = ref("dashboard");
 const sidebarOpen = ref(false);
 const selectedDate = ref(null);
@@ -3308,11 +3536,15 @@ const hoveredStaff = ref(null);
 const showChangePasswordModal = ref(false);
 const showProfileMenu = ref(false);
 const showProfileEditModal = ref(false);
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 const profileEditForm = ref({
   name: '',
   email: '',
   phone: '',
-  address: ''
+  role: '',
+  doj: ''
 });
 const passwordForm = ref({
   currentPassword: "",
@@ -3327,9 +3559,21 @@ const showFinancePasswordModal = ref(false);
 const showReportsPasswordModal = ref(false);
 const financialPasswordInput = ref("");
 const financialPasswordError = ref("");
+const showFinancePassword = ref(false);
+const showReportsPassword = ref(false);
 const financeAuthenticated = ref(false);
 const reportsAuthenticated = ref(false);
 const pendingFinancialView = ref(null); // Track which view user tried to access
+
+// Finance data state
+const financeData = ref(null);
+const financeLoading = ref(false);
+const financeError = ref(null);
+const showEditOverheadModal = ref(false);
+const selectedBalanceSheetMonth = ref(new Date().toISOString().split('T')[0].slice(0, 7)); // YYYY-MM format
+const overheadEditForm = ref({
+  overheads: 0
+});
 
 // AI Daily Briefing state
 const briefingData = ref(null);
@@ -3343,6 +3587,7 @@ const aiMessages = ref([
   { type: 'assistant', text: 'Hi! I\'m your AI Assistant. I\'m here to help you manage appointments, customers, services, staff, packages, and resolve any issues. Try asking me to "Create a task checklist for today"!' }
 ]);
 const aiUserInput = ref('');
+const lastReportIntent = ref(null); // remembers last report type/period for format follow-ups
 
 // Manager Task Checklist state
 const managerTasks = ref([]);
@@ -3418,6 +3663,7 @@ const bookingForm = ref({
   staffId: "",
   appointmentId: null
 });
+const bookingServiceSearch = ref("");
 const bookingError = ref("");
 const bookingSuccess = ref("");
 
@@ -3434,6 +3680,7 @@ const editAppointmentError = ref("");
 const editAppointmentSuccess = ref("");
 
 // Service form state
+const serviceFormRef = ref(null);
 const serviceForm = ref({
   name: "",
   categoryId: "",
@@ -3457,8 +3704,10 @@ const customerForm = ref({
   dob: "",
   address: "",
   preferences: "",
-  customerType: "Normal"
+  customerType: ""
 });
+// Customer form ref for scrolling
+const customerFormRef = ref(null);
 const isEditingCustomer = ref(false);
 const editingCustomerId = ref(null);
 const editingCustomerData = ref(null);
@@ -3477,6 +3726,8 @@ const staffForm = ref({
   salary: 0,
   username: ""
 });
+// Staff form ref for scrolling
+const staffFormRef = ref(null);
 const isEditingStaff = ref(false);
 const editingStaffId = ref(null);
 const editingStaffData = ref(null);
@@ -3488,7 +3739,8 @@ const invoiceForm = ref({
   appointmentId: "",
   customerId: "",
   staffId: "",
-  serviceId: "",
+  serviceIds: [],
+  totalServiceAmount: 0,
   date: "",
   paymentType: "cash",
   discount: 0,
@@ -3497,6 +3749,19 @@ const invoiceForm = ref({
   customerName: "",
   staffName: "",
   serviceNames: ""
+});
+
+const invoiceBirthdayAlert = computed(() => {
+  if (!invoiceForm.value.customerId) return null;
+  const customer = data.value.customers?.find(c => c.id === invoiceForm.value.customerId);
+  if (!customer?.dob) return null;
+  const today = new Date();
+  const dob = new Date(customer.dob);
+  const thisYearBday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+  const diffMs = thisYearBday - new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays >= 0 && diffDays <= 7) return { days: diffDays, name: customer.name };
+  return null;
 });
 const invoiceError = ref("");
 const invoiceSuccess = ref("");
@@ -3536,6 +3801,35 @@ const bookingCustomerName = ref("");
 const orderFilter = ref("");
 const completedAppointmentFilter = ref("");
 
+// Sorting and filtering states
+const tableSort = ref({
+  services: { column: "name", direction: "asc" },
+  customers: { column: "name", direction: "asc" },
+  staff: { column: "name", direction: "asc" },
+  inventory: { column: "name", direction: "asc" },
+  orders: { column: "order_date", direction: "desc" },
+  invoices: { column: "invoice_date", direction: "desc" },
+  transactions: { column: "date", direction: "desc" }
+});
+
+// Additional filters
+const serviceStatusFilter = ref("");
+const customerTypeFilter = ref("");
+
+const stockStatusFilter = ref("");
+const invoiceStatusFilter = ref("");
+const orderStatusFilter = ref("");
+
+// Pagination state
+const pageSize = ref(12);
+const currentPageServices = ref(1);
+const currentPageCustomers = ref(1);
+const currentPageStaff = ref(1);
+const currentPageInventory = ref(1);
+const currentPageInvoices = ref(1);
+const currentPageAppointments = ref(1);
+const currentPageOrders = ref(1);
+
 // Customer search dropdown for appointment creation
 const bookingCustomerSearch = ref("");
 const showBookingCustomerDropdown = ref(false);
@@ -3571,6 +3865,21 @@ const showInvoiceModal = ref(false);
 const selectedInvoice = ref(null);
 const showProductDetailsModal = ref(false);
 const selectedProduct = ref(null);
+
+// Notification panel state
+const showNotificationPanel = ref(false);
+const notificationsList = ref([]);
+const notificationsLoading = ref(false);
+
+// Computed property for unread notifications count
+const unreadCount = computed(() => {
+  return notificationsList.value.filter(n => !n.is_read).length;
+});
+
+// Computed property for only unread notifications
+const unreadNotifications = computed(() => {
+  return notificationsList.value.filter(n => !n.is_read);
+});
 
 // Order Tab & Replenishment
 const orderTab = ref("pending-orders");
@@ -3617,6 +3926,14 @@ const editSettingForm = ref({
 const settingError = ref("");
 const settingSuccess = ref("");
 
+// Feedback Modal State
+const showFeedbackModal = ref(false);
+const currentFeedback = ref(null);
+const feedbackError = ref("");
+
+// Store manager profile data fetched from backend
+const managerProfileData = ref(null);
+
 const user = computed(() => {
   const currentUser = appStore.user;
   if (!currentUser) {
@@ -3626,8 +3943,9 @@ const user = computed(() => {
       role: "manager"
     };
   }
+  // Display manager name from backend profile data if available
   return {
-    name: currentUser.name || currentUser.username || "Manager",
+    name: managerProfileData.value?.manager_name || currentUser.username || "Manager",
     userId: currentUser.username || "manager",
     role: currentUser.role || "manager"
   };
@@ -3646,24 +3964,18 @@ const dailyCountError = ref("");
 
 // Manager inventory transaction tracking
 const managerInventoryTransactions = ref([]);
+const allManagerReplenishmentTransactions = ref([]);
 const managerTransactionDateFrom = ref("");
 const managerTransactionDateTo = ref("");
+const staffReplenishmentSearch = ref("");
+
+// Track which products already have low stock notifications to prevent duplicates
+const notifiedLowStockProducts = new Set();
 
 // Manager wholesale orders tracking
 const managerOrders = ref([]);
 
-// Edit order modal state
-const showEditOrderModal = ref(false);
-const editingOrder = ref(null);
-const editOrderForm = ref({
-  status: 0,
-  quantity: 1,
-  reason: "",
-  replenishment_date: ""
-});
-const editOrderError = ref("");
-
-const fetchManagerAttendance = async () => {
+const fetchManagerAttendance = async (selectedDate = null) => {
   attendanceLoading.value = true;
   attendanceError.value = "";
   
@@ -3675,9 +3987,10 @@ const fetchManagerAttendance = async () => {
       return;
     }
 
-    // Get today's attendance (backend defaults to today when no date param provided)
+    // Fetch attendance for selected date or today (backend defaults to today when no date param provided)
+    const dateParam = selectedDate ? `?date=${selectedDate}` : "";
     const response = await fetch(
-      `${API_BASE_URL}/api/manager-staff-attendance`,
+      `${API_BASE_URL}/api/manager-staff-attendance${dateParam}`,
       {
         method: "GET",
         headers: {
@@ -3690,24 +4003,44 @@ const fetchManagerAttendance = async () => {
 
     if (response.ok) {
       const attendanceData = await response.json();
-      const mappedAttendance = attendanceData.map(record => ({
-        staffId: record.staff_id,
-        date: new Date(record.register_datetime).toISOString().split('T')[0],
-        status: "present" // Marking means present
-      }));
+      const mappedAttendance = attendanceData.map(record => {
+        // Ensure date is in YYYY-MM-DD format, handling timezone issues
+        let recordDate;
+        if (typeof record.register_datetime === 'string') {
+          // If it's already a string, extract date part
+          recordDate = record.register_datetime.includes('T') 
+            ? record.register_datetime.split('T')[0]
+            : record.register_datetime.split(' ')[0];
+        } else {
+          // If it's a date object, convert to ISO string and extract date
+          recordDate = new Date(record.register_datetime).toISOString().split('T')[0];
+        }
+        return {
+          staffId: record.staff_id,
+          date: recordDate,
+          status: record.present_flag ? "present" : "absent"
+        };
+      });
       fetchedAttendance.value = mappedAttendance;
       // Update the main data store with fetched attendance
-      data.value.attendance = mappedAttendance;
-      console.log("Manager attendance loaded:", fetchedAttendance.value);
+      appStore.data.attendance = mappedAttendance;
+      console.log("✅ Manager attendance loaded for", selectedDate || 'today', ":", {
+        rawCount: attendanceData.length,
+        mappedCount: mappedAttendance.length,
+        mappedData: mappedAttendance
+      });
     } else if (response.status === 404) {
+      // No records found for that date is OK - means no staff marked attendance
       fetchedAttendance.value = [];
-      data.value.attendance = [];
+      appStore.data.attendance = [];
+      console.log("ℹ️ No attendance records found for", selectedDate || 'today');
     } else {
-      attendanceError.value = "Failed to load attendance data";
+      attendanceError.value = `Failed to load attendance data (Status: ${response.status})`;
+      console.warn("⚠️ Attendance fetch failed:", response.status);
     }
   } catch (error) {
-    console.error("Error fetching attendance:", error);
-    attendanceError.value = "Error loading attendance";
+    console.error("❌ Error fetching attendance:", error);
+    attendanceError.value = "Error loading attendance: " + error.message;
   } finally {
     attendanceLoading.value = false;
   }
@@ -3804,7 +4137,7 @@ const fetchTodaysAppointmentsForInvoice = async () => {
           datetime: appt.datetime,
           time: new Date(appt.datetime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
           services: appt.services || [],
-          status: "confirmed",
+          status: 0,
           invoiceStatus: "pending"
         }));
         todaysAppointmentsForInvoice.value = mappedTodayAppts;
@@ -3819,7 +4152,24 @@ const fetchTodaysAppointmentsForInvoice = async () => {
 };
 
 const todayAppointments = computed(() => {
-  return data.value.appointments.filter(a => a.date === today());
+  return data.value.appointments.filter(a => a.date === today() && !a.invoiceGenerated && a.status !== 5);
+});
+
+// Group today's appointments by customer
+const groupedTodayAppointments = computed(() => {
+  const grouped = {};
+  todayAppointments.value.forEach(appt => {
+    const customerId = appt.customerId;
+    if (!grouped[customerId]) {
+      grouped[customerId] = {
+        customerId: customerId,
+        customerName: getCustomerName(customerId),
+        appointments: []
+      };
+    }
+    grouped[customerId].appointments.push(appt);
+  });
+  return Object.values(grouped);
 });
 
 const staffPresentCount = computed(() => {
@@ -3838,14 +4188,34 @@ const todayAvailableStaff = computed(() => {
 
 const staffForSelectedDay = computed(() => {
   // Use fetched attendance data from API if available, otherwise use mock data
-  const attendanceData = fetchedAttendance.value.length > 0 ? fetchedAttendance.value : data.value.attendance;
+  const attendanceData = fetchedAttendance.value.length > 0 ? fetchedAttendance.value : (appStore.data?.attendance || []);
+  const staffList = appStore.data?.staff || [];
   
-  return data.value.staff.filter(staff => {
-    const isPresent = attendanceData.find(
-      a => a.staffId === staff.id && a.date === selectedStaffDate.value && a.status === "present"
-    );
-    return !!isPresent;
+  console.log("staffForSelectedDay computed:", {
+    staffCount: staffList.length,
+    attendanceRecords: attendanceData.length,
+    selectedDate: selectedStaffDate.value,
+    attendanceData: attendanceData
   });
+  
+  // Map staff with attendance status
+  const mappedStaff = staffList.map(staff => {
+    const attendance = attendanceData.find(
+      a => a.staffId === staff.id && a.date === selectedStaffDate.value
+    );
+    return {
+      ...staff,
+      isPresent: attendance && attendance.status === 'present',
+      isAbsent: attendance && attendance.status === 'absent',
+      attendanceStatus: attendance && attendance.status === 'present' ? 'present' : 'absent'
+    };
+  });
+  
+  // Separate and sort: present first, then absent (includes unmarked)
+  const present = mappedStaff.filter(s => s.attendanceStatus === 'present').sort((a, b) => a.name.localeCompare(b.name));
+  const absent = mappedStaff.filter(s => s.attendanceStatus === 'absent').sort((a, b) => a.name.localeCompare(b.name));
+  
+  return [...present, ...absent];
 });
 
 const staffBookings = computed(() => {
@@ -3863,7 +4233,7 @@ const lowStockItems = computed(() => {
 });
 
 const pendingOrders = computed(() => {
-  return data.value.orders.filter(o => o.status === "pending");
+  return allManagerReplenishmentTransactions.value.filter(o => o.status === 0);
 });
 
 const completedAppointments = computed(() => {
@@ -3915,48 +4285,55 @@ const systemAlerts = computed(() => {
   return alerts;
 });
 
-// Helper function to check if bridal package is selected
+// Helper function to check if bridal service is selected
 const hasBridalPackageSelected = () => {
   return bookingForm.value.serviceIds.some(serviceId => {
     const service = data.value.services.find(s => s.id === parseInt(serviceId));
-    return service && service.name === "Bridal Package";
+    return service && (service.name?.toLowerCase().includes('bridal') || service.category?.toLowerCase().includes('bridal'));
   });
 };
 
-// Check if bridal package is selected in edit form
+// Check if bridal service is selected in edit form
 const hasBridalPackageSelectedInEdit = () => {
   return editAppointmentForm.value.serviceIds.some(serviceId => {
     const service = data.value.services.find(s => s.id === parseInt(serviceId));
-    return service && service.name === "Bridal Package";
+    return service && (service.name?.toLowerCase().includes('bridal') || service.category?.toLowerCase().includes('bridal'));
   });
 };
 
-// Compute minimum booking date based on service type
+// Check if the customer selected in booking form is VIP
+const selectedCustomerIsVIP = () => {
+  const customer = data.value.customers?.find(c => String(c.id) === String(bookingForm.value.customerId));
+  return customer?.customerType === 'VIP';
+};
+
+// Check if the customer in edit form is VIP
+const editCustomerIsVIP = () => {
+  const customer = data.value.customers?.find(c => String(c.id) === String(editAppointmentForm.value.customerId));
+  return customer?.customerType === 'VIP';
+};
+
+// Compute minimum booking date
+// Bridal+VIP: 1 month | Bridal+Regular: 2 months | Regular: today
 const minBookingDate = computed(() => {
   const today = new Date();
   const minDate = new Date(today);
-  
   if (hasBridalPackageSelected()) {
-    minDate.setMonth(minDate.getMonth() + 1); // 1 month for bridal package
-  } else {
-    // Allow booking today for managers
-    minDate.setDate(minDate.getDate()); // Today for normal services
+    minDate.setMonth(minDate.getMonth() + (selectedCustomerIsVIP() ? 1 : 2));
   }
-  
   return minDate.toISOString().split('T')[0];
 });
 
-// Compute minimum booking date (6 months for bridal, 3 days for others - today through 2 days out)
+// Compute maximum booking date
+// Bridal: 6 months | Regular: 3 days
 const maxBookingDate = computed(() => {
   const today = new Date();
   const maxDate = new Date(today);
-  
   if (hasBridalPackageSelected()) {
-    maxDate.setMonth(maxDate.getMonth() + 6); // 6 months for bridal package
+    maxDate.setMonth(maxDate.getMonth() + 6);
   } else {
-    maxDate.setDate(maxDate.getDate() + 2); // 2 days from today for other services
+    maxDate.setDate(maxDate.getDate() + 3);
   }
-  
   return maxDate.toISOString().split('T')[0];
 });
 
@@ -3964,28 +4341,21 @@ const maxBookingDate = computed(() => {
 const minEditBookingDate = computed(() => {
   const today = new Date();
   const minDate = new Date(today);
-  
   if (hasBridalPackageSelectedInEdit()) {
-    minDate.setMonth(minDate.getMonth() + 1); // 1 month for bridal package
-  } else {
-    // Allow booking today for managers
-    minDate.setDate(minDate.getDate()); // Today for normal services
+    minDate.setMonth(minDate.getMonth() + (editCustomerIsVIP() ? 1 : 2));
   }
-  
   return minDate.toISOString().split('T')[0];
 });
 
-// Compute maximum edit booking date (6 months for bridal, 2 days for others)
+// Compute maximum edit booking date
 const maxEditBookingDate = computed(() => {
   const today = new Date();
   const maxDate = new Date(today);
-  
   if (hasBridalPackageSelectedInEdit()) {
-    maxDate.setMonth(maxDate.getMonth() + 6); // 6 months for bridal package
+    maxDate.setMonth(maxDate.getMonth() + 6);
   } else {
-    maxDate.setDate(maxDate.getDate() + 2); // 2 days for other services
+    maxDate.setDate(maxDate.getDate() + 3);
   }
-  
   return maxDate.toISOString().split('T')[0];
 });
 
@@ -3994,11 +4364,11 @@ const bookingDateInfo = computed(() => {
   if (bookingForm.value.serviceIds.length === 0) {
     return "Select a service to see available booking dates";
   }
-  
   if (hasBridalPackageSelected()) {
-    return `Bridal Package: Book 1 to 6 months in advance`;
+    const months = selectedCustomerIsVIP() ? 1 : 2;
+    return `Bridal service: VIP customers book ${months === 1 ? '1 month' : '2 months'} in advance (max 6 months)`;
   } else {
-    return `Other services: Book today or within next 2 days`;
+    return `Regular service: book within the next 3 days`;
   }
 });
 
@@ -4007,11 +4377,11 @@ const editBookingDateInfo = computed(() => {
   if (editAppointmentForm.value.serviceIds.length === 0) {
     return "Select a service to see available booking dates";
   }
-  
   if (hasBridalPackageSelectedInEdit()) {
-    return `Bridal Package: Book 1 to 6 months in advance`;
+    const months = editCustomerIsVIP() ? 1 : 2;
+    return `Bridal service: book ${months === 1 ? '1 month' : '2 months'} in advance (max 6 months)`;
   } else {
-    return `Other services: Book today or within next 2 days`;
+    return `Regular service: book within the next 3 days`;
   }
 });
 
@@ -4044,14 +4414,27 @@ const staffOrderRequests = computed(() => {
   return managerInventoryTransactions.value.filter(txn => txn.txn_type === 0);
 });
 
+const filteredStaffReplenishments = computed(() => {
+  if (!staffReplenishmentSearch.value.trim()) return staffOrderRequests.value;
+  const query = staffReplenishmentSearch.value.toLowerCase();
+  return staffOrderRequests.value.filter(txn => {
+    const productMatch = txn.product_name?.toLowerCase().includes(query);
+    const staffMatch = getStaffName(txn.staff_id)?.toLowerCase().includes(query);
+    const serviceMatch = txn.service_name?.toLowerCase().includes(query);
+    return productMatch || staffMatch || serviceMatch;
+  });
+});
+
 const managerReplenishmentOrders = computed(() => {
-  return managerInventoryTransactions.value.filter(txn => txn.txn_type === 1);
+  // Show all cart orders (status === 2) - not yet sent to wholesale
+  const filtered = allManagerReplenishmentTransactions.value.filter(order => order.status === 2);
+  return sortData(filtered, tableSort.value.orders);
 });
 
 const groupedSupplierOrders = computed(() => {
   const grouped = {};
   managerReplenishmentOrders.value.forEach(order => {
-    const supplier = getProductSupplier(order.product_id);
+    const supplier = order.supplier_name || "Unknown Supplier";
     if (!grouped[supplier]) {
       grouped[supplier] = {
         supplier: supplier,
@@ -4063,55 +4446,49 @@ const groupedSupplierOrders = computed(() => {
   return Object.values(grouped);
 });
 
+const filteredWholesaleOrders = computed(() => {
+  // Only show orders that have been sent to wholesale (status 0) or delivered (status 1)
+  // Exclude cart items (status 2)
+  const filtered = managerOrders.value.filter(order => order.status === 0 || order.status === 1);
+  return sortData(filtered, tableSort.value.orders);
+});
+
 const totalRevenue = computed(() => {
-  return "₹" + invoicedAppointments.value
-    .reduce((sum, appt) => {
-      const service = data.value.services.find(s => s.id === appt.serviceId);
-      return sum + (service?.price || 0);
-    }, 0)
-    .toLocaleString();
+  if (financeData.value?.total_revenue !== undefined) {
+    return "₹" + financeData.value.total_revenue.toLocaleString();
+  }
+  return "₹0";
 });
 
 const totalProductCost = computed(() => {
-  return invoicedAppointments.value
-    .reduce((sum, appt) => {
-      const service = data.value.services.find(s => s.id === appt.serviceId);
-      return sum + (service?.price || 0);
-    }, 0);
+  return financeData.value?.total_revenue || 0;
 });
 
 const productInventoryCost = computed(() => {
-  return data.value.products.reduce((sum, product) => {
-    return sum + (product.costPrice * product.stock);
-  }, 0);
+  return financeData.value?.product_cost || 0;
 });
 
 const netProfit = computed(() => {
-  const revenue = totalProductCost.value;
-  const cost = productInventoryCost.value;
-  return "₹" + (revenue - cost).toLocaleString();
+  if (financeData.value?.net_profit !== undefined) {
+    return "₹" + financeData.value.net_profit.toLocaleString();
+  }
+  return "₹0";
 });
 
 const staffSalaryTotal = computed(() => {
-  return data.value.staff.reduce((sum, staff) => {
-    return sum + (staff.salary || 0);
-  }, 0);
+  return financeData.value?.staff_salary || 0;
 });
 
 const serviceCommissionTotal = computed(() => {
-  return Math.round(totalProductCost.value * 0.05); // 5% commission on services
+  return Math.round((financeData.value?.total_revenue || 0) * 0.05); // 5% commission on services
 });
 
 const overheadBillsTotal = computed(() => {
-  return 5000; // Fixed overhead bills amount
+  return financeData.value?.overheads || 0;
 });
 
 const calculatedNetProfit = computed(() => {
-  const revenue = totalProductCost.value;
-  const staffSalary = staffSalaryTotal.value;
-  const productCost = productInventoryCost.value;
-  const overhead = overheadBillsTotal.value;
-  return revenue - staffSalary - productCost - overhead;
+  return financeData.value?.net_profit || 0;
 });
 
 const currentMonthYear = computed(() => {
@@ -4156,6 +4533,118 @@ const formatDateShort = (dateStr) => {
   return `${dayName} ${parseInt(day)} / ${parseInt(month)}`;
 };
 
+// Sorting helper function
+const sortData = (data, sortConfig) => {
+  if (!sortConfig.column) return data;
+  const sorted = [...data];
+  sorted.sort((a, b) => {
+    const aVal = a[sortConfig.column];
+    const bVal = b[sortConfig.column];
+    let comparison = 0;
+    if (typeof aVal === 'string') {
+      comparison = aVal.localeCompare(bVal);
+    } else if (typeof aVal === 'number') {
+      comparison = aVal - bVal;
+    } else if (aVal instanceof Date) {
+      comparison = aVal - bVal;
+    } else {
+      comparison = String(aVal).localeCompare(String(bVal));
+    }
+    return sortConfig.direction === 'asc' ? comparison : -comparison;
+  });
+  return sorted;
+};
+
+// Toggle sort function
+const toggleSort = (table, column) => {
+  const current = tableSort.value[table];
+  if (current.column === column) {
+    current.direction = current.direction === 'asc' ? 'desc' : 'asc';
+  } else {
+    current.column = column;
+    current.direction = 'asc';
+  }
+};
+
+// Get sort indicator
+const getSortIndicator = (table, column) => {
+  const current = tableSort.value[table];
+  if (current.column !== column) return '↕';
+  return current.direction === 'asc' ? '↑' : '↓';
+};
+
+// ──── PAGINATION HELPER FUNCTIONS ────
+const goToPageServices = (page) => {
+  if (page >= 1 && page <= totalPagesServices.value) {
+    currentPageServices.value = page;
+  }
+};
+
+const goToPageCustomers = (page) => {
+  if (page >= 1 && page <= totalPagesCustomers.value) {
+    currentPageCustomers.value = page;
+  }
+};
+
+const goToPageStaff = (page) => {
+  if (page >= 1 && page <= totalPagesStaff.value) {
+    currentPageStaff.value = page;
+  }
+};
+
+const goToPageInventory = (page) => {
+  if (page >= 1 && page <= totalPagesInventory.value) {
+    currentPageInventory.value = page;
+  }
+};
+
+const goToPageInvoices = (page) => {
+  if (page >= 1 && page <= totalPagesInvoices.value) {
+    currentPageInvoices.value = page;
+  }
+};
+
+const goToPageBookings = (page) => {
+  if (page >= 1 && page <= totalPagesBookings.value) {
+    currentPageAppointments.value = page;
+  }
+};
+
+const goToPageOrders = (page) => {
+  if (page >= 1 && page <= totalPagesOrders.value) {
+    currentPageOrders.value = page;
+  }
+};
+
+// Reset pagination when filters change
+watch([serviceName, serviceCategoryFilter, serviceStatusFilter], () => {
+  currentPageServices.value = 1;
+});
+
+watch([customerName, customerTypeFilter], () => {
+  currentPageCustomers.value = 1;
+});
+
+watch([staffName], () => {
+  currentPageStaff.value = 1;
+});
+
+watch([productName, stockStatusFilter], () => {
+  currentPageInventory.value = 1;
+});
+
+watch([invoiceCustomerName, invoiceStatusFilter], () => {
+  currentPageInvoices.value = 1;
+});
+
+watch([bookingCustomerName], () => {
+  currentPageAppointments.value = 1;
+});
+
+watch([orderTab], () => {
+  currentPageOrders.value = 1;
+});
+
 const displayedBookings = computed(() => {
   if (selectedDate.value) {
     return getDateBookings(selectedDate.value);
@@ -4166,27 +4655,38 @@ const displayedBookings = computed(() => {
 
 // Filtered data computed properties
 const filteredServices = computed(() => {
-  return data.value.services.filter(s => {
+  let filtered = data.value.services.filter(s => {
     const nameMatch = !serviceName.value.trim() || s.name.toLowerCase().includes(serviceName.value.toLowerCase());
     const categoryMatch = !serviceCategoryFilter.value || s.categoryId == serviceCategoryFilter.value;
-    return nameMatch && categoryMatch;
+    const statusMatch = !serviceStatusFilter.value || getServiceStatus(s) === serviceStatusFilter.value;
+    return nameMatch && categoryMatch && statusMatch;
   });
+  return sortData(filtered, tableSort.value.services);
 });
 
 const filteredCustomers = computed(() => {
-  if (!customerName.value.trim()) return data.value.customers;
-  return data.value.customers.filter(c => 
-    c.name.toLowerCase().includes(customerName.value.toLowerCase()) ||
-    c.email.toLowerCase().includes(customerName.value.toLowerCase())
-  );
+  let filtered = data.value.customers;
+  if (customerName.value.trim()) {
+    filtered = filtered.filter(c => 
+      c.name.toLowerCase().includes(customerName.value.toLowerCase()) ||
+      c.email.toLowerCase().includes(customerName.value.toLowerCase())
+    );
+  }
+  if (customerTypeFilter.value) {
+    filtered = filtered.filter(c => c.customerType === customerTypeFilter.value);
+  }
+  return sortData(filtered, tableSort.value.customers);
 });
 
 const filteredStaff = computed(() => {
-  if (!staffName.value.trim()) return data.value.staff;
-  return data.value.staff.filter(s => 
-    s.name.toLowerCase().includes(staffName.value.toLowerCase()) ||
-    s.email.toLowerCase().includes(staffName.value.toLowerCase())
-  );
+  let filtered = data.value.staff;
+  if (staffName.value.trim()) {
+    filtered = filtered.filter(s => 
+      s.name.toLowerCase().includes(staffName.value.toLowerCase()) ||
+      s.email.toLowerCase().includes(staffName.value.toLowerCase())
+    );
+  }
+  return sortData(filtered, tableSort.value.staff);
 });
 
 // Filtered customers for booking creation form
@@ -4202,19 +4702,109 @@ const selectedBookingCustomer = computed(() => {
 });
 
 const filteredProducts = computed(() => {
-  if (!productName.value.trim()) return data.value.products;
-  return data.value.products.filter(p => 
-    p.name.toLowerCase().includes(productName.value.toLowerCase()) ||
-    p.categoryName.toLowerCase().includes(productName.value.toLowerCase())
-  );
+  let filtered = data.value.products;
+  if (productName.value.trim()) {
+    filtered = filtered.filter(p => 
+      p.name.toLowerCase().includes(productName.value.toLowerCase()) ||
+      p.categoryName.toLowerCase().includes(productName.value.toLowerCase())
+    );
+  }
+  if (stockStatusFilter.value === 'low') {
+    filtered = filtered.filter(p => p.stock <= p.minStock);
+  } else if (stockStatusFilter.value === 'high') {
+    filtered = filtered.filter(p => p.stock > p.minStock);
+  }
+  return sortData(filtered, tableSort.value.inventory);
 });
 
 const filteredInvoices = computed(() => {
-  if (!invoiceCustomerName.value.trim()) return invoices.value;
-  return invoices.value.filter(inv => {
-    const customerNameStr = inv.customer_name ? inv.customer_name.toLowerCase() : getCustomerName(inv.customer_id).toLowerCase();
-    return customerNameStr.includes(invoiceCustomerName.value.toLowerCase());
-  });
+  let filtered = invoices.value;
+  if (invoiceCustomerName.value.trim()) {
+    filtered = filtered.filter(inv => {
+      const customerNameStr = inv.customer_name ? inv.customer_name.toLowerCase() : getCustomerName(inv.customer_id).toLowerCase();
+      return customerNameStr.includes(invoiceCustomerName.value.toLowerCase());
+    });
+  }
+  if (invoiceStatusFilter.value) {
+    filtered = filtered.filter(inv => inv.status === parseInt(invoiceStatusFilter.value));
+  }
+  return sortData(filtered, tableSort.value.invoices);
+});
+
+// ─────────────────────── PAGINATION COMPUTED PROPERTIES ───────────────────────
+// Paginated Services
+const paginatedServices = computed(() => {
+  const start = (currentPageServices.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredServices.value.slice(start, end);
+});
+
+const totalPagesServices = computed(() => Math.ceil(filteredServices.value.length / pageSize.value) || 1);
+
+// Paginated Customers
+const paginatedCustomers = computed(() => {
+  const start = (currentPageCustomers.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredCustomers.value.slice(start, end);
+});
+
+const totalPagesCustomers = computed(() => Math.ceil(filteredCustomers.value.length / pageSize.value) || 1);
+
+// Paginated Staff
+const paginatedStaff = computed(() => {
+  const start = (currentPageStaff.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredStaff.value.slice(start, end);
+});
+
+const totalPagesStaff = computed(() => Math.ceil(filteredStaff.value.length / pageSize.value) || 1);
+
+// Paginated Inventory
+const paginatedProducts = computed(() => {
+  const start = (currentPageInventory.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredProducts.value.slice(start, end);
+});
+
+const totalPagesInventory = computed(() => Math.ceil(filteredProducts.value.length / pageSize.value) || 1);
+
+// Paginated Invoices
+const paginatedInvoices = computed(() => {
+  const start = (currentPageInvoices.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredInvoices.value.slice(start, end);
+});
+
+const totalPagesInvoices = computed(() => Math.ceil(filteredInvoices.value.length / pageSize.value) || 1);
+
+// Paginated Bookings
+const paginatedBookings = computed(() => {
+  const start = (currentPageAppointments.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredBookings.value.slice(start, end);
+});
+
+const totalPagesBookings = computed(() => Math.ceil(filteredBookings.value.length / pageSize.value) || 1);
+
+// Paginated Orders
+const paginatedOrders = computed(() => {
+  const start = (currentPageOrders.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  const orders = orderTab.value === 'pending-orders' ? staffOrderRequests.value : managerReplenishmentOrders.value;
+  return orders.slice(start, end);
+});
+
+const totalPagesOrders = computed(() => {
+  const orders = orderTab.value === 'pending-orders' ? staffOrderRequests.value : managerReplenishmentOrders.value;
+  return Math.ceil(orders.length / pageSize.value) || 1;
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Get today's date in YYYY-MM-DD format for DOB max date constraint
+const todayDate = computed(() => {
+  const now = new Date();
+  return now.toISOString().split('T')[0];
 });
 
 const filteredBookings = computed(() => {
@@ -4224,6 +4814,130 @@ const filteredBookings = computed(() => {
     const customerEmailStr = getCustomerEmail(appt.customerId).toLowerCase();
     const searchTerm = bookingCustomerName.value.toLowerCase();
     return customerNameStr.includes(searchTerm) || customerEmailStr.includes(searchTerm);
+  });
+});
+
+// Filter appointments to exclude those already invoiced
+const getAvailableAppointmentsForInvoice = computed(() => {
+  const invoicedAppointmentIds = new Set(invoices.value.map(inv => inv.appointment_id).filter(id => id));
+  return data.value.appointments.filter(appt => !invoicedAppointmentIds.has(appt.id));
+});
+
+// Get available time slots (filter out past times if booking for today)
+const availableTimeSlots = computed(() => {
+  // Generate times dynamically based on salon config
+  const allTimes = [];
+  
+  // Get salon hours from config
+  let openHour = 9, openMinute = 0, closeHour = 17, closeMinute = 0;
+  if (salonConfigList.value && salonConfigList.value.length > 0) {
+    const openConfig = salonConfigList.value.find(c => c.param_name === 'SALON_OPEN_TIME');
+    const closeConfig = salonConfigList.value.find(c => c.param_name === 'SALON_CLOSE_TIME');
+    
+    if (openConfig) {
+      const [h, m] = openConfig.param_value.split(':').map(Number);
+      openHour = h;
+      openMinute = m;
+    }
+    if (closeConfig) {
+      const [h, m] = closeConfig.param_value.split(':').map(Number);
+      closeHour = h;
+      closeMinute = m;
+    }
+  }
+  
+  // Generate 30-minute slots
+  let currentHour = openHour;
+  let currentMinute = openMinute;
+  
+  while (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute)) {
+    allTimes.push(`${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`);
+    currentMinute += 30;
+    if (currentMinute >= 60) {
+      currentMinute = 0;
+      currentHour += 1;
+    }
+  }
+  
+  if (!bookingForm.value.date) return allTimes;
+  
+  const todayDate = new Date().toISOString().split('T')[0];
+  const selectedDate = bookingForm.value.date;
+  
+  // If not today, show all times
+  if (selectedDate !== todayDate) return allTimes;
+  
+  // If today, filter out past times
+  const now = new Date();
+  const currentTimeHour = now.getHours();
+  const currentTimeMinute = now.getMinutes();
+  
+  return allTimes.filter(time => {
+    const [hour, minute] = time.split(':').map(Number);
+    // Convert to minutes since midnight for easier comparison
+    const timeInMinutes = hour * 60 + minute;
+    const nowInMinutes = currentTimeHour * 60 + currentTimeMinute;
+    // Only show times 30 minutes or more in the future
+    return timeInMinutes > nowInMinutes + 30;
+  });
+});
+
+// Available time slots for edit appointment (generates times based on salon config)
+const editAppointmentTimeSlots = computed(() => {
+  // Generate times dynamically based on salon config
+  const allTimes = [];
+  
+  // Get salon hours from config
+  let openHour = 9, openMinute = 0, closeHour = 17, closeMinute = 0;
+  if (salonConfigList.value && salonConfigList.value.length > 0) {
+    const openConfig = salonConfigList.value.find(c => c.param_name === 'SALON_OPEN_TIME');
+    const closeConfig = salonConfigList.value.find(c => c.param_name === 'SALON_CLOSE_TIME');
+    
+    if (openConfig) {
+      const [h, m] = openConfig.param_value.split(':').map(Number);
+      openHour = h;
+      openMinute = m;
+    }
+    if (closeConfig) {
+      const [h, m] = closeConfig.param_value.split(':').map(Number);
+      closeHour = h;
+      closeMinute = m;
+    }
+  }
+  
+  // Generate 30-minute slots
+  let currentHour = openHour;
+  let currentMinute = openMinute;
+  
+  while (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute)) {
+    allTimes.push(`${String(currentHour).padStart(2, '0')}:${String(currentMinute).padStart(2, '0')}`);
+    currentMinute += 30;
+    if (currentMinute >= 60) {
+      currentMinute = 0;
+      currentHour += 1;
+    }
+  }
+  
+  if (!editAppointmentForm.value.date) return allTimes;
+  
+  const todayDate = new Date().toISOString().split('T')[0];
+  const selectedDate = editAppointmentForm.value.date;
+  
+  // If not today, show all times
+  if (selectedDate !== todayDate) return allTimes;
+  
+  // If today, filter out past times
+  const now = new Date();
+  const currentTimeHour = now.getHours();
+  const currentTimeMinute = now.getMinutes();
+  
+  return allTimes.filter(time => {
+    const [hour, minute] = time.split(':').map(Number);
+    // Convert to minutes since midnight for easier comparison
+    const timeInMinutes = hour * 60 + minute;
+    const nowInMinutes = currentTimeHour * 60 + currentTimeMinute;
+    // Only show times 30 minutes or more in the future
+    return timeInMinutes > nowInMinutes + 30;
   });
 });
 
@@ -4312,6 +5026,12 @@ const getCategoryName = (id) => {
 };
 
 const getServiceStatus = (service) => {
+  // Check if service is disabled
+  if (service.active === false || service.active_flg === false) {
+    return "Disabled";
+  }
+  
+  // Check if service date has passed
   if (!service.toDate) return "Active";
   const today = new Date().toISOString().split('T')[0];
   return service.toDate < today ? "Inactive" : "Active";
@@ -4357,12 +5077,38 @@ const getTimeFromDate = (datetimeStr) => {
 
 const apptStatusBadge = (status) => {
   const badges = {
-    completed: "badge-green",
-    "in-progress": "badge-blue",
-    confirmed: "badge-gold",
-    pending: "badge-gray",
+    0: "badge-gray",    // 0: Booked
+    1: "badge-green",   // 1: Completed
+    2: "badge-red",     // 2: No-show
+    3: "badge-gray",    // 3: Cancelled
+    4: "badge-blue",    // 4: Rescheduled
+    5: "badge-gold",    // 5: Invoiced
   };
   return badges[status] || "badge-gray";
+};
+
+const apptStatusLabel = (status) => {
+  const labels = {
+    0: "Booked",
+    1: "Completed",
+    2: "No-show",
+    3: "Cancelled",
+    4: "Rescheduled",
+    5: "Invoiced",
+  };
+  return labels[status] || "Unknown";
+};
+
+const apptStatusColor = (status) => {
+  const colors = {
+    0: "#95a3a3",       // 0: Booked - gray
+    1: "#27ae60",       // 1: Completed - green
+    2: "#e74c3c",       // 2: No-show - red
+    3: "#95a3a3",       // 3: Cancelled - gray
+    4: "#3498db",       // 4: Rescheduled - blue
+    5: "#d4af37",       // 5: Invoiced - gold
+  };
+  return colors[status] || "#95a3a3";
 };
 
 const staffAttendanceBadge = (staffId) => {
@@ -4387,7 +5133,22 @@ const stockStatus = (product) => {
   return "In Stock";
 };
 
-const logout = () => {
+const logout = async () => {
+  const token = localStorage.getItem("authToken");
+  if (token) {
+    try {
+      await fetch(`${API_BASE_URL}/logout`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        }
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  }
   appStore.logout();
   router.push("/");
 };
@@ -4469,26 +5230,126 @@ const handleChangePassword = async () => {
   }
 };
 
-const openProfileEdit = () => {
-  // Populate form with current user data
-  profileEditForm.value.name = user.value?.name || '';
-  profileEditForm.value.email = user.value?.email || '';
-  profileEditForm.value.phone = user.value?.phone || '';
-  profileEditForm.value.address = user.value?.address || '';
+const openProfileEdit = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const userId = appStore.user?.id;
+    
+    if (!token || !userId) {
+      alert('User information not found. Please login again.');
+      return;
+    }
+
+    // Fetch current manager's data using userId
+    const response = await fetch(`${API_BASE_URL}/api/manager/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authentication-Token': token,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      const manager = await response.json();
+      console.log('Current manager data:', manager);
+      
+      // Parse dates properly - handle both "YYYY-MM-DD HH:MM:SS" and "YYYY-MM-DDTHH:MM:SS" formats
+      const parseDateString = (dateString) => {
+        if (!dateString) return '';
+        // Remove time portion by taking only the first 10 characters (YYYY-MM-DD)
+        return dateString.substring(0, 10);
+      };
+
+      profileEditForm.value = {
+        name: manager.manager_name || '',
+        email: manager.manager_email || '',
+        phone: manager.manager_contact || '',
+        role: manager.manager_role || '',
+        dob: parseDateString(manager.manager_dob),
+        doj: parseDateString(manager.manager_doj),
+        skills: manager.manager_skills || ''
+      };
+
+      // Wait for Vue to update form refs before showing modal
+      await nextTick();
+    } else {
+      alert('Failed to load profile data');
+      console.error('Response status:', response.status);
+    }
+  } catch (error) {
+    console.error('Error fetching manager data:', error);
+    alert('Error loading profile: ' + error.message);
+  }
+  
   showProfileEditModal.value = true;
 };
 
-const handleUpdateProfile = () => {
-  // Update user profile
-  if (profileEditForm.value.name.trim()) {
-    if (appStore.user) {
-      appStore.user.name = profileEditForm.value.name;
-    }
+const handleUpdateProfile = async () => {
+  // Validate name
+  if (!profileEditForm.value.name.trim()) {
+    alert('Name is required');
+    return;
   }
-  
-  // In a real application, send this data to the backend
-  // For now, just show success message
-  showProfileEditModal.value = false;
+
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      alert('Not authenticated');
+      return;
+    }
+
+    // Get current user ID
+    const userId = appStore.user?.id;
+    if (!userId) {
+      alert('Unable to identify user');
+      return;
+    }
+
+    // Send update to backend
+    const response = await fetch(`${API_BASE_URL}/api/manager/${userId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authentication-Token': token,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        manager_name: profileEditForm.value.name,
+        manager_email: profileEditForm.value.email,
+        manager_contact: profileEditForm.value.phone,
+        manager_role: profileEditForm.value.role,
+        manager_dob: profileEditForm.value.dob,
+        manager_doj: profileEditForm.value.doj,
+        manager_skills: profileEditForm.value.skills
+      })
+    });
+
+    if (response.ok) {
+      // Update local store
+      if (appStore.user) {
+        appStore.user.name = profileEditForm.value.name;
+        appStore.user.email = profileEditForm.value.email;
+        appStore.user.phone = profileEditForm.value.phone;
+        appStore.user.role = profileEditForm.value.role;
+        appStore.user.dob = profileEditForm.value.dob;
+        appStore.user.doj = profileEditForm.value.doj;
+        appStore.user.skills = profileEditForm.value.skills;
+      }
+
+      // Refresh manager profile data
+      await fetchManagerProfileData();
+      
+      alert('Profile updated successfully');
+      showProfileEditModal.value = false;
+    } else {
+      const error = await response.json();
+      alert(`Failed to update profile: ${error.message || 'Unknown error'}`);
+    }
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    alert('Error updating profile: ' + error.message);
+  }
 };
 
 // Booking handlers
@@ -4526,11 +5387,12 @@ const fetchAppointments = async () => {
         customer_name: appt.customer_name,
         staffId: appt.staff_id,
         staff_name: appt.staff_name,
+        serviceId: appt.services && appt.services.length > 0 ? appt.services[0].id : null,
         date: appt.datetime.split('T')[0],
         datetime: appt.datetime,
         notes: appt.datetime.split('T')[1],
         services: appt.services || [],
-        status: "confirmed",
+        status: appt.status !== null && appt.status !== undefined ? Number(appt.status) : 0,
         invoiceStatus: "pending"
       }));
       console.log("Mapped appointments:", mappedAppointments);
@@ -4552,7 +5414,8 @@ const fetchInvoices = async () => {
   }
 
   try {
-    const response = await fetch(`${API_BASE_URL}/api/invoice`, {
+    // Fetch invoices
+    const invoiceResponse = await fetch(`${API_BASE_URL}/api/get-all-invoices`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -4561,34 +5424,70 @@ const fetchInvoices = async () => {
       }
     });
 
-    if (response.ok) {
-      const fetchedInvoices = await response.json();
+    // Fetch all reviews in parallel
+    const reviewResponse = await fetch(`${API_BASE_URL}/api/customer-reviewed-appointments`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (invoiceResponse.ok) {
+      const fetchedInvoices = await invoiceResponse.json();
+      
+      // Create a map of reviews by appointment_id for quick lookup
+      let reviewsMap = {};
+      if (reviewResponse.ok) {
+        try {
+          const reviewsData = await reviewResponse.json();
+          console.log("Reviews fetched:", reviewsData);
+          reviewsData.forEach(review => {
+            reviewsMap[review.appointment_id] = review;
+          });
+        } catch (e) {
+          console.log("No reviews available or error parsing reviews");
+        }
+      }
+
       // Map backend response to frontend format
       const mappedInvoices = fetchedInvoices.map(inv => ({
         id: inv.invoice_number || inv.id,
         invoice_number: inv.invoice_number,
+        appointment_id: inv.appointment_id,
         customer_id: inv.customer_id,
         customer_name: inv.customer_name || "",
         staff_id: inv.staff_id,
         staff_name: inv.staff_name || "",
         service_ids: inv.service_ids || "",
-        service_descs: inv.service_descs || "",
+        service_names: inv.service_names || "",
         invoice_amount: inv.invoice_amount || 0,
         other_charges: inv.other_charges || 0,
+        discount_percentage: inv.discount_percentage || 0,
         total_charges: inv.total_charges || inv.invoice_amount || 0,
+        payable_amount: inv.payable_amount ?? inv.total_charges ?? inv.invoice_amount ?? 0,
+        rewards_monetary_discount: inv.rewards_monetary_discount || 0,
         invoice_date: inv.invoice_date || new Date().toISOString().split('T')[0],
         status: inv.status || 0,
         rewards_earned: inv.rewards_earned || 0,
         rewards_utilized: inv.rewards_utilized || 0,
-        current_reward_points: inv.current_reward_points || 0
+        current_reward_points: inv.current_reward_points || 0,
+        // Map review data
+        has_review: inv.has_review || false,
+        review: reviewsMap[inv.appointment_id] || null,
+        rating: reviewsMap[inv.appointment_id]?.rating || null,
+        review_text: reviewsMap[inv.appointment_id]?.review || null
       }));
       invoices.value = mappedInvoices;
-      console.log("Invoices fetched successfully:", mappedInvoices);
+      console.log("Invoices with reviews mapped:", mappedInvoices);
     } else {
-      console.error("Failed to fetch invoices:", response.status);
+      console.error("Failed to fetch invoices - Status:", invoiceResponse.status);
+      invoices.value = [];
     }
   } catch (error) {
     console.error("Error fetching invoices:", error);
+    invoices.value = [];
   }
 };
 
@@ -4628,6 +5527,176 @@ const fetchManagerInventoryTransactions = async () => {
   }
 };
 
+const fetchAllManagerReplenishments = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/order`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const orders = await response.json();
+      allManagerReplenishmentTransactions.value = orders;
+      console.log("All manager replenishment orders fetched:", orders);
+    } else {
+      console.error("Failed to fetch manager replenishment orders:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching manager replenishment orders:", error);
+  }
+};
+
+const handleAppointmentSelect = (event) => {
+  const appointmentId = parseInt(event.target.value);
+  if (!appointmentId) {
+    invoiceForm.value.customerId = null;
+    invoiceForm.value.serviceId = null;
+    invoiceForm.value.date = "";
+    return;
+  }
+  
+  const selected = data.value.appointments.find(a => a.id === appointmentId);
+  if (selected) {
+    invoiceForm.value.customerId = selected.customerId;
+    invoiceForm.value.serviceId = selected.serviceId;
+    invoiceForm.value.date = selected.date;
+    console.log("Selected appointment:", selected);
+    console.log("Form values:", invoiceForm.value);
+  }
+};
+
+const handleAddInvoice = async () => {
+  if (!invoiceForm.value.appointmentId) {
+    invoiceError.value = "Please select an appointment";
+    return;
+  }
+
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    invoiceError.value = "Not authenticated";
+    return;
+  }
+
+  try {
+    // First, fetch the appointment details from the API
+    console.log("Fetching appointment details for ID:", invoiceForm.value.appointmentId);
+    const apptResponse = await fetch(`${API_BASE_URL}/api/appointment/${invoiceForm.value.appointmentId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (!apptResponse.ok) {
+      const errText = await apptResponse.text();
+      console.error("Failed to fetch appointment details:", apptResponse.status, errText);
+      invoiceError.value = "Failed to fetch appointment details";
+      return;
+    }
+
+    const appointment = await apptResponse.json();
+    console.log("Appointment fetched:", appointment);
+
+    // Extract ALL service IDs and calculate total from the appointment
+    const serviceIds = appointment.services && appointment.services.length > 0 ? appointment.services.map(s => s.id) : [];
+    const totalAmount = appointment.services ? appointment.services.reduce((sum, s) => sum + (s.price || 0), 0) : 0;
+
+    if (!serviceIds || serviceIds.length === 0) {
+      invoiceError.value = "Appointment has no services";
+      return;
+    }
+
+    // Create invoice with the appointment data
+    const invoicePayload = {
+      customer_id: appointment.customer_id,
+      staff_id: appointment.staff_id,
+      service_ids: serviceIds.join(','),
+      invoice_amount: totalAmount,
+      other_charges: 0,
+      discount_percentage: invoiceForm.value.discount || 0
+    };
+
+    console.log("📋 Creating invoice for appointment:", invoiceForm.value.appointmentId);
+    console.log("📋 Invoice payload:", invoicePayload);
+
+    const response = await fetch(`${API_BASE_URL}/api/invoice/${invoiceForm.value.appointmentId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(invoicePayload)
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log("✅ Invoice created successfully:", result);
+      invoiceSuccess.value = "Invoice created successfully!";
+      invoiceError.value = "";
+      invoiceForm.value = {
+        appointmentId: null,
+        customerId: null,
+        staffId: null,
+        staffName: null,
+        serviceIds: [],
+        totalServiceAmount: 0,
+        date: new Date().toISOString().split('T')[0],
+        paymentType: "cash",
+        discount: 0,
+        services: []
+      };
+      setTimeout(() => invoiceSuccess.value = "", 3000);
+      await fetchInvoices();
+      await fetchAppointments(); // Reload appointments to refresh the list
+    } else {
+      const errText = await response.text();
+      console.error("❌ Failed to create invoice. Status:", response.status, "Error:", errText);
+      invoiceError.value = "Failed to create invoice: " + errText;
+    }
+  } catch (error) {
+    console.error("❌ Error creating invoice:", error);
+    invoiceError.value = "Error creating invoice: " + error.message;
+  }
+};
+
+const handleDeleteInvoice = async (invoiceId) => {
+  if (!confirm("Are you sure you want to delete this invoice?")) return;
+
+  const token = localStorage.getItem("authToken");
+  if (!token) return;
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/invoice/${invoiceId}`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      invoiceSuccess.value = "Invoice deleted successfully!";
+      setTimeout(() => invoiceSuccess.value = "", 3000);
+      await fetchInvoices();
+    }
+  } catch (error) {
+    invoiceError.value = "Error deleting invoice";
+  }
+};
+
 const fetchManagerOrders = async () => {
   try {
     const token = localStorage.getItem("authToken");
@@ -4657,113 +5726,6 @@ const fetchManagerOrders = async () => {
   }
 };
 
-// Create supplier order
-// Open edit order modal
-const openEditOrderModal = (order) => {
-  editingOrder.value = order;
-  editOrderForm.value = {
-    status: order.status,
-    quantity: order.order_quantity,
-    reason: order.reason_for_order || "",
-    replenishment_date: order.order_replenishment_date ? new Date(order.order_replenishment_date).toISOString().split('T')[0] : ""
-  };
-  editOrderError.value = "";
-  showEditOrderModal.value = true;
-};
-
-// Update supplier order
-const handleUpdateOrder = async () => {
-  editOrderError.value = "";
-
-  if (!editingOrder.value) {
-    editOrderError.value = "No order selected";
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      editOrderError.value = "Authentication required. Please login again.";
-      return;
-    }
-
-    const payload = {
-      status: parseInt(editOrderForm.value.status),
-      order_quantity: parseInt(editOrderForm.value.quantity),
-      reason_for_order: editOrderForm.value.reason
-    };
-
-    if (editOrderForm.value.replenishment_date) {
-      payload.order_replenishment_date = editOrderForm.value.replenishment_date;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/order/${editingOrder.value.order_id}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        "Authentication-Token": token
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const result = await response.json();
-
-    if (response.ok) {
-      console.log("Order updated successfully:", result);
-      showEditOrderModal.value = false;
-      editingOrder.value = null;
-      
-      // Refresh orders list
-      await fetchManagerOrders();
-    } else {
-      editOrderError.value = result.message || "Failed to update order";
-      console.error("Error updating order:", result);
-    }
-  } catch (error) {
-    editOrderError.value = "Unable to connect to server. Please try again.";
-    console.error("Network error:", error);
-  }
-};
-
-// Delete supplier order
-const handleDeleteOrder = async (orderId) => {
-  if (!confirm("Are you sure you want to delete this order? This action cannot be undone.")) {
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      alert("Authentication required. Please login again.");
-      return;
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/order/${orderId}`, {
-      method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        "Authentication-Token": token
-      }
-    });
-
-    const result = await response.json();
-
-    if (response.ok) {
-      console.log("Order deleted successfully");
-      // Refresh orders list
-      await fetchManagerOrders();
-    } else {
-      alert(result.message || "Failed to delete order");
-      console.error("Error deleting order:", result);
-    }
-  } catch (error) {
-    alert("Unable to connect to server. Please try again.");
-    console.error("Network error:", error);
-  }
-};
-
 // Mark order as delivered and auto-replenish stock
 const handleMarkOrderDelivered = async (order) => {
   if (!confirm(`Mark order for "${order.product_name}" as Delivered? This will auto-replenish the stock.`)) {
@@ -4777,33 +5739,92 @@ const handleMarkOrderDelivered = async (order) => {
       return;
     }
 
-    const payload = {
+    // Create order delivered notification IMMEDIATELY when clicked
+    try {
+      const notificationPayload = {
+        subject: "Order Delivered",
+        body: `Order for ${order.product_name} has been successfully delivered. Stock replenished by ${order.order_quantity} units.`,
+        phone_number: "N/A"
+      };
+
+      await fetch(`${API_BASE_URL}/api/send-notification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        },
+        body: JSON.stringify(notificationPayload)
+      });
+    } catch (notifError) {
+      console.warn("Failed to create order delivered notification:", notifError);
+    }
+
+    // Step 1: Update order status to Delivered (1) via PUT order API
+    const orderPayload = {
       status: 1, // Mark as Processed/Delivered
       order_quantity: order.order_quantity
     };
 
-    const response = await fetch(`${API_BASE_URL}/api/order/${order.order_id}`, {
+    const orderResponse = await fetch(`${API_BASE_URL}/api/order/${order.order_id}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
         "Authentication-Token": token
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(orderPayload)
     });
 
-    const result = await response.json();
+    const orderResult = await orderResponse.json();
 
-    if (response.ok) {
+    if (!orderResponse.ok) {
+      alert(orderResult.message || "Failed to mark order as delivered");
+      console.error("Error marking order delivered:", orderResult);
+      return;
+    }
+
+    // Step 2: Create inventory transaction to replenish stock via POST inventory-transaction API
+    const txnPayload = {
+      product_id: order.product_id,
+      quantity: order.order_quantity
+      // txn_type will be set to 1 (manager replenishment) by the backend
+    };
+
+    const txnResponse = await fetch(`${API_BASE_URL}/api/inventory-transaction`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify(txnPayload)
+    });
+
+    const txnResult = await txnResponse.json();
+
+    if (txnResponse.ok) {
       alert(`Order marked as Delivered! Stock replenished by ${order.order_quantity} units.`);
-      console.log("Order delivered and stock replenished:", result);
+      console.log("Order delivered:", orderResult);
+      console.log("Inventory transaction created:", txnResult);
       
       // Refresh both orders and products
       await fetchManagerOrders();
+      console.log("Manager orders refreshed after delivery");
+      
+      await fetchAllManagerReplenishments();
+      console.log("Manager replenishments refreshed after delivery");
+      
       await fetchProducts();
+      console.log("Products refreshed after delivery");
     } else {
-      alert(result.message || "Failed to mark order as delivered");
-      console.error("Error marking order delivered:", result);
+      alert("Order marked as delivered, but failed to create inventory transaction: " + (txnResult.message || "Unknown error"));
+      console.error("Error creating inventory transaction:", txnResult);
+      
+      // Still refresh since order was updated
+      await fetchManagerOrders();
+      await fetchAllManagerReplenishments();
+      await fetchProducts();
     }
   } catch (error) {
     alert("Unable to connect to server. Please try again.");
@@ -4813,7 +5834,7 @@ const handleMarkOrderDelivered = async (order) => {
 
 // Place grouped supplier orders to wholesale
 const handlePlaceOrderToWholesale = async (supplierGroup) => {
-  if (!confirm(`Are you sure you want to place all ${supplierGroup.items.length} item(s) to wholesale for supplier "${supplierGroup.supplier}"?`)) {
+  if (!confirm(`Are you sure you want to mark all ${supplierGroup.items.length} item(s) as sent to wholesale for supplier "${supplierGroup.supplier}"?`)) {
     return;
   }
 
@@ -4824,52 +5845,75 @@ const handlePlaceOrderToWholesale = async (supplierGroup) => {
       return;
     }
 
-    let successCount = 0;
-    let failCount = 0;
-
-    // Post each item as a separate order to wholesale
-    for (const item of supplierGroup.items) {
-      try {
-        const product = data.value.products.find(p => p.id === item.product_id);
-        const orderPayload = {
-          product_id: item.product_id,
-          order_quantity: item.quantity,
-          reason_for_order: item.reason || "Manager replenishment order"
-        };
-
-        const response = await fetch(`${API_BASE_URL}/api/order`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            "Authentication-Token": token
-          },
-          body: JSON.stringify(orderPayload)
-        });
-
-        if (response.ok) {
-          successCount++;
-          console.log(`Order placed for product ID ${item.product_id}`);
-        } else {
-          failCount++;
-          console.error(`Failed to place order for product ID ${item.product_id}`);
-        }
-      } catch (error) {
-        failCount++;
-        console.error("Error placing order:", error);
-      }
+    // Get supplier email from the first item
+    const supplierEmail = supplierGroup.items[0]?.supplier_email;
+    if (!supplierEmail) {
+      alert("Error: Supplier email not found");
+      return;
     }
 
-    const summary = `Orders Placed to Wholesale!\n================================\nSupplier: ${supplierGroup.supplier}\nSuccessful: ${successCount}\nFailed: ${failCount}\nTotal Items: ${supplierGroup.items.length}`;
-    alert(summary);
+    // Create pending delivery notification IMMEDIATELY when clicked
+    try {
+      const notificationPayload = {
+        subject: "Order Pending Delivery",
+        body: `${supplierGroup.items.length} order(s) placed with supplier "${supplierGroup.supplier}" and sent to wholesaler. Awaiting delivery.`,
+        phone_number: "N/A"
+      };
+
+      await fetch(`${API_BASE_URL}/api/send-notification`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        },
+        body: JSON.stringify(notificationPayload)
+      });
+    } catch (notifError) {
+      console.warn("Failed to create pending delivery notification:", notifError);
+    }
+
+    // Call API to generate PDF, send email, and advance orders to Pending Delivery (status=0)
+    console.log(`Calling API to generate wholesale order PDF for ${supplierEmail}...`);
     
-    // Refresh both lists
+    const generateResponse = await fetch(`${API_BASE_URL}/api/generate-wholesaler-order/${encodeURIComponent(supplierEmail)}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    console.log("Generate response status:", generateResponse.status);
+
+    if (generateResponse.ok) {
+      // Handle PDF file download
+      const blob = await generateResponse.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `order_${supplierGroup.supplier.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log("PDF downloaded successfully");
+    } else {
+      const errorText = await generateResponse.text();
+      console.error("Error generating PDF:", generateResponse, errorText);
+    }
+
+    // Refresh lists to reflect the updated order statuses
     await fetchManagerOrders();
-    await fetchManagerInventoryTransactions();
-    
-    console.log(`${successCount} orders placed to wholesale, ${failCount} failed`);
+    await fetchAllManagerReplenishments();
+
+    const summary = `Orders Confirmed for Wholesale!\n================================\nSupplier: ${supplierGroup.supplier}\nTotal Items: ${supplierGroup.items.length}\n\nWholesale Order PDF has been generated and sent to: ${supplierEmail}\n\nOrders are now visible in "Wholesale Orders Placed"`;
+    alert(summary);
+
+    console.log(`${supplierGroup.items.length} orders confirmed for wholesale with ${supplierGroup.supplier}`);
   } catch (error) {
-    alert("Error placing orders: " + error.message);
+    alert("Error: " + error.message);
     console.error("Critical error:", error);
   }
 };
@@ -4877,12 +5921,12 @@ const handlePlaceOrderToWholesale = async (supplierGroup) => {
 // Get status color
 const getStatusColor = (status) => {
   switch(status) {
-    case 0: // Pending
+    case 2: // Added to Cart - In progress
       return { bg: '#fff3cd', text: '#856404' };
-    case 1: // Processed
+    case 0: // Pending - Sent to wholesale, awaiting delivery
+      return { bg: '#cfe2ff', text: '#084298' };
+    case 1: // Delivered - Completed
       return { bg: '#d4edda', text: '#155724' };
-    case 2: // Cancelled
-      return { bg: '#f8d7da', text: '#721c24' };
     default:
       return { bg: '#e2e3e5', text: '#383d41' };
   }
@@ -4891,9 +5935,9 @@ const getStatusColor = (status) => {
 // Get status label
 const getStatusLabel = (status) => {
   switch(status) {
-    case 0: return "Pending";
-    case 1: return "Processed";
-    case 2: return "Cancelled";
+    case 2: return "Added to Cart";
+    case 0: return "Pending Delivery";
+    case 1: return "Delivered";
     default: return "Unknown";
   }
 };
@@ -4929,9 +5973,10 @@ const handleCreateBooking = async () => {
 
   if (selectedDate < minDate || selectedDate > maxDate) {
     if (hasBridalPackageSelected()) {
-      bookingError.value = `Bridal Package must be booked 1 to 6 months in advance`;
+      const months = selectedCustomerIsVIP() ? 1 : 2;
+      bookingError.value = `Bridal service must be booked at least ${months === 1 ? '1 month' : '2 months'} in advance (max 6 months)`;
     } else {
-      bookingError.value = `Please select today or within the next 2 days`;
+      bookingError.value = `Regular services can only be booked within the next 3 days`;
     }
     return;
   }
@@ -5007,6 +6052,7 @@ const handleCreateBooking = async () => {
           staffId: ""
         };
         bookingCustomerSearch.value = "";
+        bookingServiceSearch.value = "";
         bookingSuccess.value = "";
       }, 1500);
     } else {
@@ -5299,6 +6345,13 @@ const handleEditService = (service) => {
   editingServiceId.value = service.id;
   
   console.log("After setting flags - isEditingService:", isEditingService.value, "editingServiceId:", editingServiceId.value);
+  
+  // Scroll to the service form after DOM update
+  nextTick(() => {
+    if (serviceFormRef.value) {
+      serviceFormRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
 };
 
 const handleUpdateService = async () => {
@@ -5478,6 +6531,39 @@ const viewInvoice = (appointment) => {
   showInvoiceModal.value = true;
 };
 
+const viewFeedback = async (invoice) => {
+  try {
+    console.log("📝 Opening feedback for appointment:", invoice.appointment_id);
+    
+    // Check if review is already mapped in invoice object
+    if (invoice.review) {
+      console.log("✅ Review already loaded:", invoice.review);
+      currentFeedback.value = invoice.review;
+      feedbackError.value = "";
+    } else if (invoice.rating || invoice.review_text) {
+      // Construct feedback object from mapped data
+      currentFeedback.value = {
+        rating: invoice.rating,
+        review: invoice.review_text,
+        staff_name: invoice.staff_name,
+        services: invoice.service_names ? invoice.service_names.split(",") : [],
+        datetime: invoice.invoice_date
+      };
+      feedbackError.value = "";
+    } else {
+      console.log("No feedback found for this invoice");
+      currentFeedback.value = null;
+      feedbackError.value = "No feedback has been provided yet for this invoice";
+    }
+    
+    showFeedbackModal.value = true;
+  } catch (error) {
+    console.error("❌ Error viewing feedback:", error);
+    feedbackError.value = "Error loading feedback: " + error.message;
+    showFeedbackModal.value = true;
+  }
+};
+
 // Fetch customers from API
 const fetchCustomers = async () => {
   const token = localStorage.getItem("authToken");
@@ -5510,7 +6596,8 @@ const fetchCustomers = async () => {
         customerType: c.customer_type,
         noOfVisits: c.number_of_visits,
         registrationDate: c.customer_reg_date,
-        pointsBalance: c.customer_available_rewards || 0
+        pointsBalance: c.customer_available_rewards || 0,
+        totalSpent: c.total_spend || 0
       }));
       console.log("Customers fetched:", appStore.data.customers);
     } else {
@@ -5645,6 +6732,13 @@ const handleEditCustomer = (customer) => {
   
   isEditingCustomer.value = true;
   editingCustomerId.value = customer.id;
+  
+  // Scroll to the customer form
+  setTimeout(() => {
+    if (customerFormRef.value) {
+      customerFormRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, 50);
 };
 
 const handleUpdateCustomer = async () => {
@@ -5951,7 +7045,7 @@ const fetchStaff = async () => {
         salary: s.staff_salary,
         rating: s.staff_cumulative_rating,
         reviews: s.no_of_reviews,
-        status: "active"
+        status: s.active ? "active" : "inactive"
       }));
       console.log("Staff fetched:", appStore.data.staff);
     } else {
@@ -6077,174 +7171,8 @@ const handleAddStaff = async () => {
 };
 
 // Invoice handlers
-const handleAppointmentSelect = (event) => {
-  const appointmentId = parseInt(event.target.value);
-  console.log("Appointment selected:", appointmentId);
-  
-  if (!appointmentId) {
-    invoiceForm.value.appointmentId = "";
-    invoiceForm.value.customerId = "";
-    invoiceForm.value.staffId = "";
-    invoiceForm.value.serviceId = "";
-    invoiceForm.value.date = "";
-    invoiceForm.value.services = [];
-    invoiceForm.value.amount = 0;
-    return;
-  }
-  
-  // Search in today's appointments (which is what the dropdown shows)
-  const appointment = todaysAppointmentsForInvoice.value.find(a => a.id === appointmentId);
-  console.log("Found appointment:", appointment);
-  
-  if (appointment) {
-    invoiceForm.value.appointmentId = appointment.id;
-    invoiceForm.value.customerId = appointment.customerId;
-    invoiceForm.value.staffId = appointment.staffId;
-    // Extract service ID from services array (first service) or use serviceId if it exists
-    const serviceId = appointment.services && appointment.services.length > 0 
-      ? appointment.services[0].id 
-      : (appointment.serviceId || "");
-    invoiceForm.value.serviceId = serviceId;
-    invoiceForm.value.date = appointment.date;
-    invoiceForm.value.services = appointment.services || [];
-    
-    // Calculate total amount from all services
-    console.log("Services array:", invoiceForm.value.services);
-    let totalAmount = 0;
-    if (invoiceForm.value.services && invoiceForm.value.services.length > 0) {
-      totalAmount = invoiceForm.value.services.reduce((sum, service) => {
-        const servicePrice = parseFloat(service.price) || 0;
-        console.log("Service:", service.name, "Price:", servicePrice);
-        return sum + servicePrice;
-      }, 0);
-    }
-    invoiceForm.value.amount = totalAmount;
-    
-    console.log(`Selected appointment #${appointmentId} - Amount: ₹${totalAmount}`);
-  }
-};
 
-const handleAddInvoice = async () => {
-  invoiceError.value = "";
-  invoiceSuccess.value = "";
-
-  if (!invoiceForm.value.appointmentId) {
-    invoiceError.value = "Please select an appointment";
-    return;
-  }
-
-  if (!invoiceForm.value.customerId) {
-    invoiceError.value = "Please select a customer";
-    return;
-  }
-
-  if (!invoiceForm.value.staffId) {
-    invoiceError.value = "Staff information missing from appointment";
-    return;
-  }
-
-  if (invoiceForm.value.services.length === 0) {
-    invoiceError.value = "No services found for this appointment";
-    return;
-  }
-
-  if (invoiceForm.value.discount < 0 || invoiceForm.value.discount > 100) {
-    invoiceError.value = "Discount must be between 0 and 100";
-    return;
-  }
-
-  try {
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      invoiceError.value = "Authentication required. Please login again.";
-      return;
-    }
-
-    // Calculate invoice amount from services
-    const serviceTotal = invoiceForm.value.services.reduce((sum, service) => {
-      return sum + (service.price || 0);
-    }, 0);
-
-    // Apply discount
-    const discountAmount = (serviceTotal * invoiceForm.value.discount) / 100;
-    const invoiceAmount = serviceTotal - discountAmount;
-
-    // Build service_ids as comma-separated string
-    const serviceIds = invoiceForm.value.services.map(s => s.id).join(",");
-
-    // Prepare payload for backend
-    const payload = {
-      appointment_id: invoiceForm.value.appointmentId,
-      customer_id: invoiceForm.value.customerId,
-      staff_id: invoiceForm.value.staffId,
-      service_ids: serviceIds,
-      invoice_amount: parseFloat(invoiceAmount.toFixed(2)),
-      other_charges: 0,
-      discount_percentage: invoiceForm.value.discount
-    };
-
-    console.log("Creating invoice with payload:", payload);
-
-    const response = await fetch(`${API_BASE_URL}/api/invoice`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-        "Authentication-Token": token
-      },
-      body: JSON.stringify(payload)
-    });
-
-    const result = await response.json();
-
-    if (response.ok) {
-      invoiceSuccess.value = "Invoice created successfully!";
-      console.log("Invoice created:", result);
-
-      // Remove the invoiced appointment from today's appointments list immediately
-      const appointmentIndex = todaysAppointmentsForInvoice.value.findIndex(appt => appt.id === invoiceForm.value.appointmentId);
-      if (appointmentIndex > -1) {
-        todaysAppointmentsForInvoice.value.splice(appointmentIndex, 1);
-      }
-
-      // Reset form
-      setTimeout(() => {
-        invoiceForm.value = {
-          appointmentId: "",
-          customerId: "",
-          staffId: "",
-          serviceId: "",
-          date: "",
-          paymentType: "cash",
-          discount: 0,
-          services: []
-        };
-        invoiceSuccess.value = "";
-        // Refresh appointments and invoices to show updated status
-        fetchAppointments();
-        fetchInvoices();
-        fetchTodaysAppointmentsForInvoice();
-      }, 1500);
-    } else {
-      invoiceError.value = result.message || "Failed to create invoice";
-      console.error("Error creating invoice:", result);
-    }
-  } catch (error) {
-    invoiceError.value = "Unable to connect to server. Please try again.";
-    console.error("Network error:", error);
-  }
-};
-
-const handleDeleteInvoice = (appointmentId) => {
-  if (confirm("Are you sure you want to delete this invoice?")) {
-    const index = data.value.appointments.findIndex(a => a.id === appointmentId);
-    if (index > -1) {
-      data.value.appointments.splice(index, 1);
-    }
-  }
-};
-
-const handleSendInvoice = (invoice) => {
+const handleSendInvoice = async (invoice) => {
   const customerEmail = data.value.customers.find(c => c.id === invoice.customer_id)?.email;
   const customerName = getCustomerName(invoice.customer_id);
   
@@ -6254,24 +7182,266 @@ const handleSendInvoice = (invoice) => {
   }
 
   // Show confirmation dialog
-  if (confirm(`Send invoice to ${customerName} (${customerEmail})?\n\nInvoice: #${invoice.invoice_number}\nAmount: ₹${invoice.total_charges}`)) {
-    // Update invoice status to Invoiced (1) in the local state
-    invoice.status = 1;
+  if (!confirm(`Send invoice to ${customerName} (${customerEmail})?\n\nInvoice: #${invoice.invoice_number}\nAmount: ₹${invoice.total_charges}`)) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    // Call API to generate and send invoice PDF
+    const response = await fetch(`${API_BASE_URL}/api/generate-invoice-pdf/${encodeURIComponent(invoice.invoice_number)}`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const contentType = response.headers.get("Content-Type") || "";
+      if (contentType.includes("application/pdf")) {
+        // Trigger PDF download in browser
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `invoice_${invoice.invoice_number}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      }
+
+      alert(`✓ Invoice #${invoice.invoice_number} PDF generated and sent successfully to ${customerEmail}!`);
+
+      // Refresh invoices list
+      await fetchInvoices();
+    } else {
+      let errorMsg = "Failed to generate PDF";
+      try {
+        const result = await response.json();
+        errorMsg = result.message || errorMsg;
+      } catch (_) {}
+      alert(`Error sending invoice: ${errorMsg}`);
+    }
+  } catch (error) {
+    alert("Unable to connect to server. Please try again.");
+    console.error("Network error:", error);
+  }
+};
+
+// Mark staff absent with automated notifications
+const handleMarkStaffAbsentWithNotifications = async () => {
+  if (!confirm("Are you sure you want to mark all unmarked staff as absent for today? Notifications will be sent to manager.")) {
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    // Step 1: Mark all unmarked staff as absent
+    const markResponse = await fetch(`${API_BASE_URL}/api/mark-staff-absent`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    const markResult = await markResponse.json();
+
+    if (!markResponse.ok) {
+      alert("Error marking staff absent: " + (markResult.message || "Unknown error"));
+      console.error("Error marking staff absent:", markResult);
+      return;
+    }
+
+    // Step 2: Get today's absent staff for notifications
+    const attendanceResponse = await fetch(`${API_BASE_URL}/api/manager-staff-attendance?date=${new Date().toISOString().split('T')[0]}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    const attendanceData = await attendanceResponse.json();
     
-    // Show success message
-    alert(`✓ Invoice #${invoice.invoice_number} sent successfully to ${customerEmail}!`);
+    if (!attendanceResponse.ok) {
+      // Still show success since staff were marked absent, but notify about notification error
+      alert(markResult.message || "Staff marked absent (notification fetch failed)");
+      return;
+    }
+
+    // Step 3: Find absent staff (present_flag = false)
+    const absentStaffList = Array.isArray(attendanceData) ? attendanceData.filter(a => !a.present_flag) : [];
+
+    let notificationsSent = 0;
+    let notificationsFailed = 0;
+
+    // Step 4: Send notifications for each absent staff member
+    for (const attendance of absentStaffList) {
+      try {
+        const staffMember = data.value.staff.find(s => s.id === attendance.staff_id);
+        if (!staffMember) continue;
+
+        const notificationPayload = {
+          subject: "Staff Absent Notification",
+          body: `${staffMember.name} is marked absent today (${new Date().toLocaleDateString()})`,
+          phone_number: staffMember.phone || "N/A"
+        };
+
+        const notifResponse = await fetch(`${API_BASE_URL}/api/send-notification`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "Authentication-Token": token
+          },
+          body: JSON.stringify(notificationPayload)
+        });
+
+        if (notifResponse.ok) {
+          notificationsSent++;
+          console.log(`Notification sent for ${staffMember.name}`);
+        } else {
+          notificationsFailed++;
+          console.error(`Failed to send notification for ${staffMember.name}`);
+        }
+      } catch (error) {
+        notificationsFailed++;
+        console.error("Error sending notification:", error);
+      }
+    }
+
+    const summary = `Staff Marked Absent!\n================================\n${markResult.message}\n\nNotifications Sent: ${notificationsSent}\nNotifications Failed: ${notificationsFailed}`;
+    alert(summary);
+
+    // Refresh attendance data
+    await fetchManagerAttendance();
     
-    console.log(`Invoice ${invoice.invoice_number} marked as sent to ${customerEmail}`);
+    console.log(`Marked staff absent and sent ${notificationsSent} notifications`);
+  } catch (error) {
+    alert("Critical error: " + error.message);
+    console.error("Critical error:", error);
+  }
+};
+
+// Fetch all notifications for current user
+const fetchNotifications = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    notificationsLoading.value = true;
+    const response = await fetch(`${API_BASE_URL}/api/send-notification?include_read=false`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      notificationsList.value = await response.json();
+    } else {
+      console.error("Failed to fetch notifications:", response.statusText);
+      notificationsList.value = [];
+    }
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    notificationsList.value = [];
+  } finally {
+    notificationsLoading.value = false;
+  }
+};
+
+// Mark a notification as read
+const markNotificationAsRead = async (notificationId) => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/send-notification/${notificationId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      // Update local state to mark as read
+      const notification = notificationsList.value.find(n => n.id === notificationId);
+      if (notification) {
+        notification.is_read = true;
+      }
+      console.log(`Notification ${notificationId} marked as read`);
+    } else {
+      console.error("Failed to mark notification as read:", response.statusText);
+    }
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+  }
+};
+
+// Toggle notification panel
+const toggleNotificationPanel = async () => {
+  showNotificationPanel.value = !showNotificationPanel.value;
+  if (showNotificationPanel.value) {
+    await fetchNotifications();
+  }
+};
+
+// Mark all notifications as read
+const markAllNotificationsAsRead = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      alert("Authentication required. Please login again.");
+      return;
+    }
+
+    const unreadNotifs = notificationsList.value.filter(n => !n.is_read);
+    
+    for (const notification of unreadNotifs) {
+      await markNotificationAsRead(notification.id);
+    }
+    
+    console.log(`Marked ${unreadNotifs.length} notifications as read`);
+  } catch (error) {
+    console.error("Error marking all notifications as read:", error);
   }
 };
 
 // Financial section password handlers
-const handleFinanceAccess = () => {
+const handleFinanceAccess = async () => {
   if (financeAuthenticated.value) {
     currentView.value = 'finance';
+    await fetchFinanceData();
   } else {
     financialPasswordInput.value = "";
     financialPasswordError.value = "";
+    showFinancePassword.value = false;
     pendingFinancialView.value = 'finance';
     showFinancePasswordModal.value = true;
   }
@@ -6283,6 +7453,7 @@ const handleReportsAccess = () => {
   } else {
     financialPasswordInput.value = "";
     financialPasswordError.value = "";
+    showReportsPassword.value = false;
     pendingFinancialView.value = 'reports';
     showReportsPasswordModal.value = true;
   }
@@ -6332,8 +7503,10 @@ const verifyFinancialPassword = async () => {
     if (response.ok && data.token) {
       financeAuthenticated.value = true;
       showFinancePasswordModal.value = false;
+      showFinancePassword.value = false;
       currentView.value = 'finance';
       financialPasswordInput.value = "";
+      await fetchFinanceData();
     } else {
       financialPasswordError.value = "❌ Incorrect password. Please try again.";
       financialPasswordInput.value = "";
@@ -6388,6 +7561,7 @@ const verifyReportsPassword = async () => {
     if (response.ok && data.token) {
       reportsAuthenticated.value = true;
       showReportsPasswordModal.value = false;
+      showReportsPassword.value = false;
       currentView.value = 'reports';
       financialPasswordInput.value = "";
     } else {
@@ -6397,6 +7571,173 @@ const verifyReportsPassword = async () => {
   } catch (error) {
     console.error("Error verifying password:", error);
     financialPasswordError.value = "❌ Error verifying password. Please try again.";
+  }
+};
+
+// ── Manager Profile Data Fetch ────────────────────────────────────────────
+const fetchManagerProfileData = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    const userId = appStore.user?.id;
+    
+    if (!token || !userId) return;
+
+    const response = await fetch(`${API_BASE_URL}/api/manager/${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authentication-Token': token,
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      managerProfileData.value = await response.json();
+      console.log('Manager profile data loaded:', managerProfileData.value);
+    }
+  } catch (error) {
+    console.error('Error fetching manager profile:', error);
+  }
+};
+
+// ── Finance API Functions ──────────────────────────────────────────────────
+
+const openEditOverheadModal = async () => {
+  try {
+    if (financeData.value) {
+      overheadEditForm.value = {
+        overheads: financeData.value.overheads || 0
+      };
+      showEditOverheadModal.value = true;
+    }
+  } catch (error) {
+    console.error('Error opening edit modal:', error);
+  }
+};
+
+const handleUpdateOverhead = async () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      alert('User not authenticated');
+      return;
+    }
+
+    // Get current month's last date
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const lastDateStr = lastDay.toISOString().split('T')[0];
+
+    const response = await fetch(`${API_BASE_URL}/api/finance`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authentication-Token': token,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        last_date: lastDateStr,
+        overheads: parseFloat(overheadEditForm.value.overheads)
+      }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      financeData.value = data;
+      showEditOverheadModal.value = false;
+      alert('✅ Overhead bills updated successfully!');
+    } else {
+      const errorData = await response.json();
+      alert(`❌ Failed to update: ${errorData.message}`);
+    }
+  } catch (error) {
+    console.error('Error updating overhead bills:', error);
+    alert(`❌ Error: ${error.message}`);
+  }
+};
+
+const fetchFinanceData = async (monthInYYYYMMFormat = null) => {
+  try {
+    financeLoading.value = true;
+    financeError.value = null;
+    
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      financeError.value = "User not authenticated";
+      return;
+    }
+
+    // Get the month's last date
+    let lastDateStr;
+    if (monthInYYYYMMFormat) {
+      // Parse YYYY-MM format
+      const [year, month] = monthInYYYYMMFormat.split('-');
+      const lastDay = new Date(parseInt(year), parseInt(month), 0);
+      lastDateStr = lastDay.toISOString().split('T')[0];
+    } else {
+      // Current month's last date
+      const now = new Date();
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      lastDateStr = lastDay.toISOString().split('T')[0];
+    }
+    
+    // Always call POST first to ensure fresh calculations
+    console.log('Regenerating finance report for', lastDateStr);
+    const response = await fetch(`${API_BASE_URL}/api/finance`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authentication-Token': token,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ last_date: lastDateStr }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      financeData.value = data;
+      console.log('Finance data populated with fresh calculations:', data);
+    } else {
+      throw new Error(`Failed to populate balance sheet: ${response.status}`);
+    }
+  } catch (error) {
+    console.error('Error populating finance data:', error);
+    financeError.value = error.message;
+  } finally {
+    financeLoading.value = false;
+  }
+};
+
+const loadBalanceSheetForMonth = async () => {
+  await fetchFinanceData(selectedBalanceSheetMonth.value);
+};
+
+const createFinanceReport = async (lastDateStr) => {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token) return;
+
+    const response = await fetch(`${API_BASE_URL}/api/finance`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authentication-Token': token,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ last_date: lastDateStr }),
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      financeData.value = data;
+      console.log('Finance report created:', data);
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to create finance report');
+    }
+  } catch (error) {
+    console.error('Error creating finance report:', error);
+    financeError.value = error.message;
   }
 };
 
@@ -6541,34 +7882,39 @@ const quickGenerateReport = async () => {
 };
 
 // ── Chatbot report trigger (from the floating assistant) ───────────────────
-const _triggerReportFromChat = async (userMessage) => {
+const _triggerReportFromChat = async (userMessage, overrideIntent = null) => {
   const token = localStorage.getItem("authToken");
+  const format = userMessage.includes('pdf') ? 'pdf' : 'csv';
   try {
-    const intentRes = await fetch(`${API_BASE_URL}/ai/report-intent`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Authentication-Token": token,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message: userMessage }),
-    });
-    const intent = await intentRes.json();
-
-    if (!intentRes.ok || !intent.report_type) {
-      return intent.message ||
-        'Please specify the report type: sales, staff, appointments, inventory, or feedback.';
+    let intent = overrideIntent;
+    if (!intent) {
+      const intentRes = await fetch(`${API_BASE_URL}/ai/report-intent`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message: userMessage }),
+      });
+      intent = await intentRes.json();
+      if (!intentRes.ok || !intent.report_type) {
+        return intent.message ||
+          'Please specify the report type: sales, staff, appointments, inventory, or feedback.';
+      }
     }
+
+    lastReportIntent.value = intent;
 
     await _callGenerateReport(
       intent.report_type,
       intent.time_period,
-      'csv',
+      format,
       intent.custom_start,
       intent.custom_end,
     );
 
-    return `Done! Your ${intent.time_period} ${intent.report_type} report (CSV) is downloading now. You can also find it in the Download Reports section.`;
+    return `Done! Your ${intent.time_period} ${intent.report_type} report (${format.toUpperCase()}) is downloading now. You can also find it in the Download Reports section.`;
   } catch (err) {
     return `Report generation failed: ${err.message || 'Please try again.'}`;
   }
@@ -7003,6 +8349,21 @@ const sendAIMessage = () => {
     }, 0);
   };
 
+  // Format follow-up: user says "in pdf" / "as pdf" / "pdf format" after a prior report
+  const isFormatFollowUp = lastReportIntent.value && (
+    userMessage.includes('pdf') || userMessage.includes('csv')
+  ) && !userMessage.includes('report');
+  if (isFormatFollowUp) {
+    const fmt = userMessage.includes('pdf') ? 'pdf' : 'csv';
+    aiMessages.value.push({ type: 'assistant', text: `Regenerating the ${lastReportIntent.value.report_type} report as ${fmt.toUpperCase()}…` });
+    scrollChat();
+    _triggerReportFromChat(userMessage, lastReportIntent.value).then(reply => {
+      aiMessages.value.push({ type: 'assistant', text: reply });
+      scrollChat();
+    });
+    return;
+  }
+
   // Report generation — async path (checked before task checklist)
   const reportKeywords = [
     'report', 'generate report', 'download report', 'sales report',
@@ -7043,40 +8404,30 @@ const sendAIMessage = () => {
     return;
   }
 
-  // Static keyword responses
-  let assistantResponse = '';
-  if (userMessage.includes('appointment') || userMessage.includes('booking')) {
-    assistantResponse = 'I see you\'re asking about appointments. You can manage appointments in the "Appointments" section. You can create new appointments, edit existing ones, or view them by date. What would you like to do?';
-  } else if (userMessage.includes('customer')) {
-    assistantResponse = 'The Customers section shows all your clients, their contact information, preferences, visit history, and spending. You can add new customers, edit their details, or track customer loyalty there.';
-  } else if (userMessage.includes('service')) {
-    assistantResponse = 'You can create and manage services in the "Services" section. Add new services, set pricing, duration, products required, and manage all your service offerings there.';
-  } else if (userMessage.includes('staff') || userMessage.includes('stylist')) {
-    assistantResponse = 'You can view and manage your staff in the Staff Management section. Add new staff members, view their skills, attendance, appointments, and performance ratings.';
-  } else if (userMessage.includes('package')) {
-    assistantResponse = 'Service Packages allow you to bundle multiple services together in the "Service Packages" section. Create customized packages for special promotions or occasions.';
-  } else if (userMessage.includes('inventory') || userMessage.includes('product') || userMessage.includes('stock')) {
-    assistantResponse = 'The Inventory Management section lets you track products, stock levels, suppliers, and costs. You can see low stock alerts and manage orders from the Orders section.';
-  } else if (userMessage.includes('invoice') || userMessage.includes('billing') || userMessage.includes('payment')) {
-    assistantResponse = 'You can create and manage invoices in the Invoices section. Create invoices from completed appointments, track payment status, and send invoices to customers via email.';
-  } else if (userMessage.includes('finance') || userMessage.includes('profit') || userMessage.includes('revenue')) {
-    assistantResponse = 'The Finance section (password protected) shows your total revenue, product costs, staff salaries, overhead, and net profit. Access it from the sidebar for a complete financial overview. You can also ask me to "Generate a monthly financial report" to download a PDF or CSV!';
-  } else if (userMessage.includes('issue') || userMessage.includes('problem') || userMessage.includes('error')) {
-    assistantResponse = 'I\'m sorry you\'re experiencing an issue. Please describe the problem in detail, and I\'ll help you troubleshoot. Is it related to appointments, customers, services, staff, inventory, or invoices?';
-  } else if (userMessage.includes('help')) {
-    assistantResponse = 'I\'m here to help! I can assist you with:\n• Managing appointments & bookings\n• Customer information & preferences\n• Creating & managing services\n• Staff management & scheduling\n• Inventory & product management\n• Invoices & billing\n• Finance & reports\n• Generating a daily task checklist (just ask!)\n\nWhat would you like help with?';
-  } else if (userMessage.includes('hello') || userMessage.includes('hi')) {
-    assistantResponse = 'Hello! I\'m your AI Assistant for the Manager Dashboard. How can I help you today? Feel free to ask about appointments, customers, services, staff, inventory, or say "Create a task checklist for today"!';
-  } else if (userMessage.includes('overview') || userMessage.includes('stats') || userMessage.includes('dashboard')) {
-    assistantResponse = 'The Dashboard Overview shows you key metrics: Today\'s appointments, available staff, low stock items, and pending orders. This gives you a quick snapshot of your business for the day.';
-  } else {
-    assistantResponse = 'That\'s a great question! I can help with appointment management, customer details, service creation, staff management, inventory, invoices, and financial reports. You can also ask me to "Create a task checklist for today"!';
-  }
-
-  setTimeout(() => {
-    aiMessages.value.push({ type: 'assistant', text: assistantResponse });
-    scrollChat();
-  }, 500);
+  // All other questions → real AI with DB context
+  const token = localStorage.getItem('authToken');
+  const historyForApi = aiMessages.value.slice(0, -1).slice(-20); // exclude the just-added user msg
+  fetch(`${API_BASE_URL}/ai/manager-chat`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+      'Authentication-Token': token
+    },
+    body: JSON.stringify({
+      message: userMessage,
+      history: historyForApi
+    })
+  })
+    .then(r => r.json())
+    .then(data => {
+      aiMessages.value.push({ type: 'assistant', text: data.response || 'Sorry, I could not get a response.' });
+      scrollChat();
+    })
+    .catch(() => {
+      aiMessages.value.push({ type: 'assistant', text: 'Connection error. Please try again.' });
+      scrollChat();
+    });
 };
 
 // Product/Inventory handlers
@@ -7385,6 +8736,13 @@ const handleEditStaff = (staff) => {
   
   isEditingStaff.value = true;
   editingStaffId.value = staff.id;
+  
+  // Scroll to the staff form
+  nextTick(() => {
+    if (staffFormRef.value) {
+      staffFormRef.value.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  });
 };
 
 const cancelEditStaff = () => {
@@ -7558,6 +8916,9 @@ const handleDeleteStaff = async (staffId) => {
 
 // Booking edit/delete handlers
 const handleEditBooking = (booking) => {
+  // Ensure salon config is loaded for time slots
+  fetchSalonConfig();
+  
   editingAppointment.value = booking;
   
   // Extract time from datetime (format: "HH:MM:SS" or "HH:MM")
@@ -7608,9 +8969,10 @@ const handleSubmitEditAppointment = async () => {
 
   if (selectedDate < minDate || selectedDate > maxDate) {
     if (hasBridalPackageSelectedInEdit()) {
-      editAppointmentError.value = `Bridal Package must be booked 1 to 6 months in advance`;
+      const months = editCustomerIsVIP() ? 1 : 2;
+      editAppointmentError.value = `Bridal service must be booked at least ${months === 1 ? '1 month' : '2 months'} in advance (max 6 months)`;
     } else {
-      editAppointmentError.value = `Appointment must be scheduled today or within the next 2 days`;
+      editAppointmentError.value = `Regular services can only be booked within the next 3 days`;
     }
     return;
   }
@@ -7879,15 +9241,18 @@ const handleAddReplenishment = async () => {
       return;
     }
 
+    const product = data.value.products.find(p => p.id === parseInt(replenishmentForm.value.productId));
+    const productName = product?.name || "Product";
+
     const payload = {
       product_id: parseInt(replenishmentForm.value.productId),
-      quantity: parseInt(replenishmentForm.value.quantity)
-      // Note: service_id is optional - manager replenishment doesn't require it
+      order_quantity: parseInt(replenishmentForm.value.quantity),
+      reason_for_order: replenishmentForm.value.reason.trim()
     };
 
-    console.log("Creating replenishment with payload:", payload);
+    console.log("Creating replenishment order with payload:", payload);
 
-    const response = await fetch(`${API_BASE_URL}/api/inventory-transaction`, {
+    const response = await fetch(`${API_BASE_URL}/api/order`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -7900,14 +9265,6 @@ const handleAddReplenishment = async () => {
     const result = await response.json();
 
     if (response.ok) {
-      const product = data.value.products.find(p => p.id === parseInt(replenishmentForm.value.productId));
-      const productName = product?.name || "Product";
-      
-      // Update product stock if returned from backend
-      if (result.updated_stock !== undefined && product) {
-        product.currentStock = result.updated_stock;
-      }
-      
       // Reset form
       replenishmentForm.value = {
         productId: "",
@@ -7916,13 +9273,13 @@ const handleAddReplenishment = async () => {
         supplier: ""
       };
       
-      // Refresh inventory transactions to show newly created replenishment
-      await fetchManagerInventoryTransactions();
+      // Refresh manager replenishments list
+      await fetchAllManagerReplenishments();
       
-      console.log(`Replenishment added for ${productName}`, result);
+      console.log(`Replenishment order added for ${productName}`, result);
     } else {
-      replenishmentError.value = result.message || "Failed to add replenishment";
-      console.error("Error adding replenishment:", result);
+      replenishmentError.value = result.message || "Failed to add replenishment order";
+      console.error("Error adding replenishment order:", result);
     }
   } catch (error) {
     replenishmentError.value = "Unable to connect to server. Please try again.";
@@ -7930,44 +9287,69 @@ const handleAddReplenishment = async () => {
   }
 };
 
-const handleCreateInvoiceFromAppointment = (appt) => {
-  // Pre-fill invoice form with appointment details
-  // Extract first service ID from services array, or use serviceId if available
-  const serviceId = appt.services && appt.services.length > 0 ? appt.services[0].id : (appt.serviceId || null);
-  
-  // Create a hidden select event to trigger dropdown selection
-  const selectElement = document.querySelector('#invoice-appointment');
-  if (selectElement) {
-    selectElement.value = appt.id;
-  }
-  
-  invoiceForm.value = {
-    appointmentId: appt.id,
-    customerId: appt.customerId,
-    staffId: appt.staffId,
-    serviceId: serviceId,
-    date: appt.date,
-    paymentType: "cash",
-    discount: 0,
-    services: appt.services || []
-  };
-  currentView.value = "invoices";
-  
-  // Mark appointment as invoice generated
-  const index = data.value.appointments.findIndex(b => b.id === appt.id);
-  if (index > -1) {
-    data.value.appointments[index].invoiceGenerated = true;
-  }
-  
-  console.log(`📄 Creating invoice for appointment #${appt.id} (${getCustomerName(appt.customerId)}) - Staff: ${appt.staff_name}, Services:`, appt.services);
-  
-  // Scroll to invoice form after a brief delay to allow DOM update
-  setTimeout(() => {
-    const invoiceFormElement = document.querySelector('#invoice-form');
-    if (invoiceFormElement) {
-      invoiceFormElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+const handleCreateInvoiceFromAppointment = async (appt) => {
+  // Fetch appointment details from API
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      console.error("Not authenticated");
+      return;
     }
-  }, 100);
+
+    console.log("Fetching appointment details for ID:", appt.id);
+    const response = await fetch(`${API_BASE_URL}/api/appointment/${appt.id}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Failed to fetch appointment details:", response.status, errText);
+      return;
+    }
+
+    const appointment = await response.json();
+    console.log("Appointment fetched:", appointment);
+    
+    // Extract ALL service IDs from services array
+    const serviceIds = appointment.services && appointment.services.length > 0 ? appointment.services.map(s => s.id) : [];
+    const totalServiceAmount = appointment.services ? appointment.services.reduce((sum, s) => sum + (s.price || 0), 0) : 0;
+    
+    // Update form with appointment details (this will auto-select the appointment)
+    invoiceForm.value = {
+      appointmentId: appointment.appointment_id,
+      customerId: appointment.customer_id,
+      staffId: appointment.staff_id,
+      staffName: appointment.staff_name,
+      serviceIds: serviceIds,
+      totalServiceAmount: totalServiceAmount,
+      date: appointment.datetime.split('T')[0],
+      paymentType: "cash",
+      discount: 0,
+      services: appointment.services || []
+    };
+    console.log("Invoice form populated:", invoiceForm.value);
+    currentView.value = "invoices";
+    
+    // Mark appointment as invoice generated
+    const index = data.value.appointments.findIndex(b => b.id === appointment.appointment_id);
+    if (index > -1) {
+      data.value.appointments[index].invoiceGenerated = true;
+    }
+    
+    console.log(`📄 Creating invoice for appointment #${appointment.appointment_id} (${appointment.customer_name}) - Staff: ${appointment.staff_name}, Services:`, appointment.services);
+    
+    // Scroll to top of page after a brief delay to allow DOM update
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
+  } catch (error) {
+    console.error("Error fetching appointment details:", error);
+  }
 };
 
 // Close customer dropdown when clicking outside
@@ -8028,9 +9410,69 @@ const fetchProducts = async () => {
         product_low_stock_alert: p.product_low_stock_alert,
         unit: "unit"
       }));
+      
+      // Create notifications for low stock items
+      await createLowStockNotifications();
     }
   } catch (error) {
     console.error("Error fetching products:", error);
+  }
+};
+
+// Create notifications for low stock items (prevent duplicates)
+const createLowStockNotifications = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    // Initialize notifiedLowStockProducts from existing unread notifications
+    // This prevents duplicate notifications on page reload
+    notificationsList.value.forEach(n => {
+      if (n.subject === "Low Stock Alert" && !n.is_read) {
+        // Extract product ID or name from the notification body
+        const products = data.value.products.filter(p => n.body.includes(p.name));
+        products.forEach(p => notifiedLowStockProducts.add(p.id));
+      }
+    });
+
+    // Get current low stock items
+    const lowStockProducts = data.value.products.filter(p => p.stock <= p.minStock);
+    
+    if (lowStockProducts.length === 0) return;
+
+    // Create notification only for products we haven't notified about yet
+    for (const product of lowStockProducts) {
+      // Skip if we've already notified about this product
+      if (notifiedLowStockProducts.has(product.id)) {
+        continue;
+      }
+
+      const notificationPayload = {
+        subject: "Low Stock Alert",
+        body: `${product.name} is running low on stock. Current: ${product.stock} units, Minimum: ${product.minStock} units.`,
+        phone_number: "N/A"
+      };
+
+      try {
+        await fetch(`${API_BASE_URL}/api/send-notification`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "Authentication-Token": token
+          },
+          body: JSON.stringify(notificationPayload)
+        });
+        // Mark this product as notified
+        notifiedLowStockProducts.add(product.id);
+        // Refresh notifications to show the newly created one
+        await fetchNotifications();
+      } catch (notifError) {
+        console.warn(`Failed to create low stock notification for ${product.name}:`, notifError);
+      }
+    }
+  } catch (error) {
+    console.warn("Error creating low stock notifications:", error);
   }
 };
 
@@ -8069,8 +9511,8 @@ const handleEditSetting = (setting) => {
   editSettingForm.value = {
     param_name: setting.param_name,
     param_value: setting.param_value,
-    from_date: setting.from_date ? setting.from_date.split('T')[0] : '',
-    to_date: setting.to_date ? setting.to_date.split('T')[0] : ''
+    from_date: extractDateOnly(setting.from_date),
+    to_date: extractDateOnly(setting.to_date)
   };
   showEditSettingModal.value = true;
   settingError.value = "";
@@ -8126,8 +9568,22 @@ const handleSaveSetting = async () => {
 
 const formatDate = (dateStr) => {
   if (!dateStr) return 'N/A';
-  const date = new Date(dateStr);
+  // Extract just the date portion (handles "yyyy-MM-dd HH:MM:SS" format)
+  const datePart = typeof dateStr === 'string' ? dateStr.substring(0, 10) : dateStr;
+  const date = new Date(datePart);
   return date.toLocaleDateString();
+};
+
+// Helper function to extract date portion from various formats
+const extractDateOnly = (dateStr) => {
+  if (!dateStr) return '';
+  // Handle both "yyyy-MM-dd HH:MM:SS" and "yyyy-MM-ddTHH:MM:SS" formats
+  if (dateStr.includes('T')) {
+    return dateStr.split('T')[0];
+  } else if (dateStr.includes(' ')) {
+    return dateStr.split(' ')[0];
+  }
+  return dateStr;
 };
 
 const fetchBriefing = async () => {
@@ -8154,8 +9610,12 @@ const fetchBriefing = async () => {
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
+  // Fetch notifications FIRST so we can check against existing ones
+  fetchNotifications();
   // Fetch AI daily briefing
   fetchBriefing();
+  // Fetch manager profile data for name display
+  fetchManagerProfileData();
   // Fetch today's AI tasks
   fetchManagerTasks();
   // Fetch saved reports list
@@ -8175,12 +9635,42 @@ onMounted(() => {
   fetchTodaysAppointmentsForInvoice();
   // Fetch manager inventory transactions
   fetchManagerInventoryTransactions();
+  // Fetch all manager replenishments (not filtered by date)
+  fetchAllManagerReplenishments();
   // Fetch manager wholesale orders
   fetchManagerOrders();
+  // Fetch finance data for balance sheet
+  fetchFinanceData();
 });
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside);
+});
+
+// Watch for date changes in staff attendance section
+watch(() => selectedStaffDate.value, (newDate) => {
+  if (newDate) {
+    fetchManagerAttendance(newDate);
+  }
+});
+
+// Watch for profile view access to load profile data
+watch(() => currentView.value, (newView) => {
+  if (newView === 'profile' && managerProfileData.value) {
+    // Populate profileEditForm with current manager data for display
+    const parseDateString = (dateString) => {
+      if (!dateString) return '';
+      return dateString.substring(0, 10);
+    };
+    
+    profileEditForm.value = {
+      name: managerProfileData.value.manager_name || '',
+      email: managerProfileData.value.manager_email || '',
+      phone: managerProfileData.value.manager_contact || '',
+      role: managerProfileData.value.manager_role || '',
+      doj: parseDateString(managerProfileData.value.manager_doj)
+    };
+  }
 });
 </script>
 
@@ -8259,7 +9749,7 @@ onUnmounted(() => {
 }
 
 .report-item {
-  background: white;
+  background: var(--surface);
   border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 20px;
@@ -8269,7 +9759,7 @@ onUnmounted(() => {
 
 .report-item:hover {
   border-color: var(--gold);
-  box-shadow: var(--shadow);
+  box-shadow: 0 8px 32px rgba(212,175,55,0.15);
 }
 
 .report-icon {
@@ -8280,14 +9770,14 @@ onUnmounted(() => {
 .report-title {
   font-weight: 600;
   font-size: 14px;
-  color: var(--charcoal);
+  color: var(--text);
   margin-bottom: 4px;
 }
 
 .calendar-date {
   padding: 10px 12px;
   border-radius: var(--radius-sm);
-  background: white;
+  background: rgba(255,255,255,0.04);
   border: 1px solid var(--border);
   font-size: 12px;
   color: var(--text);
@@ -8295,7 +9785,7 @@ onUnmounted(() => {
 }
 
 .calendar-date:hover {
-  background: var(--ivory);
+  background: rgba(212,175,55,0.08);
   border-color: var(--gold);
 }
 
@@ -8312,36 +9802,38 @@ onUnmounted(() => {
   justify-content: center;
   width: 20px;
   height: 20px;
-  background: var(--charcoal);
-  color: white;
+  background: rgba(212,175,55,0.2);
+  color: var(--gold-bright);
   border-radius: 50%;
   font-size: 11px;
   font-weight: 600;
 }
 
 .calendar-date.has-bookings .date-badge {
-  background: white;
+  background: var(--obsidian);
   color: var(--gold);
 }
 
 .booking-item {
   padding: 0 0 12px 0;
   font-size: 13px;
+  color: var(--text);
 }
 
 .booking-time {
-  background: var(--ivory);
+  background: rgba(212,175,55,0.12);
+  border: 1px solid rgba(212,175,55,0.28);
   border-radius: var(--radius-sm);
   padding: 6px 10px;
   font-weight: 600;
-  color: var(--charcoal);
+  color: var(--gold-bright);
   white-space: nowrap;
 }
 
 .calendar-date-horizontal {
   padding: 12px;
   border-radius: var(--radius-sm);
-  background: white;
+  background: rgba(255,255,255,0.04);
   border: 1px solid var(--border);
   text-align: center;
   cursor: pointer;
@@ -8354,25 +9846,25 @@ onUnmounted(() => {
 }
 
 .calendar-date-horizontal:hover {
-  background: var(--ivory);
+  background: rgba(212,175,55,0.08);
   border-color: var(--gold);
 }
 
 .calendar-date-horizontal.has-bookings {
-  background: var(--gold);
-  color: white;
+  background: rgba(212,175,55,0.15);
+  color: var(--gold-bright);
   border-color: var(--gold);
   font-weight: 600;
 }
 
 .calendar-date-horizontal.selected {
-  background: var(--charcoal);
-  color: white;
-  border-color: var(--charcoal);
+  background: linear-gradient(135deg, var(--gold-deep), var(--gold));
+  color: var(--obsidian);
+  border-color: transparent;
 }
 
 .calendar-date-horizontal.selected.has-bookings {
-  background: var(--charcoal);
+  background: linear-gradient(135deg, var(--gold-deep), var(--gold));
 }
 
 /* Custom Dropdown Styles */
@@ -8385,7 +9877,7 @@ onUnmounted(() => {
   align-items: center;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: white;
+  background: rgba(255,255,255,0.04);
   cursor: text;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -8402,7 +9894,9 @@ onUnmounted(() => {
   font-family: inherit;
   outline: none;
   background: transparent;
+  color: var(--text);
 }
+.dropdown-search-input::placeholder { color: rgba(255,255,255,0.28); }
 
 .dropdown-arrow {
   padding: 0 12px;
@@ -8417,29 +9911,31 @@ onUnmounted(() => {
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
+  background: #1E1E1E;
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   max-height: 250px;
   overflow-y: auto;
   z-index: 10;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  box-shadow: var(--shadow-md);
 }
 
 .dropdown-option {
   padding: 12px 12px;
   cursor: pointer;
-  border-bottom: 1px solid var(--light-bg);
+  border-bottom: 1px solid var(--divider);
   transition: background-color 0.2s;
+  color: var(--text);
+  font-size: 13px;
 }
 
 .dropdown-option:hover {
-  background-color: var(--light-bg);
+  background-color: rgba(212,175,55,0.08);
 }
 
 .dropdown-option.selected {
-  background-color: rgba(229, 170, 84, 0.15);
+  background-color: rgba(212, 175, 55, 0.12);
   border-left: 3px solid var(--gold);
   padding-left: 9px;
 }
@@ -8476,9 +9972,10 @@ onUnmounted(() => {
 }
 
 .modal-content {
-  background: white;
+  background: var(--surface);
+  border: 1px solid rgba(212,175,55,0.18);
   border-radius: var(--radius-md);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xl);
   width: 100%;
   max-width: 420px;
   max-height: 90vh;
@@ -8502,20 +9999,22 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--divider);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 600;
-  color: var(--charcoal);
+  color: var(--text);
   margin: 0;
+  font-family: var(--font-display);
 }
 
 .modal-close {
   background: none;
-  border: none;
-  font-size: 24px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 18px;
   color: var(--text-muted);
   cursor: pointer;
   padding: 0;
@@ -8524,11 +10023,12 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.2s;
+  transition: all 0.2s;
 }
 
 .modal-close:hover {
-  color: var(--charcoal);
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
 .modal-body {
@@ -8542,27 +10042,34 @@ onUnmounted(() => {
 
 .form-group label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--charcoal);
-  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 7px;
 }
 
 .form-input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius-sm);
   font-size: 13px;
   font-family: inherit;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   box-sizing: border-box;
+  outline: none;
 }
 
+.form-input::placeholder { color: rgba(255,255,255,0.22); }
+
 .form-input:focus {
-  outline: none;
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(229, 170, 84, 0.1);
+  background: rgba(212,175,55,0.04);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.10);
 }
 
 .form-hint {
@@ -8573,20 +10080,20 @@ onUnmounted(() => {
 
 .error-message {
   padding: 10px 12px;
-  background: rgba(231, 76, 60, 0.1);
-  border-left: 3px solid #e74c3c;
+  background: rgba(192, 57, 43, 0.10);
+  border-left: 3px solid rgba(192,57,43,0.6);
   border-radius: var(--radius-sm);
-  color: #c0392b;
+  color: #f08070;
   font-size: 13px;
   margin-top: 12px;
 }
 
 .success-message {
   padding: 10px 12px;
-  background: rgba(39, 174, 96, 0.1);
-  border-left: 3px solid #27ae60;
+  background: rgba(39, 174, 96, 0.10);
+  border-left: 3px solid rgba(39,174,96,0.6);
   border-radius: var(--radius-sm);
-  color: #229954;
+  color: #5cba7d;
   font-size: 13px;
   margin-top: 12px;
 }
@@ -8635,9 +10142,10 @@ onUnmounted(() => {
   right: 30px;
   width: 380px;
   height: 500px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  background: #1A1A1A;
+  border: 1px solid rgba(212,175,55,0.18);
+  border-radius: 14px;
+  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
   animation: slideUp 0.3s ease;
@@ -8688,7 +10196,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background: #f9f9f9;
+  background: rgba(0,0,0,0.2);
 }
 
 .ai-chat-messages {
@@ -8729,18 +10237,19 @@ onUnmounted(() => {
 }
 
 .ai-message.assistant .ai-message-content {
-  background: #e8e8e8;
-  color: #333;
+  background: rgba(255,255,255,0.07);
+  color: var(--text);
   border-radius: 4px 10px 10px 10px;
+  border: 1px solid var(--border);
 }
 
 .ai-assistant-input {
   display: flex;
   gap: 8px;
   padding: 12px;
-  background: white;
-  border-top: 1px solid var(--border);
-  border-radius: 0 0 12px 12px;
+  background: #1A1A1A;
+  border-top: 1px solid var(--divider);
+  border-radius: 0 0 14px 14px;
 }
 
 .ai-input-field {
@@ -8751,28 +10260,33 @@ onUnmounted(() => {
   font-size: 13px;
   font-family: inherit;
   outline: none;
+  background: rgba(255,255,255,0.05);
+  color: var(--text);
   transition: border-color 0.2s;
 }
 
+.ai-input-field::placeholder { color: rgba(255,255,255,0.25); }
+
 .ai-input-field:focus {
   border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(229, 170, 84, 0.1);
+  box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.10);
 }
 
 .ai-send-btn {
-  background: var(--gold);
-  color: white;
+  background: linear-gradient(135deg, var(--gold-deep), var(--gold));
+  color: var(--obsidian);
   border: none;
   border-radius: 6px;
   padding: 8px 14px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .ai-send-btn:hover {
-  background: #d4a574;
+  filter: brightness(1.1);
+  box-shadow: var(--shadow-gold);
 }
 
 .ai-send-btn:active {
@@ -8803,7 +10317,7 @@ onUnmounted(() => {
   cursor: pointer;
   transition: background 0.2s, opacity 0.2s;
 }
-.generate-tasks-btn:hover { background: var(--gold-dark); }
+.generate-tasks-btn:hover { background: var(--gold-deep); }
 .generate-tasks-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .task-section-label {
@@ -8825,16 +10339,16 @@ onUnmounted(() => {
   transition: background 0.15s;
   margin-bottom: 6px;
 }
-.task-item:hover { background: var(--light-bg); }
-.task-item.completed-task { opacity: 0.65; }
+.task-item:hover { background: rgba(212,175,55,0.06); }
+.task-item.completed-task { opacity: 0.55; }
 
 .task-checkbox {
   font-size: 18px;
   line-height: 1.2;
   flex-shrink: 0;
 }
-.pending-cb  { color: var(--gold-dark); }
-.completed-cb { color: #38a169; }
+.pending-cb  { color: var(--gold); }
+.completed-cb { color: #5cba7d; }
 
 .task-info {
   display: flex;
@@ -8844,27 +10358,27 @@ onUnmounted(() => {
 
 .task-description {
   font-size: 13px;
-  color: var(--charcoal);
+  color: var(--text);
   line-height: 1.4;
 }
 
 .task-badge {
   display: inline-block;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  padding: 1px 7px;
+  padding: 2px 8px;
   border-radius: 10px;
   width: fit-content;
-  background: #e8e0d5;
+  background: rgba(255,255,255,0.07);
   color: var(--text-muted);
 }
-.badge-appointments { background: #ebf4ff; color: #2b6cb0; }
-.badge-inventory    { background: #fff3cd; color: #856404; }
-.badge-feedback     { background: #fce8e8; color: #c53030; }
-.badge-staff        { background: #e6f4ea; color: #276749; }
-.badge-general      { background: #e8e0d5; color: var(--text-muted); }
+.badge-appointments { background: rgba(43,108,176,0.15); color: #7eb8f7; border: 1px solid rgba(43,108,176,0.25); }
+.badge-inventory    { background: rgba(133,100,4,0.15);  color: #e8c96a; border: 1px solid rgba(133,100,4,0.25); }
+.badge-feedback     { background: rgba(197,48,48,0.15);  color: #f98080; border: 1px solid rgba(197,48,48,0.25); }
+.badge-staff        { background: rgba(39,103,73,0.15);  color: #7ec8a0; border: 1px solid rgba(39,103,73,0.25); }
+.badge-general      { background: rgba(255,255,255,0.07); color: var(--text-muted); }
 
 /* ── Report Generation UI ───────────────────────────────────────────────── */
 .report-ai-msg {
@@ -8875,14 +10389,14 @@ onUnmounted(() => {
   margin-top: 4px;
 }
 .report-ai-msg--success {
-  background: #f0fff4;
-  border: 1px solid #c6f6d5;
-  color: #276749;
+  background: rgba(39,174,96,0.10);
+  border: 1px solid rgba(39,174,96,0.35);
+  color: #5cba7d;
 }
 .report-ai-msg--error {
-  background: #fff5f5;
-  border: 1px solid #fed7d7;
-  color: #c53030;
+  background: rgba(192,57,43,0.10);
+  border: 1px solid rgba(192,57,43,0.35);
+  color: #f08070;
 }
 
 .report-quick-row {
@@ -8936,7 +10450,7 @@ onUnmounted(() => {
   padding: 18px 16px 14px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  background: white;
+  background: var(--surface);
   transition: box-shadow 0.2s, border-color 0.2s;
 }
 .report-card:hover {
@@ -8948,8 +10462,9 @@ onUnmounted(() => {
 }
 .report-card-title {
   font-weight: 700;
-  font-size: 14px;
-  color: var(--charcoal);
+  font-size: 15px;
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 .report-card-desc {
   font-size: 12px;
@@ -8963,5 +10478,222 @@ onUnmounted(() => {
   margin-top: 6px;
   flex-wrap: wrap;
 }
+
+/* Bell icon badge for unread count */
+.notif-btn {
+  position: relative;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.notif-btn:hover {
+  transform: scale(1.1);
+}
+
+.notif-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 50%;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Notification Panel Styles */
+.notification-panel {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  width: 420px;
+  max-height: 600px;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  border-radius: 12px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  z-index: 999;
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.notification-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%);
+}
+
+.notification-panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--gold-bright);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-panel-header h3::before {
+  content: "⚡";
+  font-size: 18px;
+}
+
+.notification-header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mark-all-btn {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(76, 175, 80, 0.1));
+  border: 1px solid rgba(76, 175, 80, 0.4);
+  color: #7cfc7c;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.mark-all-btn:hover {
+  background: linear-gradient(135deg, rgba(76, 175, 80, 0.5), rgba(76, 175, 80, 0.3));
+  border-color: #7cfc7c;
+}
+
+.close-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: var(--gold);
+}
+
+.notification-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.notification-loading,
+.notification-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-item {
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  justify-content: space-between;
+  transition: background-color 0.2s;
+  border-left: 3px solid rgba(230, 126, 34, 0.6);
+}
+
+.notification-item:hover {
+  background-color: rgba(212, 175, 55, 0.08);
+}
+
+.notification-item::before {
+  content: "⚠";
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  margin-right: 4px;
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-subject {
+  font-weight: 600;
+  font-size: 13px;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.notification-message {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  line-height: 1.4;
+  margin-bottom: 6px;
+  word-break: break-word;
+}
+
+.notification-time {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 8px;
+}
+
+.mark-read-btn {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.3), rgba(212, 175, 55, 0.1));
+  border: 1px solid rgba(212, 175, 55, 0.4);
+  color: var(--gold-bright);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.mark-read-btn:hover {
+  background: linear-gradient(135deg, rgba(212, 175, 55, 0.5), rgba(212, 175, 55, 0.3));
+  border-color: var(--gold);
+}
+
 </style>
 

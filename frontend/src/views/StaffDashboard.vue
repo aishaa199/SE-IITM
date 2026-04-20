@@ -72,7 +72,41 @@
       <div class="topbar">
         <div class="topbar-title">{{ pageTitle }}</div>
         <div class="topbar-right">
-          <button class="notif-btn">🔔</button>
+          <button class="notif-btn" @click="toggleNotificationPanel" style="position: relative">
+            🔔
+            <span v-if="unreadNotificationsCount > 0" style="position: absolute; top: -5px; right: -5px; background: #ff4444; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold">{{ unreadNotificationsCount }}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Notifications Panel -->
+      <div v-if="showNotificationPanel" class="notification-panel" style="position: absolute; top: 80px; right: 20px; width: 350px; max-height: 500px; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 1000; display: flex; flex-direction: column">
+        <div style="padding: 16px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center">
+          <div style="font-weight: 600; font-size: 14px">Notifications</div>
+          <button @click="showNotificationPanel = false" style="background: none; border: none; cursor: pointer; font-size: 18px; color: #999">✕</button>
+        </div>
+        
+        <div v-if="notificationsLoading" style="padding: 20px; text-align: center; color: #999">
+          Loading notifications...
+        </div>
+        <div v-else-if="notificationsList.length === 0" style="padding: 20px; text-align: center; color: #999">
+          No notifications
+        </div>
+        <div v-else style="flex: 1; overflow-y: auto">
+          <div v-for="notification in notificationsList" :key="notification.id" style="padding: 12px; border-bottom: 1px solid #2a2a2a; cursor: pointer; transition: background 0.2s" @mouseover="(e) => e.currentTarget.style.background = '#242424'" @mouseout="(e) => e.currentTarget.style.background = 'transparent'">
+            <div style="display: flex; justify-content: space-between; align-items: start">
+              <div style="flex: 1">
+                <div style="font-weight: 600; font-size: 13px; color: #fff">{{ notification.subject }}</div>
+                <div style="font-size: 12px; color: #bbb; margin-top: 4px">{{ notification.body }}</div>
+                <div style="font-size: 11px; color: #666; margin-top: 6px">{{ new Date(notification.created_at).toLocaleString('en-IN') }}</div>
+              </div>
+              <button v-if="!notification.is_read" @click="markNotificationAsRead(notification.id)" style="background: none; border: none; cursor: pointer; font-size: 12px; color: #d4af37; margin-left: 8px; padding: 4px 8px; white-space: nowrap">Mark Read</button>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="notificationsList.length > 0" style="padding: 12px; border-top: 1px solid #333; text-align: center">
+          <button @click="markAllNotificationsAsRead" style="background: none; border: none; cursor: pointer; font-size: 12px; color: #d4af37">✓ Mark All as Read</button>
         </div>
       </div>
 
@@ -257,15 +291,41 @@
                 ⏳ Loading appointments...
               </div>
 
-              <!-- Filter input -->
-              <div v-else style="margin-bottom: 16px">
-                <input 
-                  v-model="appointmentCustomerFilter"
-                  type="text" 
-                  placeholder="🔍 Filter by customer name or service..." 
-                  class="form-input"
-                  style="width: 100%; max-width: 300px"
-                />
+              <!-- Filter and Sort input -->
+              <div v-else style="margin-bottom: 16px; display: flex; gap: 12px; align-items: flex-end">
+                <div style="flex: 1; max-width: 400px">
+                  <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px">Filter</label>
+                  <input 
+                    v-model="appointmentCustomerFilter"
+                    type="text" 
+                    placeholder="Filter by customer name or service..." 
+                    class="form-input"
+                    style="width: 100%"
+                  />
+                </div>
+                <div style="max-width: 200px">
+                  <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px">Sort By</label>
+                  <select v-model="appointmentSortBy" class="form-input" style="width: 100%">
+                    <option value="date">Date & Time</option>
+                    <option value="customer">Customer Name</option>
+                    <option value="status">Status</option>
+                    <option value="amount">Amount</option>
+                  </select>
+                </div>
+                <div style="max-width: 140px">
+                  <label style="font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 4px">Order</label>
+                  <select v-model="appointmentSortOrder" class="form-input" style="width: 100%">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                  </select>
+                </div>
+                <button 
+                  @click="appointmentCustomerFilter = ''"
+                  class="btn btn-outline"
+                  style="padding: 8px 16px; font-size: 12px"
+                >
+                  Clear
+                </button>
               </div>
               
               <!-- Empty state -->
@@ -283,30 +343,23 @@
                       <th>Service</th>
                       <th>Date & Time</th>
                       <th>Duration</th>
-                      <th>Amount</th>
-                      <th>Status</th>
-                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="appt in filteredAppointments" :key="appt.id" @click="handleViewAppointmentDetails(appt)" style="cursor: pointer; transition: background-color 0.2s" @mouseover="$event.target.closest('tr').style.backgroundColor = 'var(--light-bg)'" @mouseout="$event.target.closest('tr').style.backgroundColor = 'transparent'">
+                    <tr v-for="appt in paginatedAppointments" :key="appt.id" @click="handleViewAppointmentDetails(appt)" style="cursor: pointer; transition: background-color 0.2s" @mouseover="$event.target.closest('tr').style.backgroundColor = 'var(--light-bg)'" @mouseout="$event.target.closest('tr').style.backgroundColor = 'transparent'">
                       <td>{{ appt.customerName }}</td>
                       <td>{{ appt.service }}</td>
                       <td>{{ appt.date }} {{ appt.time }}</td>
                       <td>{{ appt.duration }} min</td>
-                      <td>₹{{ appt.amount }}</td>
-                      <td>
-                        <span :class="['badge', getStatusBadgeClass(appt.status)]">{{ appt.status }}</span>
-                      </td>
-                      <td>
-                        <button v-if="appt.status !== 'completed'" class="btn btn-sm btn-primary" @click.stop="handleMarkAppointmentComplete(appt)" style="padding: 4px 8px; font-size: 12px">
-                          ✓ Complete
-                        </button>
-                        <span v-else class="text-muted" style="font-size: 12px">Completed</span>
-                      </td>
                     </tr>
                   </tbody>
                 </table>
+              </div>
+              <!-- Pagination Controls -->
+              <div v-if="totalPagesAppointments > 1" style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border)">
+                <button :disabled="currentPageAppointments === 1" @click="goToPageAppointments(currentPageAppointments - 1)" class="btn btn-sm btn-outline" title="Previous page">← Previous</button>
+                <span style="font-size: 14px; font-weight: 600">Page {{ currentPageAppointments }} of {{ totalPagesAppointments }}</span>
+                <button :disabled="currentPageAppointments === totalPagesAppointments" @click="goToPageAppointments(currentPageAppointments + 1)" class="btn btn-sm btn-outline" title="Next page">Next →</button>
               </div>
             </div>
           </div>
@@ -315,14 +368,7 @@
         <!-- ORDER PRODUCTS VIEW -->
         <div v-if="currentView === 'order-products'" class="fade-in">
           <!-- Order Tabs -->
-          <div style="display: flex; gap: 12px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 12px">
-            <button 
-              @click="orderTab = 'new-orders'"
-              :style="{ background: orderTab === 'new-orders' ? 'var(--gold)' : 'transparent', color: orderTab === 'new-orders' ? 'white' : 'var(--text)', borderBottom: 'none', padding: '8px 16px', borderRadius: 'var(--radius)', cursor: 'pointer', border: 'none', fontSize: '14px', fontWeight: '500' }"
-            >
-              📦 New Orders
-            </button>
-          </div>
+    
 
           <!-- NEW ORDERS TAB -->
           <div v-if="orderTab === 'new-orders'" class="card">
@@ -541,42 +587,71 @@
 
 <!-- PROFILE VIEW -->
         <div v-if="currentView === 'profile'" class="fade-in">
-          <div class="card">
+          <div class="card" style="margin-bottom: 24px">
             <div class="card-header">
               <h3 class="card-title">My Profile</h3>
             </div>
             <div class="card-body">
-              <div style="max-width: 600px">
-                <div class="form-group">
-                  <label>Name</label>
-                  <input type="text" :value="staffData.name" class="form-input" disabled />
+              <!-- Header with Avatar -->
+              <div style="display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; margin-bottom: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border)">
+                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--gold); display: flex; align-items: center; justify-content: center; color: white; font-size: 32px; font-weight: bold">
+                  {{ staffData.name?.charAt(0) || "S" }}
                 </div>
-                <div class="form-group">
-                  <label>Email</label>
-                  <input type="email" :value="staffData.email" class="form-input" disabled />
+                <div>
+                  <div style="font-size: 24px; font-weight: 700; margin-bottom: 4px">{{ staffData.name }}</div>
+                  <div style="color: var(--gold); font-size: 14px; font-weight: 600; margin-bottom: 4px">{{ staffData.role || 'Staff' }}</div>
+                  <div style="color: var(--text-muted); font-size: 12px">ID: {{ staffData.id }}</div>
                 </div>
-                <div class="form-group">
-                  <label>Phone</label>
-                  <input type="tel" :value="staffData.phone" class="form-input" disabled />
+              </div>
+
+              <!-- Information Grid -->
+              <div style="background: var(--light-bg); padding: 20px; border-radius: 8px; margin-bottom: 24px">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px">
+                  <!-- Email -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Email</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ staffData.email || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Phone -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Phone</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ staffData.phone || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Role -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Role</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ staffData.role || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Date of Birth -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Date of Birth</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ staffData.dob?.substring(0, 10) || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Date of Joining -->
+                  <div>
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Date of Joining</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ staffData.doj?.substring(0, 10) || 'Not provided' }}</div>
+                  </div>
+
+                  <!-- Skills -->
+                  <div style="grid-column: 1 / -1">
+                    <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-bottom: 6px">Skills</div>
+                    <div style="font-size: 14px; color: var(--charcoal); font-weight: 500">{{ staffData.skills || 'Not provided' }}</div>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>Role</label>
-                  <input type="text" :value="staffData.role" class="form-input" disabled />
-                </div>
-                <div class="form-group">
-                  <label>Date of Birth</label>
-                  <input type="text" :value="staffData.dob || 'Not provided'" class="form-input" disabled />
-                </div>
-                <div class="form-group">
-                  <label>Address</label>
-                  <textarea class="form-input" disabled rows="2">{{ staffData.address || 'Not provided' }}</textarea>
-                </div>
-                <div class="form-group">
-                  <label>Skills</label>
-                  <textarea class="form-input" disabled rows="2">{{ staffData.skills || 'Not provided' }}</textarea>
-                </div>
-                <button class="btn btn-primary" style="margin-top: 20px" @click="openProfileEdit">
-                  Edit Profile
+              </div>
+
+              <!-- Action Buttons -->
+              <div style="display: flex; gap: 12px; flex-wrap: wrap">
+                <button class="btn btn-primary" @click="openProfileEdit()">
+                  ✏️ Edit Profile
+                </button>
+                <button class="btn btn-outline" @click="showChangePasswordModal = true">
+                  🔑 Change Password
                 </button>
               </div>
             </div>
@@ -588,39 +663,39 @@
 
   <!-- Appointment Details Modal -->
   <div v-if="showAppointmentDetailsModal" class="modal-overlay" @click="showAppointmentDetailsModal = false">
-    <div class="modal-content" @click.stop>
+    <div class="modal-content" @click.stop style="background: #1a1a1a">
       <div class="modal-header">
         <h3 class="modal-title">📅 Appointment Details</h3>
         <button class="modal-close" @click="showAppointmentDetailsModal = false">✕</button>
       </div>
       <div class="modal-body" v-if="selectedAppointment">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px">
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)"> 
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Customer Name</div>
-            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.customerName }}</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)"> 
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Customer Name</div>
+            <div style="font-weight: 600; font-size: 14px; color: #fff">{{ selectedAppointment.customerName }}</div>
           </div>
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Service</div>
-            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.service }}</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Service</div>
+            <div style="font-weight: 600; font-size: 14px; color: #fff">{{ selectedAppointment.service }}</div>
           </div>
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Date</div>
-            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.date ? selectedAppointment.date : 'Today' }}</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Date</div>
+            <div style="font-weight: 600; font-size: 14px; color: #fff">{{ selectedAppointment.date ? selectedAppointment.date : 'Today' }}</div>
           </div>
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Time</div>
-            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.time }}</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Time</div>
+            <div style="font-weight: 600; font-size: 14px; color: #fff">{{ selectedAppointment.time }}</div>
           </div>
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Duration</div>
-            <div style="font-weight: 600; font-size: 14px">{{ selectedAppointment.duration }} minutes</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Duration</div>
+            <div style="font-weight: 600; font-size: 14px; color: #fff">{{ selectedAppointment.duration }} minutes</div>
           </div>
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Amount</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Amount</div>
             <div style="font-weight: 600; font-size: 14px; color: var(--success)">₹{{ selectedAppointment.amount }}</div>
           </div>
-          <div style="padding: 12px; background: var(--light-bg); border-radius: var(--radius)">
-            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px">Status</div>
+          <div style="padding: 12px; background: #242424; border-radius: var(--radius)">
+            <div class="text-muted" style="font-size: 12px; margin-bottom: 4px; color: #999">Status</div>
             <span :class="['badge', getStatusBadgeClass(selectedAppointment.status)]">{{ selectedAppointment.status }}</span>
           </div>
         </div>
@@ -635,7 +710,7 @@
 
 
   <div v-if="showChangePasswordModal" class="modal-overlay" @click="showChangePasswordModal = false">
-    <div class="modal-content" @click.stop>
+    <div class="modal-content" @click.stop style="background: #1a1a1a">
       <div class="modal-header">
         <h3 class="modal-title">🔑 Change Password</h3>
         <button class="modal-close" @click="showChangePasswordModal = false">✕</button>
@@ -644,37 +719,52 @@
         <form @submit.prevent="handleChangePassword">
           <div class="form-group">
             <label for="current-password">Current Password</label>
-            <input 
-              id="current-password"
-              v-model="passwordForm.currentPassword" 
-              type="password" 
-              placeholder="Enter current password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="current-password"
+                v-model="passwordForm.currentPassword" 
+                :type="showCurrentPassword ? 'text' : 'password'" 
+                placeholder="Enter current password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showCurrentPassword = !showCurrentPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showCurrentPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div class="form-group">
             <label for="new-password">New Password</label>
-            <input 
-              id="new-password"
-              v-model="passwordForm.newPassword" 
-              type="password" 
-              placeholder="Enter new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="new-password"
+                v-model="passwordForm.newPassword" 
+                :type="showNewPassword ? 'text' : 'password'" 
+                placeholder="Enter new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showNewPassword = !showNewPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showNewPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
             <div class="form-hint">At least 8 characters</div>
           </div>
           <div class="form-group">
             <label for="confirm-password">Confirm Password</label>
-            <input 
-              id="confirm-password"
-              v-model="passwordForm.confirmPassword" 
-              type="password" 
-              placeholder="Confirm new password"
-              class="form-input"
-              required
-            />
+            <div style="position: relative; display: flex; align-items: center">
+              <input 
+                id="confirm-password"
+                v-model="passwordForm.confirmPassword" 
+                :type="showConfirmPassword ? 'text' : 'password'" 
+                placeholder="Confirm new password"
+                class="form-input"
+                required
+              />
+              <button type="button" @click="showConfirmPassword = !showConfirmPassword" style="position: absolute; right: 12px; background: none; border: none; cursor: pointer; font-size: 18px; color: var(--text-muted); padding: 4px">
+                {{ showConfirmPassword ? '👁️' : '👁️‍🗨️' }}
+              </button>
+            </div>
           </div>
           <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
           <div v-if="passwordSuccess" class="success-message">{{ passwordSuccess }}</div>
@@ -693,7 +783,7 @@
 
   <!-- Edit Profile Modal -->
   <div v-if="showProfileEditModal" class="modal-overlay" @click="showProfileEditModal = false">
-    <div class="modal-content" @click.stop>
+    <div class="modal-content" @click.stop style="background: #1a1a1a">
       <div class="modal-header">
         <h3 class="modal-title">✏️ Edit Profile</h3>
         <button class="modal-close" @click="showProfileEditModal = false">✕</button>
@@ -743,16 +833,6 @@
             />
           </div>
           <div class="form-group">
-            <label for="edit-address">Address</label>
-            <textarea 
-              id="edit-address"
-              v-model="profileForm.address" 
-              placeholder="Enter your address"
-              class="form-input"
-              rows="3"
-            ></textarea>
-          </div>
-          <div class="form-group">
             <label for="edit-skills">Skills</label>
             <textarea 
               id="edit-skills"
@@ -777,7 +857,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAppStore } from "../stores/appStore";
 
@@ -787,6 +867,9 @@ const API_BASE_URL = "http://localhost:5000";
 const currentView = ref("dashboard");
 const sidebarOpen = ref(false);
 const showChangePasswordModal = ref(false);
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
 const showProfileMenu = ref(false);
 const showProfileEditModal = ref(false);
 const showAppointmentDetailsModal = ref(false);
@@ -811,7 +894,6 @@ const profileForm = ref({
   email: "",
   phone: "",
   dob: "",
-  address: "",
   skills: ""
 });
 const passwordError = ref("");
@@ -840,9 +922,25 @@ const attendanceError = ref("");
 const attendanceSuccess = ref("");
 const fetchedAttendance = ref([]);
 
+// Customer Reviews data
+const customerReviews = ref([]);
+const reviewsLoading = ref(false);
+
+// Notifications
+const showNotificationPanel = ref(false);
+const notificationsList = ref([]);
+const notificationsLoading = ref(false);
+
 // Filter states
 const appointmentCustomerFilter = ref("");
+const appointmentSortBy = ref("date"); // date, customer, status, amount
+const appointmentSortOrder = ref("asc"); // asc, desc
 const orderProductFilter = ref("");
+
+// Pagination state for Staff Dashboard
+const pageSize = ref(10);
+const currentPageAppointments = ref(1);
+const currentPageReviews = ref(1);
 
 // Get current month
 const currentMonth = computed(() => {
@@ -865,7 +963,96 @@ const getDayName = (dateString) => {
   return days[date.getDay()];
 };
 
-// Fetch appointments from API
+// Fetch current staff profile from API
+const fetchStaffInfo = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.error("Not authenticated");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/staff-info`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const staff = await response.json();
+      
+      console.log("Staff info fetched from /api/staff-info:", staff);
+      
+      // Update staffData with real backend values
+      staffData.value.staffId = staff.staff_id || null;
+      staffData.value.name = staff.staff_name || "N/A";
+      staffData.value.role = staff.staff_role || "Staff";
+      staffData.value.email = staff.staff_email || "N/A";
+      staffData.value.phone = staff.staff_contact || "N/A";
+      staffData.value.dob = staff.staff_dob || "Not provided";
+      staffData.value.doj = staff.staff_doj || "Not provided";
+      staffData.value.skills = staff.staff_skills || "Not provided";
+      staffData.value.id = staff.staff_id || "N/A";
+      staffData.value.cumulativeRating = staff.staff_cumulative_rating || 0;
+      staffData.value.totalReviews = staff.no_of_reviews || 0;
+      
+      console.log("Staff profile updated:", staffData.value);
+    } else {
+      console.error("Failed to fetch staff info:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching staff info:", error);
+  }
+};
+
+// Fetch dashboard stats (today's appointments) from StaffDashboard API
+const fetchDashboardStats = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    console.warn("No auth token found - skipping dashboard stats fetch");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/staff-dashboard`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log("Dashboard stats fetched:", data);
+      staffData.value.todayStats = {
+        appointmentsCount: data.total_appointments_today || 0,
+        completedCount: data.completed_appointments_today || 0
+      };
+    } else {
+      console.error("Failed to fetch dashboard stats:", response.status);
+    }
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+  }
+};
+
+const updateTodayStats = () => {
+  // Calculate stats from actual appointments
+  const completedCount = fetchedTodayAppointments.value.filter(a => a.status === "completed").length;
+  const totalCount = fetchedTodayAppointments.value.length;
+  
+  staffData.value.todayStats = {
+    appointmentsCount: totalCount,
+    completedCount: completedCount,
+    cancelledCount: 0
+  };
+};
+
 const fetchAppointmentsByMode = async (mode = "today") => {
   appointmentLoading.value = true;
   appointmentError.value = "";
@@ -881,8 +1068,7 @@ const fetchAppointmentsByMode = async (mode = "today") => {
 
     if (mode === "today") {
       // Fetch only today's appointments
-      const today = new Date().toISOString().split('T')[0];
-      const url = `${API_BASE_URL}/api/staff-appointments?date=${today}`;
+      const url = `${API_BASE_URL}/api/staff-appointments?mode=today`;
       
       const response = await fetch(url, {
         method: "GET",
@@ -913,42 +1099,35 @@ const fetchAppointmentsByMode = async (mode = "today") => {
       const data = await response.json();
       appointmentsList = data;
     } else {
-      // Fetch all future appointments - fetch next 5 days
-      const allAppointments = [];
-      const baseDate = new Date();
+      // Fetch all appointments
+      const url = `${API_BASE_URL}/api/staff-appointments?mode=all`;
       
-      // Fetch appointments for next 5 days
-      for (let i = 0; i < 5; i++) {
-        const fetchDate = new Date(baseDate);
-        fetchDate.setDate(fetchDate.getDate() + i);
-        const dateStr = fetchDate.toISOString().split('T')[0];
-        
-        const url = `${API_BASE_URL}/api/staff-appointments?date=${dateStr}`;
-        
-        try {
-          const response = await fetch(url, {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-              "Authentication-Token": token
-            }
-          });
-
-          if (response.ok) {
-            const data = await response.json();
-            if (data && data.length > 0) {
-              allAppointments.push(...data);
-            }
-          } else if (response.status === 404) {
-            // No appointments on this date, continue to next day
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "Authentication-Token": token
           }
-        } catch (error) {
-          // Handle fetch error silently, continue to next date
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          appointmentsList = data || [];
+        } else if (response.status === 404) {
+          // No appointments at all
+          appointmentsList = [];
+        } else {
+          appointmentError.value = "Failed to fetch all appointments";
+          appointmentLoading.value = false;
+          return;
         }
+      } catch (error) {
+        appointmentError.value = "Error fetching appointments: " + error.message;
+        appointmentLoading.value = false;
+        return;
       }
-      
-      appointmentsList = allAppointments;
     }
 
     // Transform API response into UI format
@@ -966,8 +1145,7 @@ const fetchAppointmentsByMode = async (mode = "today") => {
         date: date,
         time: time,
         duration: 60, // Default, if not in API response
-        status: "confirmed", // Default status if not in API response
-        amount: 0 // Default, if not in API response
+        status: "confirmed" // Default status if not in API response
       };
     });
 
@@ -975,6 +1153,8 @@ const fetchAppointmentsByMode = async (mode = "today") => {
       fetchedTodayAppointments.value = formattedAppointments;
       // Update mock data for backward compatibility
       staffData.todayAppointments = formattedAppointments;
+      // Update today stats with real data
+      updateTodayStats();
     } else if (mode === "all") {
       fetchedAllAppointments.value = formattedAppointments;
       // Update mock data for backward compatibility
@@ -987,6 +1167,122 @@ const fetchAppointmentsByMode = async (mode = "today") => {
     appointmentLoading.value = false;
   }
 };
+
+// Create notifications for today's appointments
+const createTodayAppointmentNotifications = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token || fetchedTodayAppointments.value.length === 0) return;
+
+    for (const appt of fetchedTodayAppointments.value) {
+      const notificationPayload = {
+        subject: "Today's Appointment",
+        body: `You have an appointment with ${appt.customerName} at ${appt.time} for ${appt.service}.`,
+        phone_number: "N/A"
+      };
+
+      try {
+        await fetch(`${API_BASE_URL}/api/send-notification`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            "Authentication-Token": token
+          },
+          body: JSON.stringify(notificationPayload)
+        });
+      } catch (notifError) {
+        console.warn(`Failed to create notification for appointment with ${appt.customerName}:`, notifError);
+      }
+    }
+  } catch (error) {
+    console.warn("Error creating appointment notifications:", error);
+  }
+};
+
+// Fetch notifications
+const fetchNotifications = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    notificationsLoading.value = true;
+    const response = await fetch(`${API_BASE_URL}/api/send-notification?include_read=false`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      notificationsList.value = await response.json();
+    } else {
+      notificationsList.value = [];
+    }
+  } catch (error) {
+    console.error("Error fetching notifications:", error);
+    notificationsList.value = [];
+  } finally {
+    notificationsLoading.value = false;
+  }
+};
+
+// Toggle notification panel
+const toggleNotificationPanel = async () => {
+  showNotificationPanel.value = !showNotificationPanel.value;
+  if (showNotificationPanel.value) {
+    await fetchNotifications();
+  }
+};
+
+// Mark notification as read
+const markNotificationAsRead = async (notificationId) => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    const response = await fetch(`${API_BASE_URL}/api/send-notification/${notificationId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      }
+    });
+
+    if (response.ok) {
+      const notification = notificationsList.value.find(n => n.id === notificationId);
+      if (notification) {
+        notification.is_read = true;
+      }
+    }
+  } catch (error) {
+    console.error("Error marking notification as read:", error);
+  }
+};
+
+// Mark all notifications as read
+const markAllNotificationsAsRead = async () => {
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) return;
+
+    for (const notification of notificationsList.value) {
+      if (!notification.is_read) {
+        await markNotificationAsRead(notification.id);
+      }
+    }
+  } catch (error) {
+    console.error("Error marking all as read:", error);
+  }
+};
+
+// Unread notifications count
+const unreadNotificationsCount = computed(() => {
+  return notificationsList.value.filter(n => !n.is_read).length;
+});
 
 // Fetch attendance data for current month
 const fetchAttendance = async () => {
@@ -1052,6 +1348,11 @@ const fetchAttendance = async () => {
     console.log("Data is array?", Array.isArray(data));
     console.log("Data length:", data ? data.length : 0);
     
+    // Debug: Log raw datetime values
+    if (Array.isArray(data) && data.length > 0) {
+      console.log("Raw datetimes:", data.map(r => `${r.register_id}: ${r.register_datetime}`));
+    }
+    
     // Handle both array and object responses
     let attendanceRecords = [];
     if (Array.isArray(data)) {
@@ -1070,15 +1371,24 @@ const fetchAttendance = async () => {
     }
     
     // Transform API response into UI format
-    const formattedAttendance = attendanceRecords.map(record => ({
-      id: record.register_id,
-      date: new Date(record.register_datetime).toISOString().split('T')[0],
-      status: "present" // Marking a record means the staff was present
-    }));
+    const formattedAttendance = attendanceRecords.map(record => {
+      // Parse the datetime string correctly without timezone conversion
+      const dateStr = record.register_datetime;
+      // Extract just the date part (YYYY-MM-DD) from the datetime string
+      const datePart = dateStr.split('T')[0] || dateStr.split(' ')[0];
+      return {
+        id: record.register_id,
+        date: datePart,
+        status: "present" // Marking a record means the staff was present
+      };
+    });
+
+    // Sort by date (newest first)
+    formattedAttendance.sort((a, b) => new Date(b.date) - new Date(a.date));
 
     console.log("Formatted attendance:", formattedAttendance);
     fetchedAttendance.value = formattedAttendance;
-    staffData.monthlyAttendance = formattedAttendance;
+    staffData.value.monthlyAttendance = formattedAttendance;
   } catch (error) {
     console.error("Error fetching attendance:", error);
     attendanceError.value = "Network error while fetching attendance. Please try again.";
@@ -1091,29 +1401,150 @@ const fetchAttendance = async () => {
 // Calculate attendance stats
 const attendanceStats = computed(() => {
   const stats = { present: 0, absent: 0, late: 0 };
-  const records = fetchedAttendance.value.length > 0 ? fetchedAttendance.value : staffData.monthlyAttendance;
-  records.forEach(record => {
-    if (record.status === 'present') stats.present++;
-    else if (record.status === 'absent') stats.absent++;
-    else if (record.status === 'late') stats.late++;
-  });
+  const records = (fetchedAttendance.value && fetchedAttendance.value.length > 0) 
+    ? fetchedAttendance.value 
+    : (staffData.value?.monthlyAttendance || []);
+  
+  if (records && records.length > 0) {
+    records.forEach(record => {
+      if (record.status === 'present') stats.present++;
+      else if (record.status === 'absent') stats.absent++;
+      else if (record.status === 'late') stats.late++;
+    });
+  }
   return stats;
 });
+
+// Fetch customer reviews from StaffCustomerReview API
+const fetchCustomerReviews = async () => {
+  reviewsLoading.value = true;
+  
+  try {
+    const token = localStorage.getItem("authToken");
+    if (!token) {
+      console.warn("No auth token found - skipping reviews fetch");
+      reviewsLoading.value = false;
+      return;
+    }
+
+    console.log("Fetching customer reviews from API...");
+    const response = await fetch(
+      `${API_BASE_URL}/api/staff-customer-reviews`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "Authentication-Token": token
+        }
+      }
+    );
+
+    console.log("Response status:", response.status);
+    
+    if (response.ok) {
+      const reviews = await response.json();
+      console.log("Customer reviews fetched successfully:", reviews);
+      console.log("Number of reviews:", reviews.length);
+      customerReviews.value = reviews || [];
+    } else {
+      const errorData = await response.text();
+      console.error("Failed to fetch customer reviews. Status:", response.status);
+      console.error("Error response:", errorData);
+      customerReviews.value = [];
+    }
+  } catch (error) {
+    console.error("Error fetching customer reviews:", error);
+    customerReviews.value = [];
+  } finally {
+    reviewsLoading.value = false;
+  }
+};
 
 // Filtered appointments & orders
 const filteredAppointments = computed(() => {
   // Use fetched appointments based on current mode
-  const appointments = appointmentMode.value === "today" 
+  let appointments = appointmentMode.value === "today" 
     ? fetchedTodayAppointments.value 
     : fetchedAllAppointments.value;
   
-  if (!appointmentCustomerFilter.value.trim()) return appointments;
-  const searchTerm = appointmentCustomerFilter.value.toLowerCase();
-  return appointments.filter(appt =>
-    appt.customerName.toLowerCase().includes(searchTerm) ||
-    appt.service.toLowerCase().includes(searchTerm)
-  );
+  // Apply filter
+  if (appointmentCustomerFilter.value.trim()) {
+    const searchTerm = appointmentCustomerFilter.value.toLowerCase();
+    appointments = appointments.filter(appt =>
+      appt.customerName.toLowerCase().includes(searchTerm) ||
+      appt.service.toLowerCase().includes(searchTerm)
+    );
+  }
+  
+  // Apply sorting
+  const sorted = [...appointments];
+  const sortBy = appointmentSortBy.value;
+  const isAscending = appointmentSortOrder.value === "asc";
+  
+  if (sortBy === "date") {
+    sorted.sort((a, b) => {
+      const dateA = new Date(a.date + " " + a.time);
+      const dateB = new Date(b.date + " " + b.time);
+      return isAscending ? dateA - dateB : dateB - dateA;
+    });
+  } else if (sortBy === "customer") {
+    sorted.sort((a, b) => {
+      const cmp = a.customerName.localeCompare(b.customerName);
+      return isAscending ? cmp : -cmp;
+    });
+  } else if (sortBy === "status") {
+    sorted.sort((a, b) => {
+      const cmp = a.status.localeCompare(b.status);
+      return isAscending ? cmp : -cmp;
+    });
+  } else if (sortBy === "amount") {
+    sorted.sort((a, b) => {
+      return isAscending ? a.amount - b.amount : b.amount - a.amount;
+    });
+  }
+  
+  return sorted;
 });
+
+// ─────────────────────── PAGINATION COMPUTED PROPERTIES ───────────────────────
+// Paginated Appointments
+const paginatedAppointments = computed(() => {
+  const start = (currentPageAppointments.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return filteredAppointments.value.slice(start, end);
+});
+
+const totalPagesAppointments = computed(() => Math.ceil(filteredAppointments.value.length / pageSize.value) || 1);
+
+// Paginated Reviews
+const paginatedReviews = computed(() => {
+  const start = (currentPageReviews.value - 1) * pageSize.value;
+  const end = start + pageSize.value;
+  return customerReviews.value.slice(start, end);
+});
+
+const totalPagesReviews = computed(() => Math.ceil(customerReviews.value.length / pageSize.value) || 1);
+
+// Reset pagination when filters change
+watch([appointmentCustomerFilter, appointmentSortBy, appointmentSortOrder], () => {
+  currentPageAppointments.value = 1;
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Pagination helper functions
+const goToPageAppointments = (page) => {
+  if (page >= 1 && page <= totalPagesAppointments.value) {
+    currentPageAppointments.value = page;
+  }
+};
+
+const goToPageReviews = (page) => {
+  if (page >= 1 && page <= totalPagesReviews.value) {
+    currentPageReviews.value = page;
+  }
+};
 
 const filteredOrders = computed(() => {
   if (!orderProductFilter.value.trim()) return staffData.orders;
@@ -1164,119 +1595,25 @@ const filteredServices = computed(() => {
 const appStore = useAppStore();
 
 // Mock data
-const staffData = {
-  name: "Sarah Johnson",
-  role: "Beauty Therapist",
-  email: "sarah@example.com",
-  phone: "+233 123 456 789",
-  dob: "1992-03-15",
-  address: "123 Main Street, Accra, Ghana",
-  skills: "Hair Styling, Makeup, Skincare, Customer Service",
+const staffData = ref({
+  name: "",
+  role: "",
+  email: "",
+  phone: "",
+  dob: "",
+  address: "",
+  skills: "",
   todayStats: {
-    appointmentsCount: 5,
-    completedCount: 2,
-    cancelledCount: 1,
+    appointmentsCount: 0,
+    completedCount: 0,
   },
-  todayAppointments: [
-    {
-      id: 1,
-      customerName: "Alice Brown",
-      service: "Hair Styling",
-      time: "09:00 AM",
-      duration: 60,
-      status: "completed",
-      amount: 50,
-    },
-    {
-      id: 2,
-      customerName: "Betty White",
-      service: "Manicure",
-      time: "10:30 AM",
-      duration: 45,
-      status: "in-progress",
-      amount: 30,
-    },
-    {
-      id: 3,
-      customerName: "Carol Smith",
-      service: "Massage Therapy",
-      time: "12:00 PM",
-      duration: 60,
-      status: "confirmed",
-      amount: 80,
-    },
-    {
-      id: 4,
-      customerName: "Diana Prince",
-      service: "Facial Treatment",
-      time: "02:00 PM",
-      duration: 60,
-      status: "pending",
-      amount: 70,
-    },
-    {
-      id: 5,
-      customerName: "Eve Wilson",
-      service: "Pedicure",
-      time: "04:00 PM",
-      duration: 45,
-      status: "confirmed",
-      amount: 35,
-    },
-  ],
-  upcomingAppointments: [
-    {
-      id: 6,
-      customerName: "Frank Miller",
-      service: "Hair Cut",
-      date: "2026-03-05",
-      time: "10:00 AM",
-      status: "confirmed",
-      duration: 45,
-      amount: 40,
-    },
-    {
-      id: 7,
-      customerName: "Grace Lee",
-      service: "Spa Package",
-      date: "2026-03-06",
-      time: "02:00 PM",
-      status: "confirmed",
-      duration: 120,
-      amount: 150,
-    },
-  ],
-  earnings: [
-    { date: "2026-03-01", amount: 320, count: 4 },
-    { date: "2026-03-02", amount: 280, count: 3 },
-    { date: "2026-03-03", amount: 450, count: 6 },
-    { date: "2026-03-04", amount: 250, count: 5 },
-  ],
-  monthlyAttendance: [
-    { date: "2026-03-01", status: "present" },
-    { date: "2026-03-02", status: "present" },
-    { date: "2026-03-03", status: "late" },
-    { date: "2026-03-04", status: "present" },
-    { date: "2026-03-05", status: "present" },
-    { date: "2026-03-06", status: "absent" },
-  ],
-  services: [
-    { id: 1, name: "Hair Cut & Style", price: 85 },
-    { id: 2, name: "Balayage", price: 220 },
-    { id: 3, name: "Gel Manicure", price: 55 },
-    { id: 4, name: "Hydra Facial", price: 120 },
-  ],
-  products: [
-    { id: 1, name: "L'Oreal Serum", currentStock: 8 },
-    { id: 2, name: "OPI Gel Polish", currentStock: 2 },
-    { id: 3, name: "Bleach Powder", currentStock: 15 },
-    { id: 4, name: "Cetaphil Cleanser", currentStock: 3 },
-  ],
-  orders: [
-    { id: 1, productId: 2, quantity: 5, serviceId: 3, status: "pending", date: "2026-03-05" },
-    { id: 2, productId: 1, quantity: 2, serviceId: 4, status: "completed", date: "2026-03-04" },
-  ],
-};
+  todayAppointments: [],
+  upcomingAppointments: [],
+  monthlyAttendance: [],
+  staffId: null,
+  cumulativeRating: 0,
+  totalReviews: 0,
+});
 
 const pageTitle = computed(() => {
   const titles = {
@@ -1317,29 +1654,37 @@ const getOrderStatusBadgeClass = (status) => {
   return badges[status] || "badge-gray";
 };
 
-// Get ratings received by current staff member
-const currentStaffId = 1; // Amara Osei - would come from authenticated user in production
-
+// Get ratings received by current staff member from backend data
 const staffRatings = computed(() => {
-  const staffFeedbacks = appStore.data.feedbacks.filter(f => f.staffId === currentStaffId);
-  if (staffFeedbacks.length === 0) return { feedbacks: [], averageRating: 0 };
+  // Use cumulative rating and total reviews from staff data
+  const cumulativeRating = staffData.cumulativeRating || 0;
+  const totalReviews = staffData.totalReviews || 0;
   
-  const totalRating = staffFeedbacks.reduce((sum, f) => sum + f.rating, 0);
-  const averageRating = (totalRating / staffFeedbacks.length).toFixed(1);
+  // Map fetched reviews to UI format
+  let feedbacks = [];
+  let averageFromFetched = 0;
   
-  // Enrich feedbacks with customer names
-  const enrichedFeedbacks = staffFeedbacks.map(f => {
-    const customer = appStore.data.customers.find(c => c.id === f.customerId);
-    return {
-      ...f,
-      customerName: customer ? customer.name : "Anonymous Customer"
-    };
-  });
+  if (customerReviews.value && customerReviews.value.length > 0) {
+    feedbacks = customerReviews.value
+      .slice(0, 5) // Show last 5 reviews
+      .map(r => ({
+        id: r.review_id,
+        rating: r.rating,
+        customerName: r.customer_name,
+        comment: r.review || "No comment provided",
+        service_names: r.service_names || [],
+        date: new Date().toISOString() // Default to current date
+      }));
+    
+    // Calculate average rating from fetched reviews
+    const sum = customerReviews.value.reduce((total, r) => total + (r.rating || 0), 0);
+    averageFromFetched = sum / customerReviews.value.length;
+  }
   
   return {
-    feedbacks: enrichedFeedbacks,
-    averageRating: parseFloat(averageRating),
-    totalRatings: staffFeedbacks.length
+    feedbacks: feedbacks,
+    averageRating: feedbacks.length > 0 ? parseFloat(averageFromFetched.toFixed(2)) : cumulativeRating,
+    totalRatings: customerReviews.value ? customerReviews.value.length : totalReviews
   };
 });
 
@@ -1512,12 +1857,11 @@ const handleMarkTodayAttendance = async () => {
       setTimeout(() => {
         attendanceSuccess.value = "";
       }, 2000);
-    } else if (response.status === 400) {
-      // 400 - likely already marked or other validation error
-      // Check if it's the "already marked" error specifically
+    } else if (response.status === 400 || response.status === 409) {
+      // 400/409 - validation error or conflict (already marked)
       const message = data.message || "";
-      console.log("400 error message:", message);
-      
+      console.log("error message:", message);
+
       if (message.toLowerCase().includes("already marked")) {
         // Attendance already marked - show as informational message
         attendanceSuccess.value = "ℹ️ Attendance already marked for today!";
@@ -1700,6 +2044,9 @@ const handleOrderProduct = async () => {
       orderSuccess.value = `Order placed successfully for ${getProductName(parseInt(orderForm.value.productId))}!`;
       console.log("Order created:", result);
       
+      // Fetch updated orders history to auto-load in table
+      await fetchStaffInventoryTransactions();
+      
       // Fetch updated orders history
       setTimeout(() => {
         orderForm.value = {
@@ -1731,30 +2078,64 @@ const handleLogout = () => {
   router.push("/login/staff");
 };
 
-const openProfileEdit = () => {
+const openProfileEdit = async () => {
   profileForm.value = {
-    name: staffData.name,
-    email: staffData.email,
-    phone: staffData.phone,
-    dob: staffData.dob || "",
-    address: staffData.address || "",
-    skills: staffData.skills || ""
+    name: staffData.value.name,
+    email: staffData.value.email,
+    phone: staffData.value.phone,
+    dob: staffData.value.dob || "",
+    skills: staffData.value.skills || ""
   };
+  
+  // Wait for Vue to update form refs before showing modal
+  await nextTick();
+  
   showProfileEditModal.value = true;
 };
 
-const handleUpdateProfile = () => {
-  // Update staff data with form values
-  staffData.name = profileForm.value.name;
-  staffData.email = profileForm.value.email;
-  staffData.phone = profileForm.value.phone;
-  staffData.dob = profileForm.value.dob;
-  staffData.address = profileForm.value.address;
-  staffData.skills = profileForm.value.skills;
-  
-  // Close modal and show success
-  showProfileEditModal.value = false;
-  console.log("Profile updated successfully");
+const handleUpdateProfile = async () => {
+  const token = localStorage.getItem("authToken");
+  if (!token) {
+    alert("Authentication token not found. Please login again.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/staff-info`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+        "Authentication-Token": token
+      },
+      body: JSON.stringify({
+        staff_name: profileForm.value.name,
+        staff_email: profileForm.value.email,
+        staff_contact: profileForm.value.phone,
+        staff_dob: profileForm.value.dob,
+        staff_skills: profileForm.value.skills
+      })
+    });
+
+    if (response.ok) {
+      // Update local state with form values
+      staffData.value.name = profileForm.value.name;
+      staffData.value.email = profileForm.value.email;
+      staffData.value.phone = profileForm.value.phone;
+      staffData.value.dob = profileForm.value.dob;
+      staffData.value.skills = profileForm.value.skills;
+      
+      // Close modal and show success
+      showProfileEditModal.value = false;
+      console.log("Profile updated successfully on backend");
+    } else {
+      const error = await response.json();
+      alert("Failed to update profile: " + (error.message || "Unknown error"));
+    }
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    alert("Error updating profile: " + error.message);
+  }
 };
 
 // Close dropdown when clicking outside
@@ -1771,16 +2152,37 @@ const handleClickOutside = (e) => {
   if (sidebarUser && !sidebarUser.contains(e.target)) {
     showProfileMenu.value = false;
   }
+
+  // Close notification panel
+  const notificationPanel = document.querySelector('.notification-panel');
+  const notifBtn = document.querySelector('.notif-btn');
+  if (notificationPanel && !notificationPanel.contains(e.target) && !notifBtn?.contains(e.target)) {
+    showNotificationPanel.value = false;
+  }
 };
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside);
   
-  // Fetch today's appointments on mount
-  fetchAppointmentsByMode("today");
+  // Fetch notifications
+  fetchNotifications();
+  
+  // Fetch staff info and widget data
+  fetchStaffInfo();
+  
+  // Fetch today's appointment stats from StaffDashboard API
+  fetchDashboardStats();
+  
+  // Fetch today's appointments on mount and create notifications
+  fetchAppointmentsByMode("today").then(() => {
+    createTodayAppointmentNotifications();
+  });
   
   // Fetch attendance data on mount
   fetchAttendance();
+  
+  // Fetch customer reviews on mount
+  fetchCustomerReviews();
   
   // Fetch products and services for ordering
   fetchProducts();
@@ -1837,6 +2239,8 @@ onUnmounted(() => {
   font-family: inherit;
   transition: border-color 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
+  background: #1a1a1a;
+  color: white;
 }
 
 .form-input:focus {
@@ -1845,9 +2249,14 @@ onUnmounted(() => {
   box-shadow: 0 0 0 3px rgba(229, 170, 84, 0.1);
 }
 
+select.form-input {
+  color-scheme: dark;
+}
+
 .form-input:disabled {
-  background-color: var(--ivory);
-  color: var(--text-muted);
+  background-color: #1a1a1a;
+  color: #888;
+  opacity: 0.6;
 }
 
 .form-hint {
@@ -1970,7 +2379,8 @@ onUnmounted(() => {
   align-items: center;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: white;
+  background: #1a1a1a;
+  color: white;
   cursor: text;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -1987,11 +2397,16 @@ onUnmounted(() => {
   font-family: inherit;
   outline: none;
   background: transparent;
+  color: white;
+}
+
+.dropdown-search-input::placeholder {
+  color: #888;
 }
 
 .dropdown-arrow {
   padding: 0 12px;
-  color: var(--text-muted);
+  color: #888;
   font-size: 11px;
   user-select: none;
   pointer-events: none;
@@ -2002,7 +2417,7 @@ onUnmounted(() => {
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
+  background: #1a1a1a;
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius-sm) var(--radius-sm);
@@ -2010,29 +2425,32 @@ onUnmounted(() => {
   overflow-y: auto;
   z-index: 10;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+  color: white;
 }
 
 .dropdown-option {
   padding: 12px 12px;
   cursor: pointer;
-  border-bottom: 1px solid var(--light-bg);
+  border-bottom: 1px solid #333;
   transition: background-color 0.2s;
+  color: white;
 }
 
 .dropdown-option:hover {
-  background-color: var(--light-bg);
+  background-color: rgba(229, 170, 84, 0.2);
 }
 
 .dropdown-option.selected {
-  background-color: rgba(229, 170, 84, 0.15);
+  background-color: rgba(229, 170, 84, 0.25);
   border-left: 3px solid var(--gold);
   padding-left: 9px;
+  color: var(--gold);
 }
 
 .dropdown-no-results {
   padding: 12px;
   text-align: center;
-  color: var(--text-muted);
+  color: #888;
   font-size: 13px;
 }
 </style>

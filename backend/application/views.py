@@ -1,14 +1,16 @@
 import anthropic
 import json
+import secrets
 from collections import Counter
 
 from flask import Blueprint, request, jsonify, current_app, send_file
 from flask_restful import Api, Resource
-from flask_security import auth_required, roles_accepted, current_user, verify_password, hash_password
+from flask_security import auth_required, roles_accepted, roles_required, current_user, verify_password, hash_password, logout_user
+from flask_mail import Message
 from sqlalchemy import func
 from datetime import datetime, date, timedelta
 from werkzeug.security import check_password_hash
-from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, CustomerReview, db, Role, Manager, ManagerTask, StaffAttendance, ReportRecord, InventoryTransaction, Finance
+from .models import Service, Staff, Customer, User, Product, Appointment, Invoice, CustomerReview, db, Role, Manager, ManagerTask, StaffAttendance, ReportRecord, InventoryTransaction, Finance, PasswordResetToken
 from .sec import datastore
 
 main = Blueprint('main', __name__)
@@ -64,7 +66,7 @@ def manager_login():
         return jsonify({"message": "Access denied: User is not a Manager"}), 403
     
     if verify_password(password, user.password):
-        return jsonify({"token": user.get_auth_token(), "username": user.username, "role": user.roles[0].name})
+        return jsonify({"token": user.get_auth_token(), "username": user.username, "role": user.roles[0].name, "userId": user.id})
     else:
         return jsonify({"message":"Wrong Password"}), 400
 #######################################################################################
@@ -119,6 +121,130 @@ def customer_login():
         return jsonify({"token": user.get_auth_token(), "username": user.username, "role": user.roles[0].name})
     else:
         return jsonify({"message":"Wrong Password"}), 400
+
+#######################################################################################
+################################## Logout API ##############################
+@main.route('/logout', methods=['POST'])
+@auth_required("token")
+def logout():
+    logout_user()
+    return jsonify({"message": "Successfully logged out"}), 200
+
+#######################################################################################
+################################## Forgot Password API ##############################
+@main.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    try:
+        data = request.get_json(silent=True) or {}
+        email = (data.get('email') or '').strip().lower()
+        if not email:
+            return jsonify({"message": "Email is required"}), 400
+
+        # Find user_id by searching role-specific tables
+        user_id = None
+        customer = Customer.query.filter(func.lower(Customer.customer_email) == email).first()
+        if customer:
+            user_id = customer.customer_id
+        else:
+            staff = Staff.query.filter(func.lower(Staff.staff_email) == email).first()
+            if staff:
+                user_id = staff.staff_id
+            else:
+                manager = Manager.query.filter(func.lower(Manager.manager_email) == email).first()
+                if manager:
+                    user_id = manager.manager_id
+
+        if not user_id:
+            return jsonify({"message": "If that email is registered, a reset link has been sent."}), 200
+
+        user = db.session.get(User, user_id)
+        if not user or not user.active:
+            return jsonify({"message": "If that email is registered, a reset link has been sent."}), 200
+
+        # Invalidate any existing unused tokens for this user
+        for old in PasswordResetToken.query.filter_by(user_id=user_id, used=False).all():
+            old.used = True
+        db.session.commit()
+
+        token = secrets.token_urlsafe(32)
+        expiry = datetime.utcnow() + timedelta(hours=1)
+        reset_token = PasswordResetToken(user_id=user_id, token=token, expiry=expiry)
+        db.session.add(reset_token)
+        db.session.commit()
+
+        frontend_url = current_app.config.get('FRONTEND_URL', 'http://localhost:5173')
+        reset_link = f"{frontend_url}/reset-password?token={token}"
+
+        email_sent = False
+        try:
+            msg = Message(
+                subject="Reset Your Glow Suite Password",
+                recipients=[email],
+                body=(
+                    f"Hello,\n\n"
+                    f"You requested a password reset for your Glow Suite account.\n\n"
+                    f"Click the link below to set a new password (valid for 1 hour):\n\n"
+                    f"{reset_link}\n\n"
+                    f"If you did not request this, please ignore this email.\n\n"
+                    f"— Glow Suite Team"
+                )
+            )
+            current_app.mail.send(msg)
+            email_sent = True
+        except Exception as mail_err:
+            print(f"Password reset email failed: {str(mail_err)}")
+            print(f"[DEV] Password reset link for {email}: {reset_link}")
+
+        return jsonify({
+            "message": "If that email is registered, a reset link has been sent.",
+            "dev_reset_link": reset_link if not email_sent else None
+        }), 200
+
+    except Exception as e:
+        print(f"[ERROR] forgot_password: {str(e)}")
+        db.session.rollback()
+        return jsonify({"message": f"Server error: {str(e)}"}), 500
+
+
+#######################################################################################
+################################## Reset Password API ##############################
+@main.route('/reset-password', methods=['POST'])
+def reset_password():
+    try:
+        data = request.get_json(silent=True) or {}
+        token = (data.get('token') or '').strip()
+        new_password = data.get('new_password') or ''
+
+        if not token or not new_password:
+            return jsonify({"message": "Token and new password are required"}), 400
+
+        if len(new_password) < 6:
+            return jsonify({"message": "Password must be at least 6 characters"}), 400
+
+        reset_token = PasswordResetToken.query.filter_by(token=token, used=False).first()
+        if not reset_token:
+            return jsonify({"message": "Invalid or expired reset link"}), 400
+
+        if datetime.utcnow() > reset_token.expiry:
+            reset_token.used = True
+            db.session.commit()
+            return jsonify({"message": "Reset link has expired. Please request a new one."}), 400
+
+        user = db.session.get(User, reset_token.user_id)
+        if not user:
+            return jsonify({"message": "User not found"}), 404
+
+        user.password = hash_password(new_password)
+        reset_token.used = True
+        db.session.commit()
+
+        return jsonify({"message": "Password reset successfully. You can now log in."}), 200
+
+    except Exception as e:
+        print(f"[ERROR] reset_password: {str(e)}")
+        db.session.rollback()
+        return jsonify({"message": f"Server error: {str(e)}"}), 500
+
 
 #######################################################################################
 ################################## Customer Registration API ##############################
@@ -574,7 +700,7 @@ def get_manager_tasks():
 @auth_required()
 @roles_accepted('manager')
 def update_task_status(task_id):
-    task = ManagerTask.query.get(task_id)
+    task = db.session.get(ManagerTask, task_id)
     if not task:
         return jsonify({"message": "Task not found"}), 404
 
@@ -834,6 +960,193 @@ Return ONLY valid JSON: {{"response": "..."}}"""
     return jsonify(result)
 
 
+@main.route('/ai/manager-chat', methods=['POST'])
+@auth_required()
+@roles_accepted('manager', 'owner')
+def manager_chat():
+    """
+    AI-powered manager assistant with full DB context.
+    Answers questions about appointments, revenue, staff, customers,
+    services, inventory, and general salon analytics.
+    """
+    data = request.get_json(silent=True) or {}
+    message = (data.get('message') or '').strip()
+    history = data.get('history', [])  # [{role: 'user'|'assistant', text: '...'}]
+    if not message:
+        return jsonify({"response": "Please type a message."}), 400
+
+    today = date.today()
+    month_start = today.replace(day=1)
+    last_month_start = (month_start - timedelta(days=1)).replace(day=1)
+    two_months_ago = (last_month_start - timedelta(days=1)).replace(day=1)
+
+    # ── Gather rich salon data ────────────────────────────────────────────────
+    # Appointments
+    today_appts = Appointment.query.filter(
+        func.date(Appointment.appointment_datetime) == today
+    ).all()
+    this_month_appts = Appointment.query.filter(
+        Appointment.appointment_datetime >= datetime.combine(month_start, datetime.min.time())
+    ).all()
+    last_month_appts = Appointment.query.filter(
+        Appointment.appointment_datetime >= datetime.combine(last_month_start, datetime.min.time()),
+        Appointment.appointment_datetime < datetime.combine(month_start, datetime.min.time())
+    ).all()
+
+    # Staff
+    all_staff = Staff.query.all()
+    staff_today_ids = {a.staff_id for a in today_appts if a.staff_id}
+    absent_today = StaffAttendance.query.filter(
+        func.date(StaffAttendance.register_datetime) == today,
+        StaffAttendance.present_flag == False
+    ).count()
+
+    # Services added this month
+    recent_services = Service.query.filter(
+        Service.from_date >= month_start
+    ).order_by(Service.from_date.desc()).all()
+
+    all_services = Service.query.filter_by(active_flg=True).all()
+
+    # Revenue
+    this_month_invoices = Invoice.query.filter(
+        Invoice.invoice_date >= month_start
+    ).all()
+    last_month_invoices = Invoice.query.filter(
+        Invoice.invoice_date >= last_month_start,
+        Invoice.invoice_date < month_start
+    ).all()
+    this_month_revenue = sum(i.payable_invoice_amount or 0 for i in this_month_invoices)
+    last_month_revenue = sum(i.payable_invoice_amount or 0 for i in last_month_invoices)
+
+    # Customers
+    total_customers = Customer.query.count()
+    new_customers_this_month = Customer.query.filter(
+        Customer.customer_reg_date >= month_start
+    ).count()
+
+    # Low stock
+    low_stock = Product.query.filter_by(product_low_stock_alert=True).all()
+
+    # Recent reviews
+    recent_reviews = CustomerReview.query.order_by(CustomerReview.review_id.desc()).limit(5).all()
+    avg_rating = db.session.query(func.avg(CustomerReview.rating)).scalar()
+
+    # Top services this month
+    svc_counter = Counter()
+    for appt in this_month_appts:
+        for svc in appt.services:
+            svc_counter[svc.service_desc] += 1
+    top_services_month = svc_counter.most_common(5)
+
+    # Staff performance this month
+    staff_appt_counter = Counter(
+        a.staff.staff_name for a in this_month_appts if a.staff
+    )
+    top_staff_month = staff_appt_counter.most_common(5)
+
+    # Manager name
+    manager_name = "Manager"
+    if current_user.manager_profile:
+        manager_name = current_user.manager_profile.manager_name
+    elif current_user.owner_profile:
+        manager_name = current_user.owner_profile.owner_name
+
+    # ── Build context snapshot ────────────────────────────────────────────────
+    context = f"""=== SALON DATABASE SNAPSHOT (as of {today}) ===
+
+MANAGER: {manager_name}
+
+TODAY ({today}):
+- Total appointments: {len(today_appts)}
+- Upcoming (status=0): {sum(1 for a in today_appts if a.status == 0)}
+- Completed: {sum(1 for a in today_appts if a.status == 1)}
+- Staff absent today: {absent_today}
+- Staff working today: {len(staff_today_ids)} out of {len(all_staff)}
+
+THIS MONTH ({month_start.strftime('%B %Y')}):
+- Total appointments: {len(this_month_appts)}
+- Invoiced appointments: {sum(1 for a in this_month_appts if a.status == 5)}
+- Revenue collected: ₹{this_month_revenue:,.2f}
+- Invoices raised: {len(this_month_invoices)}
+
+LAST MONTH ({last_month_start.strftime('%B %Y')}):
+- Total appointments: {len(last_month_appts)}
+- Revenue: ₹{last_month_revenue:,.2f}
+
+CUSTOMERS:
+- Total registered: {total_customers}
+- New this month: {new_customers_this_month}
+
+STAFF ({len(all_staff)} total):
+{chr(10).join(f"  - {s.staff_name} ({s.staff_role}) | Skills: {s.staff_skills} | Rating: {s.staff_cumulative_rating:.1f}★" for s in all_staff[:15])}
+
+ACTIVE SERVICES ({len(all_services)} total):
+{chr(10).join(f"  - {s.service_desc} | {s.service_category} | ₹{int(s.service_price)} | {s.service_duration} min | Rating: {s.service_rating:.1f}★" for s in all_services[:20])}
+
+NEW SERVICES THIS MONTH ({len(recent_services)}):
+{chr(10).join(f"  - {s.service_desc} (added {s.from_date})" for s in recent_services[:10]) or "  None"}
+
+TOP SERVICES THIS MONTH:
+{chr(10).join(f"  {i+1}. {name}: {count} bookings" for i, (name, count) in enumerate(top_services_month)) or "  No data yet"}
+
+TOP STAFF THIS MONTH (by appointments):
+{chr(10).join(f"  {i+1}. {name}: {count} appointments" for i, (name, count) in enumerate(top_staff_month)) or "  No data yet"}
+
+INVENTORY:
+- Low stock alerts: {len(low_stock)} item(s)
+{chr(10).join(f"  - {p.product_desc} (stock: {p.product_stock})" for p in low_stock[:10]) or "  None"}
+
+REVIEWS:
+- Average rating: {f'{avg_rating:.1f}★' if avg_rating else 'N/A'}
+- Recent reviews (last 5): {', '.join(f'{r.rating}★' for r in recent_reviews) or 'None'}
+"""
+
+    # ── Build conversation for Claude ─────────────────────────────────────────
+    system_prompt = f"""You are an intelligent AI assistant for the Glow Suite salon manager dashboard. You have access to real-time salon database data provided in the context below.
+
+Your capabilities:
+- Answer specific questions about appointments, revenue, staff, customers, services, and inventory using the actual data
+- Perform analysis and comparisons (e.g., this month vs last month, top performers)
+- Give personalized, data-driven recommendations
+- Help with operational decisions
+
+Rules:
+- Always use actual numbers from the database context — never make up data
+- Be concise but complete (under 150 words unless a detailed breakdown is requested)
+- Use ₹ for Indian rupees
+- Be professional but friendly
+- If you don't have the specific data to answer a question, say so honestly
+- For trends, compare current vs previous period when data is available
+- IMPORTANT: Write in plain text only. Do NOT use markdown — no **bold**, no *italic*, no bullet point dashes, no # headers. Use plain numbered lists (1. 2. 3.) if listing items. Keep formatting simple and readable as plain text.
+
+{context}"""
+
+    # Convert history to Claude message format (last 10 turns only)
+    claude_messages = []
+    for turn in history[-10:]:
+        role = 'user' if turn.get('type') == 'user' else 'assistant'
+        claude_messages.append({'role': role, 'content': turn.get('text', '')})
+    claude_messages.append({'role': 'user', 'content': message})
+
+    try:
+        client = anthropic.Anthropic(api_key=current_app.config.get('ANTHROPIC_API_KEY', ''))
+        resp = client.messages.create(
+            model='claude-haiku-4-5-20251001',
+            max_tokens=512,
+            system=system_prompt,
+            messages=claude_messages
+        )
+        reply = resp.content[0].text.strip()
+    except Exception as e:
+        reply = (
+            "I'm having trouble connecting to the AI right now. "
+            "Please check your ANTHROPIC_API_KEY configuration and try again."
+        )
+
+    return jsonify({"response": reply})
+
+
 def _reports_dir():
     """Absolute path to the /reports/ folder next to main.py."""
     import os
@@ -949,7 +1262,7 @@ def list_reports():
 def download_saved_report(report_id):
     import os
     fmt = request.args.get('format', 'csv').lower()
-    rec = ReportRecord.query.get(report_id)
+    rec = db.session.get(ReportRecord, report_id)
     if not rec:
         return jsonify({"message": "Report not found"}), 404
 
@@ -970,7 +1283,7 @@ def download_saved_report(report_id):
 @auth_required()
 @roles_accepted('manager')
 def share_report_with_owner(report_id):
-    rec = ReportRecord.query.get(report_id)
+    rec = db.session.get(ReportRecord, report_id)
     if not rec:
         return jsonify({"message": "Report not found"}), 404
     if rec.generated_by != current_user.id:
@@ -1169,3 +1482,83 @@ def report_analytics():
         })
 
     return jsonify({"message": f"Unknown report type: {report_type}"}), 400
+
+
+@main.route('/api/owner/overview', methods=['GET'])
+@auth_required()
+@roles_required('owner')
+def owner_overview():
+    from collections import Counter as _Counter
+    from datetime import datetime, timedelta
+
+    now = datetime.utcnow()
+    thirty_days_ago = now - timedelta(days=30)
+
+    # Total customers
+    total_customers = Customer.query.count()
+
+    # Customer type breakdown
+    customers = Customer.query.with_entities(Customer.customer_type).all()
+    type_counter = _Counter(c.customer_type for c in customers)
+    customer_type_breakdown = [{'type': k, 'count': v} for k, v in type_counter.items()]
+
+    # Total bookings (all time)
+    total_bookings = Appointment.query.count()
+
+    # Upcoming bookings (status=0, future)
+    upcoming_bookings = Appointment.query.filter(
+        Appointment.status == 0,
+        Appointment.appointment_datetime >= now
+    ).count()
+
+    # Appointment status breakdown (last 30 days)
+    STATUS_MAP = {0: 'Booked', 1: 'Completed', 2: 'No-show', 3: 'Cancelled', 4: 'Rescheduled', 5: 'Invoiced'}
+    recent_appts = Appointment.query.filter(Appointment.appointment_datetime >= thirty_days_ago).all()
+    status_counter = _Counter(STATUS_MAP.get(a.status, 'Unknown') for a in recent_appts)
+    appointment_status = [{'status': k, 'count': v} for k, v in status_counter.items()]
+
+    # Revenue stats (all invoices)
+    invoices = Invoice.query.all()
+    total_revenue = round(sum(float(i.payable_invoice_amount) for i in invoices), 2)
+    avg_revenue_per_booking = round(total_revenue / total_bookings, 2) if total_bookings else 0
+
+    # Revenue by day of week (last 30 days)
+    recent_invoices = Invoice.query.filter(Invoice.invoice_date >= thirty_days_ago.date()).all()
+    day_revenue = {}
+    for inv in recent_invoices:
+        day = inv.invoice_date.strftime('%a')
+        day_revenue[day] = round(day_revenue.get(day, 0) + float(inv.payable_invoice_amount), 2)
+    day_order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+    revenue_by_day = [{'day': d, 'revenue': day_revenue.get(d, 0)} for d in day_order if d in day_revenue or day_revenue.get(d, 0) > 0]
+    if not revenue_by_day:
+        revenue_by_day = [{'day': d, 'revenue': 0} for d in day_order]
+
+    # Revenue trend: last 30 days grouped by date
+    date_revenue = {}
+    for inv in recent_invoices:
+        d = inv.invoice_date.strftime('%Y-%m-%d')
+        date_revenue[d] = round(date_revenue.get(d, 0) + float(inv.payable_invoice_amount), 2)
+    revenue_trend = [{'date': d, 'revenue': v} for d, v in sorted(date_revenue.items())]
+
+    # Customer satisfaction (avg rating)
+    reviews = CustomerReview.query.all()
+    avg_satisfaction = round(sum(r.rating for r in reviews) / len(reviews), 1) if reviews else 0
+
+    # Staff avg rating
+    staff_list = Staff.query.all()
+    rated_staff = [s for s in staff_list if s.staff_cumulative_rating and s.staff_cumulative_rating > 0]
+    avg_staff_rating = round(sum(s.staff_cumulative_rating for s in rated_staff) / len(rated_staff), 1) if rated_staff else 0
+
+    return jsonify({
+        'total_customers': total_customers,
+        'total_bookings': total_bookings,
+        'total_revenue': total_revenue,
+        'avg_revenue_per_booking': avg_revenue_per_booking,
+        'upcoming_bookings': upcoming_bookings,
+        'customer_type_breakdown': customer_type_breakdown,
+        'appointment_status': appointment_status,
+        'revenue_by_day': revenue_by_day,
+        'revenue_trend': revenue_trend,
+        'avg_satisfaction': avg_satisfaction,
+        'avg_staff_rating': avg_staff_rating,
+    })

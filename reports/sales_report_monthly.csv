@@ -1,31 +1,6 @@
 Invoice #,Date,Customer,Services,Staff,Invoice Amount (₹),Rewards Used,Payable Amount (₹)
-1,02 Apr 2026,Cynthia Thompson,"Several Service, Close Service",Angela Fritz,1223.00,20,1223.00
-2,02 Apr 2026,Nancy Barron,"Several Service, Close Service",James Johnson,1356.00,16,1356.00
-3,02 Apr 2026,Sarah Cooley,"Several Service, Close Service",Paul Ortiz,1556.00,2,1556.00
-4,02 Apr 2026,Kelly Guerra,"Several Service, Close Service",Brian Day,1106.00,7,1106.00
-5,02 Apr 2026,Tim Smith,"Several Service, Close Service",Susan Delacruz,2847.00,13,2847.00
-6,02 Apr 2026,Corey Chavez,"Several Service, Close Service",Brandon Haney,2878.00,17,2878.00
-7,02 Apr 2026,Mary Bell,"Several Service, Close Service",Heather Werner,719.00,8,719.00
-8,02 Apr 2026,Nancy Barron,"Several Service, Close Service",James Johnson,1532.00,11,1532.00
-9,02 Apr 2026,Corey Chavez,"Several Service, Close Service",Kimberly Ortiz,2153.00,14,2153.00
-10,02 Apr 2026,Rodney Kelly,"Several Service, Close Service",Angela Fritz,1097.00,6,1097.00
-11,02 Apr 2026,Robert Carpenter,"Several Service, Close Service",Brian Lopez,2864.00,13,2864.00
-12,02 Apr 2026,Loretta May,"Several Service, Close Service",Jenna Howe,2898.00,14,2898.00
-13,02 Apr 2026,Mary Bell,"Several Service, Close Service",Andrew Dixon,2504.00,16,2504.00
-14,02 Apr 2026,Raymond Barry,"Several Service, Close Service",Robert Knight,2941.00,17,2941.00
-15,02 Apr 2026,Valerie Curry,"Several Service, Close Service",Robert Knight,1840.00,19,1840.00
-16,02 Apr 2026,Kristina Mueller,"Several Service, Close Service",Suzanne Boyd,1124.00,7,1124.00
-17,02 Apr 2026,Corey Chavez,"Several Service, Close Service",Olivia Medina,2636.00,18,2636.00
-18,02 Apr 2026,Anthony Roberts,"Several Service, Close Service",Eric Perez,1565.00,12,1565.00
-19,02 Apr 2026,Ms. Carrie Davis DDS,"Several Service, Close Service",Angela Fritz,1315.00,18,1315.00
-20,02 Apr 2026,William Flores,"Several Service, Close Service",Jose Davis,2762.00,20,2762.00
-21,02 Apr 2026,Rodney Kelly,"Several Service, Close Service",Jose Davis,2326.00,17,2326.00
-22,02 Apr 2026,Cynthia Thompson,"Several Service, Close Service",James Johnson,1298.00,2,1298.00
-23,02 Apr 2026,Mary Bell,"Several Service, Close Service",Michael Alexander,2798.00,12,2798.00
-24,02 Apr 2026,Cheryl Sparks,"Several Service, Close Service",James Johnson,1423.00,13,1423.00
-25,02 Apr 2026,David Logan,"Several Service, Close Service",Suzanne Boyd,1603.00,8,1603.00
-26,02 Apr 2026,Jessica Gay,"Several Service, Close Service",Olivia Medina,1623.00,9,1623.00
-27,02 Apr 2026,Raymond Barry,"Several Service, Close Service",Kimberly Ortiz,2526.00,1,2526.00
-28,02 Apr 2026,Veronica Cantu,"Several Service, Close Service",Angela Fritz,2031.00,14,2031.00
-29,02 Apr 2026,Valerie Curry,"Several Service, Close Service",Jose Davis,1447.00,20,1447.00
-30,02 Apr 2026,Cynthia Thompson,"Several Service, Close Service",Gary Davis,1226.00,8,1226.00
+4,01 Apr 2026,Lavanya Bose,"Full Face Threading, Eyebrow Shaping & Tint, Bridal Makeup Package",Lakshmi Rao,12460.00,3,12657.00
+49,01 Apr 2026,Bhavna Patel,Ladies Haircut & Styling,Preeti Mishra,550.00,11,739.00
+53,20 Apr 2026,geeta,"Ladies Haircut & Styling, Hair Coloring – Global, Hair Highlights",Priya Sharma,5150.00,50,4632.50
+54,20 Apr 2026,geeta,Kerasmooth / Keratin Treat.,Priya Sharma,4500.00,483,4025.85
+55,20 Apr 2026,geeta,Blow Dry & Setting,Priya Sharma,400.00,402,359.90
